@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "vSwUcny8UAPCeade45Bse"
+uri = "file://attached_assets/Virtual_GC_Complete_Strategy_Brief.pdf"
+type = "pdf"
+title = "Virtual GC - Complete Strategy & Technical Brief"
