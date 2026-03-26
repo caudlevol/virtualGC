@@ -257,6 +257,7 @@ export default function ChatPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
+  const [lightboxIsListing, setLightboxIsListing] = useState(false);
 
   const [input, setInput] = useState("");
 
@@ -294,9 +295,10 @@ export default function ChatPage() {
     }
   }, [conv?.messages, sendMutation.isPending, visualizeMutation.isPending]);
 
-  const openLightbox = (photos: string[], index: number) => {
+  const openLightbox = (photos: string[], index: number, isListing = false) => {
     setLightboxPhotos(photos);
     setLightboxIndex(index);
+    setLightboxIsListing(isListing);
     setLightboxOpen(true);
   };
 
@@ -342,7 +344,7 @@ export default function ChatPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <PropertyPhotoCarousel
                 photos={property.listingPhotos || []}
-                onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i)}
+                onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i, true)}
                 onVisualize={handleVisualizePhoto}
                 isVisualizing={visualizeMutation.isPending}
                 canVisualize={conv.messages.length >= 2}
@@ -391,7 +393,7 @@ export default function ChatPage() {
                       src={property.listingPhotos![0]}
                       alt="Property"
                       className="w-12 h-12 rounded-lg object-cover cursor-pointer"
-                      onClick={() => openLightbox(property.listingPhotos || [], 0)}
+                      onClick={() => openLightbox(property.listingPhotos || [], 0, true)}
                     />
                   )}
                   <div>
@@ -429,7 +431,7 @@ export default function ChatPage() {
               >
                 <PhotoStrip
                   photos={property.listingPhotos!}
-                  onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i)}
+                  onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i, true)}
                   onVisualize={handleVisualizePhoto}
                   isVisualizing={visualizeMutation.isPending}
                   canVisualize={conv.messages.length >= 2}
@@ -593,7 +595,7 @@ export default function ChatPage() {
             photos={lightboxPhotos}
             initialIndex={lightboxIndex}
             onClose={() => setLightboxOpen(false)}
-            onVisualize={conv.messages.length >= 2 ? handleVisualizePhoto : undefined}
+            onVisualize={lightboxIsListing && conv.messages.length >= 2 ? handleVisualizePhoto : undefined}
             isVisualizing={visualizeMutation.isPending}
           />
         )}
