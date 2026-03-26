@@ -3,20 +3,32 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Virtual General Contractor API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: properties
+    description: Property lookup
+  - name: conversations
+    description: AI chat conversations
+  - name: quotes
+    description: Quote management
+  - name: demo
+    description: Public demo
+  - name: costEngine
+    description: Cost engine data
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +36,470 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/session:
+    get:
+      operationId: getSession
+      tags: [auth]
+      summary: Get current session
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /properties/lookup:
+    post:
+      operationId: lookupProperty
+      tags: [properties]
+      summary: Lookup property from Zillow URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PropertyLookupBody"
+      responses:
+        "200":
+          description: Property data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+        "400":
+          description: Invalid URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Property not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /properties/manual:
+    post:
+      operationId: manualPropertyEntry
+      tags: [properties]
+      summary: Manually enter property details
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManualPropertyBody"
+      responses:
+        "201":
+          description: Property created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+
+  /conversations:
+    post:
+      operationId: createConversation
+      tags: [conversations]
+      summary: Start a new conversation with the Virtual GC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateConversationBody"
+      responses:
+        "201":
+          description: Conversation started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /conversations/{conversationId}/messages:
+    post:
+      operationId: sendMessage
+      tags: [conversations]
+      summary: Send a message to the Virtual GC
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageBody"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationMessage"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /conversations/{conversationId}:
+    get:
+      operationId: getConversation
+      tags: [conversations]
+      summary: Get conversation with all messages
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /quotes:
+    get:
+      operationId: listQuotes
+      tags: [quotes]
+      summary: List user quotes
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Quote list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteList"
+
+  /quotes/generate:
+    post:
+      operationId: generateQuote
+      tags: [quotes]
+      summary: Generate a renovation quote from conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateQuoteBody"
+      responses:
+        "201":
+          description: Quote generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quote"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /quotes/{quoteId}:
+    get:
+      operationId: getQuote
+      tags: [quotes]
+      summary: Get quote details
+      parameters:
+        - name: quoteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Quote details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quote"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteQuote
+      tags: [quotes]
+      summary: Delete a quote
+      parameters:
+        - name: quoteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /quotes/shared/{shareUuid}:
+    get:
+      operationId: getSharedQuote
+      tags: [quotes]
+      summary: Get a shared quote (public, no auth required)
+      parameters:
+        - name: shareUuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Shared quote
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SharedQuote"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /quotes/{quoteId}/share:
+    post:
+      operationId: toggleShareQuote
+      tags: [quotes]
+      summary: Enable or disable sharing for a quote
+      parameters:
+        - name: quoteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToggleShareBody"
+      responses:
+        "200":
+          description: Share status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShareStatus"
+
+  /demo/estimate:
+    post:
+      operationId: demoEstimate
+      tags: [demo]
+      summary: Get a demo renovation estimate (public, rate-limited)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DemoEstimateBody"
+      responses:
+        "200":
+          description: Demo estimate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoEstimate"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /demo/lead:
+    post:
+      operationId: captureLead
+      tags: [demo]
+      summary: Capture a lead from the demo page
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaptureLeadBody"
+      responses:
+        "201":
+          description: Lead captured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /cost-engine/materials:
+    get:
+      operationId: getMaterials
+      tags: [costEngine]
+      summary: Get available material categories and costs
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: qualityTier
+          in: query
+          schema:
+            type: string
+            enum: [economy, mid_range, premium]
+      responses:
+        "200":
+          description: Materials list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MaterialCost"
+
+  /cost-engine/labor-rates:
+    get:
+      operationId: getLaborRates
+      tags: [costEngine]
+      summary: Get labor rates by trade and region
+      parameters:
+        - name: zipCode
+          in: query
+          schema:
+            type: string
+        - name: tradeType
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Labor rates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LaborRate"
+
+  /cost-engine/regional-multiplier:
+    get:
+      operationId: getRegionalMultiplier
+      tags: [costEngine]
+      summary: Get regional cost multiplier for a zip code
+      parameters:
+        - name: zipCode
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Regional multiplier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegionalMultiplier"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +510,529 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    RegisterBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+        brokerage:
+          type: string
+        orgName:
+          type: string
+      required:
+        - email
+        - password
+        - name
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [agent, org_admin, super_admin]
+        subscriptionTier:
+          type: string
+          enum: [free, pro, enterprise]
+        orgId:
+          type: ["integer", "null"]
+        orgName:
+          type: ["string", "null"]
+        coBrandName:
+          type: ["string", "null"]
+      required:
+        - id
+        - email
+        - name
+        - role
+        - subscriptionTier
+
+    PropertyLookupBody:
+      type: object
+      properties:
+        zillowUrl:
+          type: string
+          format: uri
+      required:
+        - zillowUrl
+
+    ManualPropertyBody:
+      type: object
+      properties:
+        address:
+          type: string
+        zipCode:
+          type: string
+        sqft:
+          type: integer
+        bedrooms:
+          type: integer
+        bathrooms:
+          type: number
+        yearBuilt:
+          type: ["integer", "null"]
+        lotSize:
+          type: ["number", "null"]
+      required:
+        - address
+        - zipCode
+        - sqft
+        - bedrooms
+        - bathrooms
+
+    Property:
+      type: object
+      properties:
+        id:
+          type: integer
+        zillowUrl:
+          type: ["string", "null"]
+        address:
+          type: string
+        zipCode:
+          type: string
+        sqft:
+          type: integer
+        bedrooms:
+          type: integer
+        bathrooms:
+          type: number
+        yearBuilt:
+          type: ["integer", "null"]
+        lotSize:
+          type: ["number", "null"]
+        listingPhotos:
+          type: array
+          items:
+            type: string
+        priceHistory:
+          type: ["object", "null"]
+        dataSource:
+          type: string
+          enum: [apify, rentcast, manual]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - address
+        - zipCode
+        - sqft
+        - bedrooms
+        - bathrooms
+        - dataSource
+        - createdAt
+
+    CreateConversationBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        initialMessage:
+          type: string
+      required:
+        - propertyId
+
+    SendMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+        requestQuote:
+          type: boolean
+          default: false
+      required:
+        - content
+
+    ConversationMessage:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        quoteSuggestion:
+          type: ["object", "null"]
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - role
+        - content
+        - timestamp
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        property:
+          $ref: "#/components/schemas/Property"
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationMessage"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - propertyId
+        - messages
+        - createdAt
+        - updatedAt
+
+    GenerateQuoteBody:
+      type: object
+      properties:
+        conversationId:
+          type: integer
+        qualityTier:
+          type: string
+          enum: [economy, mid_range, premium]
+          default: mid_range
+        title:
+          type: string
+      required:
+        - conversationId
+
+    QuoteLineItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        category:
+          type: string
+        description:
+          type: string
+        materialCost:
+          type: number
+        laborCost:
+          type: number
+        quantity:
+          type: number
+        unit:
+          type: string
+        qualityTier:
+          type: string
+          enum: [economy, mid_range, premium]
+        subtotal:
+          type: number
+      required:
+        - id
+        - category
+        - description
+        - materialCost
+        - laborCost
+        - quantity
+        - unit
+        - qualityTier
+        - subtotal
+
+    Quote:
+      type: object
+      properties:
+        id:
+          type: integer
+        shareUuid:
+          type: string
+          format: uuid
+        title:
+          type: string
+        status:
+          type: string
+          enum: [draft, final]
+        totalEstimate:
+          type: number
+        qualityTier:
+          type: string
+          enum: [economy, mid_range, premium]
+        aiModelUsed:
+          type: string
+        aiReasoning:
+          type: string
+        regionalMultiplier:
+          type: number
+        sharedUrlEnabled:
+          type: boolean
+        property:
+          $ref: "#/components/schemas/Property"
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuoteLineItem"
+        claudeReview:
+          type: ["object", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - shareUuid
+        - title
+        - status
+        - totalEstimate
+        - qualityTier
+        - aiModelUsed
+        - sharedUrlEnabled
+        - lineItems
+        - createdAt
+        - updatedAt
+
+    QuoteList:
+      type: object
+      properties:
+        quotes:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuoteSummary"
+        total:
+          type: integer
+      required:
+        - quotes
+        - total
+
+    QuoteSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        shareUuid:
+          type: string
+          format: uuid
+        title:
+          type: string
+        status:
+          type: string
+        totalEstimate:
+          type: number
+        qualityTier:
+          type: string
+        propertyAddress:
+          type: string
+        sharedUrlEnabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - shareUuid
+        - title
+        - status
+        - totalEstimate
+        - qualityTier
+        - propertyAddress
+        - sharedUrlEnabled
+        - createdAt
+
+    SharedQuote:
+      type: object
+      properties:
+        quote:
+          $ref: "#/components/schemas/Quote"
+        agentName:
+          type: ["string", "null"]
+        agentBrokerage:
+          type: ["string", "null"]
+        coBrandName:
+          type: ["string", "null"]
+      required:
+        - quote
+
+    ToggleShareBody:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+      required:
+        - enabled
+
+    ShareStatus:
+      type: object
+      properties:
+        sharedUrlEnabled:
+          type: boolean
+        shareUrl:
+          type: ["string", "null"]
+      required:
+        - sharedUrlEnabled
+
+    DemoEstimateBody:
+      type: object
+      properties:
+        zillowUrl:
+          type: string
+          format: uri
+        renovationType:
+          type: string
+          enum: [kitchen, bathroom, full_renovation, roofing, flooring, general]
+          default: general
+      required:
+        - zillowUrl
+
+    DemoEstimate:
+      type: object
+      properties:
+        property:
+          $ref: "#/components/schemas/Property"
+        estimateSummary:
+          type: string
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuoteLineItem"
+        totalEstimate:
+          type: number
+        qualityTiers:
+          type: object
+          properties:
+            economy:
+              type: number
+            midRange:
+              type: number
+            premium:
+              type: number
+          required:
+            - economy
+            - midRange
+            - premium
+        regionalMultiplier:
+          type: number
+        disclaimer:
+          type: string
+      required:
+        - property
+        - estimateSummary
+        - lineItems
+        - totalEstimate
+        - qualityTiers
+        - regionalMultiplier
+        - disclaimer
+
+    CaptureLeadBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        brokerage:
+          type: string
+      required:
+        - name
+        - email
+
+    MaterialCost:
+      type: object
+      properties:
+        id:
+          type: integer
+        category:
+          type: string
+        item:
+          type: string
+        qualityTier:
+          type: string
+          enum: [economy, mid_range, premium]
+        baseUnitCost:
+          type: number
+        unit:
+          type: string
+      required:
+        - id
+        - category
+        - item
+        - qualityTier
+        - baseUnitCost
+        - unit
+
+    LaborRate:
+      type: object
+      properties:
+        id:
+          type: integer
+        tradeType:
+          type: string
+        hourlyRate:
+          type: number
+        productivityFactor:
+          type: number
+        baseRegion:
+          type: string
+      required:
+        - id
+        - tradeType
+        - hourlyRate
+        - productivityFactor
+        - baseRegion
+
+    RegionalMultiplier:
+      type: object
+      properties:
+        zipPrefix:
+          type: string
+        metroArea:
+          type: string
+        adjustmentFactor:
+          type: number
+        source:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+      required:
+        - zipPrefix
+        - metroArea
+        - adjustmentFactor
+        - source
+        - lastUpdated

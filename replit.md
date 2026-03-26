@@ -1,8 +1,10 @@
-# Workspace
+# Virtual General Contractor (VGC)
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+AI-powered web application where real estate agents paste a Zillow URL and receive instant, localized, itemized renovation quotes via conversational chat with an AI "Virtual GC" agent. Includes shareable quote links, subscription tiers, demo page with lead capture, and a built-in cost engine with regional labor multipliers.
+
+pnpm workspace monorepo using TypeScript.
 
 ## Stack
 
@@ -15,82 +17,112 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+- **AI**: OpenAI GPT-4o (primary), Anthropic Claude (quote validator)
+- **Auth**: Session-based (express-session + connect-pg-simple + bcrypt)
+
+## API Keys (Replit Secrets)
+
+- `OpenAI_API_Key` — GPT-4o for chat and quote generation
+- `Claude_API_Key` — Claude for second-opinion quote validation
+- `Apify_API` — Zillow property data scraping
+- `SESSION_SECRET` — Express session encryption
+- `DATABASE_URL` — auto-provided by Replit
 
 ## Structure
 
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   └── api-server/         # Express API server (VGC backend)
+│       └── src/
+│           ├── index.ts         # Entry: PORT, seed, listen
+│           ├── app.ts           # Express setup: CORS, sessions, routes
+│           ├── seed.ts          # Cost engine seed data (materials, labor, multipliers)
+│           ├── lib/
+│           │   ├── aiPipeline.ts     # OpenAI chat + Claude review
+│           │   ├── costEngine.ts     # BLS QCEW integration, material/labor lookups
+│           │   ├── zillowService.ts  # Apify Zillow scraper with fallback chain
+│           │   └── logger.ts        # Pino logger
+│           ├── middlewares/
+│           │   └── auth.ts          # requireAuth, requireTier, requireOrgAdmin
+│           └── routes/
+│               ├── index.ts         # Mount all sub-routers
+│               ├── health.ts        # GET /api/healthz
+│               ├── auth.ts          # POST /api/auth/{register,login,logout}, GET /api/auth/session
+│               ├── properties.ts    # POST /api/properties/{lookup,manual}
+│               ├── conversations.ts # POST /api/conversations, messages, GET conversation
+│               ├── quotes.ts        # CRUD /api/quotes, sharing, generate
+│               ├── demo.ts          # POST /api/demo/{estimate,lead}
+│               └── costEngineRoutes.ts  # GET /api/cost-engine/{materials,labor-rates,regional-multiplier}
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+│       └── src/schema/
+│           ├── organizations.ts   # organizations table
+│           ├── users.ts           # users table (auth, roles, tiers)
+│           ├── properties.ts      # properties table (Zillow data)
+│           ├── conversations.ts   # conversations table (JSONB messages)
+│           ├── quotes.ts          # quotes + quote_line_items tables
+│           ├── costEngine.ts      # material_costs, labor_rates, regional_multipliers, bls_cache
+│           └── leadCaptures.ts    # lead_captures table
+├── scripts/                # Utility scripts
+├── pnpm-workspace.yaml
+├── tsconfig.base.json
+├── tsconfig.json
+└── package.json
 ```
 
 ## TypeScript & Composite Projects
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references.
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+- **Always typecheck from the root** — `pnpm run typecheck` (runs `tsc --build --emitDeclarationOnly`)
+- **`emitDeclarationOnly`** — only `.d.ts` files during typecheck; JS bundling by esbuild
+- **Project references** — when package A depends on B, A's `tsconfig.json` must list B in `references`
 
 ## Root Scripts
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+- `pnpm run build` — typecheck then recursively build all packages
+- `pnpm run typecheck` — `tsc --build --emitDeclarationOnly`
+
+## Key Development Notes
+
+- **Express 5 rules**: async handlers typed `Promise<void>`, use `res.status().json(); return;` not `return res.status().json()`, wildcard routes use `/*splat`
+- **Logging**: Use `req.log` in route handlers, `logger` singleton for non-request code; never `console.log`
+- **Database push**: `pnpm --filter @workspace/db run push` (development), force with `push-force`
+- **Codegen**: `pnpm --filter @workspace/api-spec run codegen` (regenerates React hooks + Zod schemas)
+- **Cost engine seed**: Runs automatically on server start via `seedCostEngine()` — 49 materials, 12 labor rates, 50 regional multipliers for top US metros
 
 ## Packages
 
 ### `artifacts/api-server` (`@workspace/api-server`)
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+Express 5 API server with session auth, AI pipeline, cost engine, Zillow integration.
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
+- Entry: `src/index.ts`
 - Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+- `pnpm --filter @workspace/api-server run dev`
 
 ### `lib/db` (`@workspace/db`)
 
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
+Drizzle ORM with PostgreSQL. 9 tables: organizations, users, properties, conversations, quotes, quote_line_items, material_costs, labor_rates, regional_multipliers, bls_cache, lead_captures.
 
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
 - Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
 
 ### `lib/api-spec` (`@workspace/api-spec`)
 
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
+OpenAPI 3.1 spec with Orval codegen. Run: `pnpm --filter @workspace/api-spec run codegen`
 
 ### `lib/api-zod` (`@workspace/api-zod`)
 
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
+Generated Zod schemas from OpenAPI spec. Used by api-server for request validation.
 
 ### `lib/api-client-react` (`@workspace/api-client-react`)
 
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
+Generated React Query hooks and fetch client from OpenAPI spec.
 
 ### `scripts` (`@workspace/scripts`)
 
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+Utility scripts. Run via `pnpm --filter @workspace/scripts run <script>`.

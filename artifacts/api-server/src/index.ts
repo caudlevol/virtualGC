@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { seedCostEngine } from "./seed";
 
 const rawPort = process.env["PORT"];
 
@@ -14,6 +15,12 @@ const port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
+
+seedCostEngine().then(() => {
+  logger.info("Cost engine seeded");
+}).catch((err) => {
+  logger.warn({ err }, "Cost engine seed had errors (may already be seeded)");
+});
 
 app.listen(port, (err) => {
   if (err) {

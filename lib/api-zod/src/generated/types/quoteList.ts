@@ -5,7 +5,9 @@
  * Virtual General Contractor API
  * OpenAPI spec version: 0.1.0
  */
+import type { QuoteSummary } from "./quoteSummary";
 
-export interface HealthStatus {
-  status: string;
+export interface QuoteList {
+  quotes: QuoteSummary[];
+  total: number;
 }

@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface LaborRate {
+  id: number;
+  tradeType: string;
+  hourlyRate: number;
+  productivityFactor: number;
+  baseRegion: string;
 }
