@@ -118,8 +118,16 @@ router.post("/conversations/:conversationId/messages", requireAuth, async (req, 
 
   const conversationId = paramsParsed.data.conversationId;
 
+  const msgOwnership = [eq(conversationsTable.userId, req.session.userId!)];
+  if (req.session.orgId) {
+    const orgProps = await db.select({ id: propertiesTable.id }).from(propertiesTable)
+      .where(eq(propertiesTable.orgId, req.session.orgId));
+    if (orgProps.length > 0) {
+      msgOwnership.push(...orgProps.map(p => eq(conversationsTable.propertyId, p.id)));
+    }
+  }
   const conversations = await db.select().from(conversationsTable).where(
-    and(eq(conversationsTable.id, conversationId), eq(conversationsTable.userId, req.session.userId!))
+    and(eq(conversationsTable.id, conversationId), or(...msgOwnership))
   ).limit(1);
   if (conversations.length === 0) {
     res.status(404).json({ error: "Conversation not found" });
@@ -180,8 +188,16 @@ router.get("/conversations/:conversationId", requireAuth, async (req, res): Prom
 
   const conversationId = paramsParsed.data.conversationId;
 
+  const getOwnership = [eq(conversationsTable.userId, req.session.userId!)];
+  if (req.session.orgId) {
+    const orgProps = await db.select({ id: propertiesTable.id }).from(propertiesTable)
+      .where(eq(propertiesTable.orgId, req.session.orgId));
+    if (orgProps.length > 0) {
+      getOwnership.push(...orgProps.map(p => eq(conversationsTable.propertyId, p.id)));
+    }
+  }
   const conversations = await db.select().from(conversationsTable).where(
-    and(eq(conversationsTable.id, conversationId), eq(conversationsTable.userId, req.session.userId!))
+    and(eq(conversationsTable.id, conversationId), or(...getOwnership))
   ).limit(1);
   if (conversations.length === 0) {
     res.status(404).json({ error: "Conversation not found" });

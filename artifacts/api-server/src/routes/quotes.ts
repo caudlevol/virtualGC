@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, quotesTable, quoteLineItemsTable, propertiesTable, conversationsTable, usersTable, organizationsTable } from "@workspace/db";
-import { eq, desc, sql, and } from "drizzle-orm";
+import { eq, desc, sql, and, or } from "drizzle-orm";
 import {
   GenerateQuoteBody,
   ToggleShareQuoteBody,
@@ -12,17 +12,28 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC, claudeReviewQuote } from "../lib/aiPipeline";
-import { getRegionalMultiplier } from "../lib/costEngine";
+import { getRegionalMultiplier, fetchCensusACSPropertyTax } from "../lib/costEngine";
 import { priceLineItemsFromCostEngine } from "../lib/costLookup";
 
 const router: IRouter = Router();
 
 router.get("/quotes", requireAuth, async (req, res): Promise<void> => {
   const queryParsed = ListQuotesQueryParams.safeParse(req.query);
-  const limit = queryParsed.success ? (queryParsed.data.limit ?? 20) : 20;
-  const offset = queryParsed.success ? (queryParsed.data.offset ?? 0) : 0;
+  if (!queryParsed.success) {
+    res.status(400).json({ error: queryParsed.error.message });
+    return;
+  }
+  const limit = queryParsed.data.limit ?? 20;
+  const offset = queryParsed.data.offset ?? 0;
 
   const userId = req.session.userId!;
+  const orgId = req.session.orgId;
+
+  const ownershipConditions = [eq(quotesTable.userId, userId)];
+  if (orgId) {
+    ownershipConditions.push(eq(quotesTable.orgId, orgId));
+  }
+  const ownershipFilter = or(...ownershipConditions);
 
   const quotes = await db
     .select({
@@ -38,7 +49,7 @@ router.get("/quotes", requireAuth, async (req, res): Promise<void> => {
     })
     .from(quotesTable)
     .leftJoin(propertiesTable, eq(quotesTable.propertyId, propertiesTable.id))
-    .where(eq(quotesTable.userId, userId))
+    .where(ownershipFilter)
     .orderBy(desc(quotesTable.createdAt))
     .limit(limit)
     .offset(offset);
@@ -46,7 +57,7 @@ router.get("/quotes", requireAuth, async (req, res): Promise<void> => {
   const countResult = await db
     .select({ count: sql<number>`count(*)` })
     .from(quotesTable)
-    .where(eq(quotesTable.userId, userId));
+    .where(ownershipFilter);
 
   res.json({
     quotes: quotes.map(q => ({
@@ -67,8 +78,18 @@ router.post("/quotes/generate", requireAuth, requireTier("free"), async (req, re
 
   const { conversationId, qualityTier, title } = parsed.data;
 
+  const convOwnership = [eq(conversationsTable.userId, req.session.userId!)];
+  if (req.session.orgId) {
+    const orgProps = await db.select({ id: propertiesTable.id }).from(propertiesTable)
+      .where(eq(propertiesTable.orgId, req.session.orgId));
+    if (orgProps.length > 0) {
+      convOwnership.push(
+        ...orgProps.map(p => eq(conversationsTable.propertyId, p.id))
+      );
+    }
+  }
   const conversations = await db.select().from(conversationsTable).where(
-    and(eq(conversationsTable.id, conversationId), eq(conversationsTable.userId, req.session.userId!))
+    and(eq(conversationsTable.id, conversationId), or(...convOwnership))
   ).limit(1);
   if (conversations.length === 0) {
     res.status(400).json({ error: "Conversation not found" });
@@ -105,6 +126,7 @@ router.post("/quotes/generate", requireAuth, requireTier("free"), async (req, re
 
   const scope = aiResponse.quoteSuggestion;
   const { factor } = await getRegionalMultiplier(property.zipCode);
+  const propertyTax = await fetchCensusACSPropertyTax(property.zipCode);
 
   const lineItems = await priceLineItemsFromCostEngine(
     scope.items.map(item => ({
@@ -141,6 +163,7 @@ router.post("/quotes/generate", requireAuth, requireTier("free"), async (req, re
 
   const [quote] = await db.insert(quotesTable).values({
     userId: req.session.userId,
+    orgId: req.session.orgId || null,
     propertyId: property.id,
     conversationId,
     title: title || `Renovation Quote - ${property.address}`,
@@ -191,6 +214,10 @@ router.post("/quotes/generate", requireAuth, requireTier("free"), async (req, re
       subtotal: (li.materialCost + li.laborCost) * li.quantity,
     })),
     claudeReview,
+    localMarketData: {
+      medianPropertyTax: propertyTax.medianPropertyTax,
+      propertyTaxSource: propertyTax.source,
+    },
     createdAt: quote.createdAt.toISOString(),
     updatedAt: quote.updatedAt.toISOString(),
   });
@@ -205,8 +232,12 @@ router.get("/quotes/:quoteId", requireAuth, async (req, res): Promise<void> => {
 
   const quoteId = paramsParsed.data.quoteId;
 
+  const quoteOwnership = [eq(quotesTable.userId, req.session.userId!)];
+  if (req.session.orgId) {
+    quoteOwnership.push(eq(quotesTable.orgId, req.session.orgId));
+  }
   const quotes = await db.select().from(quotesTable).where(
-    and(eq(quotesTable.id, quoteId), eq(quotesTable.userId, req.session.userId!))
+    and(eq(quotesTable.id, quoteId), or(...quoteOwnership))
   ).limit(1);
   if (quotes.length === 0) {
     res.status(404).json({ error: "Quote not found" });
@@ -260,8 +291,12 @@ router.delete("/quotes/:quoteId", requireAuth, async (req, res): Promise<void> =
     return;
   }
 
+  const deleteOwnership = [eq(quotesTable.userId, req.session.userId!)];
+  if (req.session.orgId) {
+    deleteOwnership.push(eq(quotesTable.orgId, req.session.orgId));
+  }
   const result = await db.delete(quotesTable).where(
-    and(eq(quotesTable.id, paramsParsed.data.quoteId), eq(quotesTable.userId, req.session.userId!))
+    and(eq(quotesTable.id, paramsParsed.data.quoteId), or(...deleteOwnership))
   ).returning();
   if (result.length === 0) {
     res.status(404).json({ error: "Quote not found" });
@@ -360,10 +395,14 @@ router.post("/quotes/:quoteId/share", requireAuth, requireTier("pro"), async (re
     return;
   }
 
+  const shareOwnership = [eq(quotesTable.userId, req.session.userId!)];
+  if (req.session.orgId) {
+    shareOwnership.push(eq(quotesTable.orgId, req.session.orgId));
+  }
   const [updated] = await db
     .update(quotesTable)
     .set({ sharedUrlEnabled: parsed.data.enabled })
-    .where(and(eq(quotesTable.id, paramsParsed.data.quoteId), eq(quotesTable.userId, req.session.userId!)))
+    .where(and(eq(quotesTable.id, paramsParsed.data.quoteId), or(...shareOwnership)))
     .returning();
 
   if (!updated) {

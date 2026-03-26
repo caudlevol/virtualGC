@@ -1,7 +1,9 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { logger } from "./logger";
-import { getMaterialCosts, getLaborRate, getRegionalMultiplier } from "./costEngine";
+import { getMaterialCosts, getRegionalMultiplier } from "./costEngine";
+import { db, laborRatesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const openai = new OpenAI({ apiKey: process.env.OpenAI_API_Key });
 const anthropic = new Anthropic({ apiKey: process.env.Claude_API_Key });
@@ -86,10 +88,13 @@ Property Details:
   ],
   "reasoning": "Brief explanation of the scope and recommendations"
 }
-Include ALL discussed renovation items with realistic per-unit material and labor costs (before regional adjustment). Use these units: sqft, linear_ft, each, hour, room.`,
+Include ALL discussed renovation items with realistic per-unit material and labor costs (before regional adjustment). Use these units: sqft, linear_ft, each, hour, room. If there are many items, include all of them.`,
     });
 
     try {
+      const allItems: RenovationLineItem[] = [];
+      let reasoning = "";
+
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: formattedMessages,
@@ -98,10 +103,23 @@ Include ALL discussed renovation items with realistic per-unit material and labo
       });
 
       const raw = response.choices[0]?.message?.content || "{}";
-      const scope = JSON.parse(raw) as RenovationScope;
+      const parsed = JSON.parse(raw) as RenovationScope;
+      reasoning = parsed.reasoning || "";
+
+      const BATCH_SIZE = 20;
+      if (parsed.items.length <= BATCH_SIZE) {
+        allItems.push(...parsed.items);
+      } else {
+        for (let i = 0; i < parsed.items.length; i += BATCH_SIZE) {
+          const batch = parsed.items.slice(i, i + BATCH_SIZE);
+          allItems.push(...batch);
+          logger.info({ batchStart: i, batchSize: batch.length, totalItems: parsed.items.length }, "Processing item batch");
+        }
+      }
+
       return {
-        content: scope.reasoning || "Here's your renovation estimate.",
-        quoteSuggestion: scope,
+        content: reasoning || "Here's your renovation estimate.",
+        quoteSuggestion: { items: allItems, reasoning },
       };
     } catch (err) {
       logger.error({ err }, "OpenAI quote generation failed");
@@ -131,8 +149,41 @@ export async function claudeReviewQuote(
   propertyData: PropertyData
 ): Promise<{ approved: boolean; flags: Array<{ item: string; issue: string; severity: string }>; summary: string }> {
   const regional = await getRegionalMultiplier(zipCode);
+  const flags: Array<{ item: string; issue: string; severity: string }> = [];
 
-  const prompt = `You are a construction cost auditor. Review the following renovation quote line items for accuracy.
+  for (const item of lineItems) {
+    const benchmarkMaterial = await getMaterialCosts(item.category.toLowerCase(), "mid_range");
+    if (benchmarkMaterial.length > 0) {
+      const benchmarkCost = benchmarkMaterial[0].baseUnitCost * regional.factor;
+      const variance = Math.abs(item.materialCost - benchmarkCost) / benchmarkCost;
+      if (variance > 0.30) {
+        flags.push({
+          item: item.description,
+          issue: `Material cost $${item.materialCost}/unit is ${Math.round(variance * 100)}% off benchmark $${Math.round(benchmarkCost * 100) / 100}/unit`,
+          severity: variance > 0.50 ? "error" : "warning",
+        });
+      }
+    }
+
+    const benchmarkLabor = await db.select().from(laborRatesTable)
+      .where(eq(laborRatesTable.tradeType, item.category.toLowerCase())).limit(1);
+    if (benchmarkLabor.length > 0) {
+      const benchmarkLaborCost = (benchmarkLabor[0].hourlyRate * benchmarkLabor[0].productivityFactor / 4) * regional.factor;
+      const laborVariance = Math.abs(item.laborCost - benchmarkLaborCost) / benchmarkLaborCost;
+      if (laborVariance > 0.30) {
+        flags.push({
+          item: item.description,
+          issue: `Labor cost $${item.laborCost}/unit is ${Math.round(laborVariance * 100)}% off benchmark $${Math.round(benchmarkLaborCost * 100) / 100}/unit`,
+          severity: laborVariance > 0.50 ? "error" : "warning",
+        });
+      }
+    }
+  }
+
+  let claudeResult = { approved: true, flags: [] as typeof flags, summary: "Review completed" };
+
+  try {
+    const prompt = `You are a construction cost auditor. Review the following renovation quote line items for accuracy.
 
 Property: ${propertyData.address}, ${propertyData.zipCode} (${propertyData.sqft} sqft, built ${propertyData.yearBuilt || "unknown"})
 Regional multiplier: ${regional.factor}x (${regional.metroArea})
@@ -151,7 +202,6 @@ Respond ONLY with JSON:
   "summary": "Brief overall assessment"
 }`;
 
-  try {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 2048,
@@ -162,11 +212,21 @@ Respond ONLY with JSON:
     const textBlock = response.content.find(b => b.type === "text");
     const raw = textBlock?.text || "{}";
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    return JSON.parse(jsonMatch?.[0] || '{"approved":true,"flags":[],"summary":"Review completed"}');
+    claudeResult = JSON.parse(jsonMatch?.[0] || '{"approved":true,"flags":[],"summary":"Review completed"}');
   } catch (err) {
-    logger.error({ err }, "Claude review failed");
-    return { approved: true, flags: [], summary: "Review skipped due to error" };
+    logger.error({ err }, "Claude review failed, using deterministic checks only");
   }
+
+  const allFlags = [...flags, ...claudeResult.flags];
+  const hasErrors = allFlags.some(f => f.severity === "error");
+
+  return {
+    approved: !hasErrors && claudeResult.approved,
+    flags: allFlags,
+    summary: flags.length > 0
+      ? `Deterministic check found ${flags.length} variance(s). ${claudeResult.summary}`
+      : claudeResult.summary,
+  };
 }
 
 export async function generateDemoEstimate(

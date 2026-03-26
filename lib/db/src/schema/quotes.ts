@@ -9,6 +9,7 @@ export const quotesTable = pgTable("quotes", {
   id: serial("id").primaryKey(),
   shareUuid: uuid("share_uuid").notNull().defaultRandom().unique(),
   userId: integer("user_id").references(() => usersTable.id),
+  orgId: integer("org_id"),
   propertyId: integer("property_id").notNull().references(() => propertiesTable.id),
   conversationId: integer("conversation_id").references(() => conversationsTable.id),
   title: text("title").notNull(),
