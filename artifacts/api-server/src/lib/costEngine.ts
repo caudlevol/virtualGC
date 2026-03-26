@@ -58,15 +58,18 @@ export async function fetchBLSLaborData(naicsCode: string): Promise<number | nul
     if (lines.length < 2) return null;
 
     const headers = lines[0].split(",").map(h => h.trim().replace(/"/g, ""));
-    const avgWageIdx = headers.findIndex(h => h === "avg_wkly_wage" || h === "avg_annual_pay");
+    const annualPayIdx = headers.findIndex(h => h === "avg_annual_pay");
+    const weeklyWageIdx = headers.findIndex(h => h === "avg_wkly_wage");
+    const wageIdx = annualPayIdx !== -1 ? annualPayIdx : weeklyWageIdx;
+    const isWeekly = wageIdx === weeklyWageIdx && annualPayIdx === -1;
 
-    if (avgWageIdx === -1) return null;
+    if (wageIdx === -1) return null;
 
     let totalWage = 0;
     let count = 0;
     for (let i = 1; i < lines.length; i++) {
       const cols = lines[i].split(",").map(c => c.trim().replace(/"/g, ""));
-      const wage = parseFloat(cols[avgWageIdx]);
+      const wage = parseFloat(cols[wageIdx]);
       if (!isNaN(wage) && wage > 0) {
         totalWage += wage;
         count++;
@@ -75,8 +78,8 @@ export async function fetchBLSLaborData(naicsCode: string): Promise<number | nul
 
     if (count === 0) return null;
 
-    const avgAnnualPay = totalWage / count;
-    const hourlyRate = avgAnnualPay / 2080;
+    const avgWage = totalWage / count;
+    const hourlyRate = isWeekly ? avgWage / 40 : avgWage / 2080;
 
     await db.insert(blsCacheTable).values({
       naicsCode,

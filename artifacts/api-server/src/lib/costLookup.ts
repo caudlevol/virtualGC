@@ -1,6 +1,7 @@
 import { db, materialCostsTable, laborRatesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { logger } from "./logger";
+import { getLaborRate } from "./costEngine";
 
 interface AIScopeItem {
   category: string;
@@ -66,18 +67,14 @@ export async function priceLineItemsFromCostEngine(
       baseMaterialCost = anyMaterial.length > 0 ? anyMaterial[0].baseUnitCost : 25;
     }
 
-    const laborRates = await db.select().from(laborRatesTable)
+    const blsLaborRate = await getLaborRate(tradeType);
+
+    const laborRateRow = await db.select().from(laborRatesTable)
       .where(eq(laborRatesTable.tradeType, tradeType))
       .limit(1);
 
-    let baseLaborRate = 50;
-    let productivityFactor = 1.0;
-    if (laborRates.length > 0) {
-      baseLaborRate = laborRates[0].hourlyRate;
-      productivityFactor = laborRates[0].productivityFactor;
-    }
-
-    const laborCostPerUnit = (baseLaborRate * productivityFactor) / 4;
+    const productivityFactor = laborRateRow.length > 0 ? laborRateRow[0].productivityFactor : 1.0;
+    const laborCostPerUnit = (blsLaborRate * productivityFactor) / 4;
 
     pricedItems.push({
       category: item.category,

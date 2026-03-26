@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { GetMaterialsQueryParams, GetLaborRatesQueryParams, GetRegionalMultiplierQueryParams } from "@workspace/api-zod";
-import { getMaterialCosts, getLaborRates, getRegionalMultiplier } from "../lib/costEngine";
+import { getMaterialCosts, getLaborRates, getLaborRate, getRegionalMultiplier } from "../lib/costEngine";
 
 const router: IRouter = Router();
 
@@ -24,11 +24,20 @@ router.get("/cost-engine/labor-rates", async (req, res): Promise<void> => {
 
   const rates = await getLaborRates(parsed.data.tradeType);
 
+  const enrichedRates = await Promise.all(rates.map(async (r) => {
+    const blsRate = await getLaborRate(r.tradeType);
+    return {
+      ...r,
+      blsDerivedRate: Math.round(blsRate * 100) / 100,
+      rateSource: blsRate !== r.hourlyRate ? "bls_live" : "seeded_baseline",
+    };
+  }));
+
   if (parsed.data.zipCode) {
     const { factor, metroArea } = await getRegionalMultiplier(parsed.data.zipCode);
-    const adjustedRates = rates.map(r => ({
+    const adjustedRates = enrichedRates.map(r => ({
       ...r,
-      adjustedHourlyRate: Math.round(r.hourlyRate * factor * 100) / 100,
+      adjustedHourlyRate: Math.round(r.blsDerivedRate * factor * 100) / 100,
       regionalMultiplier: factor,
       metroArea,
     }));
@@ -36,7 +45,7 @@ router.get("/cost-engine/labor-rates", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(rates);
+  res.json(enrichedRates);
 });
 
 router.get("/cost-engine/regional-multiplier", async (req, res): Promise<void> => {
