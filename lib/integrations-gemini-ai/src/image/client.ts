@@ -32,7 +32,7 @@ export async function generateImage(
 ): Promise<{ b64_json: string; mimeType: string }> {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-preview-native-audio-dialog",
+    model: "gemini-2.0-flash-exp",
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     config: {
       responseModalities: [Modality.TEXT, Modality.IMAGE],
