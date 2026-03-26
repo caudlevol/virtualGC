@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useGetQuote, useToggleShareQuote, useGenerateQuote, useDeleteQuote } from "@workspace/api-client-react";
+import { useGetQuote, useToggleShareQuote, useDeleteQuote } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
@@ -38,18 +38,6 @@ export default function QuoteView() {
         if (err.status === 403) {
           toast({ title: "Upgrade Required", description: "Sharing requires a Pro subscription", variant: "destructive" });
         }
-      }
-    }
-  });
-
-  const regenerateMutation = useGenerateQuote({
-    mutation: {
-      onSuccess: (data: { id: number }) => {
-        setLocation(`/quotes/${data.id}`);
-        toast({ title: "Quote regenerated with new tier" });
-      },
-      onError: (err: { data?: { error?: string }; message?: string }) => {
-        toast({ title: "Regeneration failed", description: err?.data?.error || err?.message || "Unknown error", variant: "destructive" });
       }
     }
   });
@@ -100,11 +88,6 @@ export default function QuoteView() {
     shareMutation.mutate({ quoteId: id, data: { enabled: false } });
   };
 
-  const handleTierChange = (tier: QualityTier) => {
-    if (tier === quote.qualityTier || !quote.conversationId) return;
-    regenerateMutation.mutate({ data: { conversationId: quote.conversationId, qualityTier: tier, title: quote.title } });
-  };
-
   const currentTier = quote.qualityTier as QualityTier;
 
   const claudeFlags = (() => {
@@ -148,20 +131,17 @@ export default function QuoteView() {
 
         <div className="flex items-center gap-2 p-1 bg-secondary/50 rounded-lg w-fit">
           {(Object.keys(tierLabels) as QualityTier[]).map((tier) => (
-            <button
+            <div
               key={tier}
-              onClick={() => handleTierChange(tier)}
-              disabled={regenerateMutation.isPending}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 currentTier === tier
                   ? "bg-primary text-primary-foreground shadow-lg"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  : "text-muted-foreground"
               }`}
             >
               {tierLabels[tier]}
-            </button>
+            </div>
           ))}
-          {regenerateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-primary ml-2" />}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -181,15 +161,21 @@ export default function QuoteView() {
                   </h3>
                   <div className="space-y-4">
                     {items.map(item => (
-                      <div key={item.id} className="flex justify-between items-start gap-4 p-4 rounded-xl bg-black/20 border border-white/5">
-                        <div className="flex-1">
-                          <p className="font-semibold text-foreground">{item.description}</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {item.quantity} {item.unit} @ {formatCurrency(item.materialCost + item.laborCost)}/unit
-                          </p>
+                      <div key={item.id} className="p-4 rounded-xl bg-black/20 border border-white/5">
+                        <div className="flex justify-between items-start gap-4 mb-2">
+                          <div className="flex-1">
+                            <p className="font-semibold text-foreground">{item.description}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {item.quantity} {item.unit}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-lg">{formatCurrency(item.subtotal)}</p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-lg">{formatCurrency(item.subtotal)}</p>
+                        <div className="flex gap-4 text-xs text-muted-foreground pt-2 border-t border-white/5">
+                          <span>Materials: <span className="text-foreground font-medium">{formatCurrency(item.materialCost * item.quantity)}</span></span>
+                          <span>Labor: <span className="text-foreground font-medium">{formatCurrency(item.laborCost * item.quantity)}</span></span>
                         </div>
                       </div>
                     ))}

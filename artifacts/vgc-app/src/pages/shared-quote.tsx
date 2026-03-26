@@ -20,7 +20,7 @@ export default function SharedQuote() {
   const uuid = params?.uuid || "";
   const [copied, setCopied] = useState(false);
 
-  const { data: shared, isLoading, error } = useGetSharedQuote(uuid, { query: { retry: false }});
+  const { data: shared, isLoading, error } = useGetSharedQuote(uuid, { query: { queryKey: [`/api/quotes/shared/${uuid}`], retry: false }});
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);

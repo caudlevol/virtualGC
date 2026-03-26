@@ -50,7 +50,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex flex-col items-end mr-2">
               <span className="text-sm font-semibold">{user?.name}</span>
-              <span className="text-xs text-muted-foreground">{user?.brokerage || user?.orgName || 'Agent'}</span>
+              <span className="text-xs text-muted-foreground">{user?.coBrandName || user?.orgName || 'Agent'}</span>
             </div>
             <Button 
               variant="ghost" 

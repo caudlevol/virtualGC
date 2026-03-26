@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { z } from "zod";
+import { zodFormResolver } from "@/lib/form-resolver";
 import { useDemoEstimate, useCaptureLead } from "@workspace/api-client-react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -48,7 +48,7 @@ export default function DemoPage() {
   });
 
   const leadForm = useForm<LeadFormData>({
-    resolver: zodResolver(leadSchema),
+    resolver: zodFormResolver(leadSchema),
     defaultValues: { name: "", email: "", brokerage: "" }
   });
 

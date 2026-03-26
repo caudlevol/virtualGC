@@ -6,8 +6,9 @@ export function useAuth(requireAuth = true) {
   const [, setLocation] = useLocation();
   const { data: session, isLoading, error } = useGetSession({
     query: {
+      queryKey: ["/api/auth/session"],
       retry: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
     }
   });
 

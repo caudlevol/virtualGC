@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { z } from "zod";
+import { zodFormResolver } from "@/lib/form-resolver";
 import { useLogin, useRegister, useGetSession } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
 import { Building, Loader2 } from "lucide-react";
@@ -23,40 +23,46 @@ const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   brokerage: z.string().optional(),
+  orgName: z.string().optional(),
 });
+
+type LoginData = z.infer<typeof loginSchema>;
+type RegisterData = z.infer<typeof registerSchema>;
 
 export default function AuthPage({ defaultTab = "login" }: { defaultTab?: "login" | "register" }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
-  // Redirect if already logged in
-  const { data: session } = useGetSession({ query: { retry: false } });
-  if (session) {
-    setLocation("/dashboard");
-  }
+  const { data: session } = useGetSession({ query: { queryKey: ["/api/auth/session"], retry: false } });
+
+  useEffect(() => {
+    if (session) {
+      setLocation("/dashboard");
+    }
+  }, [session, setLocation]);
 
   const loginMutation = useLogin({
     mutation: {
       onSuccess: () => setLocation("/dashboard"),
-      onError: (err) => toast({ title: "Login failed", description: err.error, variant: "destructive" })
+      onError: (err: { data?: { error?: string }; message?: string }) => toast({ title: "Login failed", description: err?.data?.error || err?.message || "Invalid credentials", variant: "destructive" })
     }
   });
 
   const registerMutation = useRegister({
     mutation: {
       onSuccess: () => setLocation("/dashboard"),
-      onError: (err) => toast({ title: "Registration failed", description: err.error, variant: "destructive" })
+      onError: (err: { data?: { error?: string }; message?: string }) => toast({ title: "Registration failed", description: err?.data?.error || err?.message || "Could not create account", variant: "destructive" })
     }
   });
 
-  const loginForm = useForm({
-    resolver: zodResolver(loginSchema),
+  const loginForm = useForm<LoginData>({
+    resolver: zodFormResolver(loginSchema),
     defaultValues: { email: "", password: "" }
   });
 
-  const registerForm = useForm({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", password: "", brokerage: "" }
+  const registerForm = useForm<RegisterData>({
+    resolver: zodFormResolver(registerSchema),
+    defaultValues: { name: "", email: "", password: "", brokerage: "", orgName: "" }
   });
 
   return (
@@ -112,9 +118,15 @@ export default function AuthPage({ defaultTab = "login" }: { defaultTab?: "login
                   <Input id="reg-email" type="email" placeholder="sarah@brokerage.com" {...registerForm.register("email")} className="bg-black/20" />
                   {registerForm.formState.errors.email && <p className="text-xs text-destructive">{registerForm.formState.errors.email.message}</p>}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reg-brokerage">Brokerage (Optional)</Label>
-                  <Input id="reg-brokerage" placeholder="Keller Williams" {...registerForm.register("brokerage")} className="bg-black/20" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-brokerage">Brokerage (Optional)</Label>
+                    <Input id="reg-brokerage" placeholder="Keller Williams" {...registerForm.register("brokerage")} className="bg-black/20" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-org">Organization (Optional)</Label>
+                    <Input id="reg-org" placeholder="Team name" {...registerForm.register("orgName")} className="bg-black/20" />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-password">Password</Label>

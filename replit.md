@@ -17,7 +17,7 @@ pnpm workspace monorepo using TypeScript.
 - **State**: TanStack React Query + generated hooks from Orval
 - **API framework**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
+- **Validation**: Zod (v3 API for forms via custom `zodFormResolver`, `zod/v4` for backend), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle for API), Vite (frontend)
 - **AI**: OpenAI GPT-4o (primary), Anthropic Claude (quote validator)

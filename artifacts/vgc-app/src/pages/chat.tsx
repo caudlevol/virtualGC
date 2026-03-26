@@ -37,7 +37,7 @@ export default function ChatPage() {
 
   const quoteMutation = useGenerateQuote({
     mutation: {
-      onSuccess: (data) => setLocation(`/quotes/${data.id}`),
+      onSuccess: (data: { id: number }) => setLocation(`/quotes/${data.id}`),
       onError: (err: { data?: { error?: string }; message?: string }) => toast({ title: "Failed to generate quote", description: err?.data?.error || err?.message || "Unknown error", variant: "destructive" })
     }
   });
@@ -97,7 +97,7 @@ export default function ChatPage() {
         {/* Chat Area */}
         <div className="flex-1 glass-panel rounded-2xl flex flex-col overflow-hidden shadow-2xl relative">
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-            {conv.messages.map((msg, i) => {
+            {conv.messages.map((msg, i: number) => {
               const isAi = msg.role === "assistant";
               return (
                 <motion.div 
@@ -121,7 +121,7 @@ export default function ChatPage() {
                         </div>
                         <CardContent className="p-4 space-y-4">
                           <p className="text-sm text-muted-foreground line-clamp-3">
-                            {(msg.quoteSuggestion as { reasoning?: string })?.reasoning || "Ready to generate formal estimate based on our discussion."}
+                            {(msg.quoteSuggestion && typeof msg.quoteSuggestion === 'object' && 'reasoning' in msg.quoteSuggestion ? (msg.quoteSuggestion as Record<string, string>).reasoning : null) || "Ready to generate formal estimate based on our discussion."}
                           </p>
                           <Button 
                             className="w-full bg-white text-black hover:bg-gray-200" 
