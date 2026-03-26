@@ -1,0 +1,18 @@
+packages:
+  "framer-motion": "For page transitions and micro-interactions"
+  "@hookform/resolvers": "For Zod form validation"
+  "react-hook-form": "For robust form state management"
+  "zod": "For schema validation in forms"
+  "date-fns": "For formatting dates in history and quote views"
+
+images:
+  - path: "artifacts/vgc-app/public/images/hero-bg.png"
+    description: "Abstract architectural blueprint wireframe overlaid on a deep dark navy blue gradient background, modern professional tech vibe, glowing neon blue accents"
+    aspect_ratio: "16:9"
+  - path: "artifacts/vgc-app/public/images/logo.png"
+    description: "Minimalist geometric icon combining a house roof and a digital glowing circuit node, deep blue and cyan gradient, dark background"
+    aspect_ratio: "1:1"
+
+notes:
+  - "The app defaults to dark mode natively via CSS variables."
+  - "Using the generated React Query hooks from @workspace/api-client-react."

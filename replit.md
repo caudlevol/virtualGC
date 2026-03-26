@@ -12,11 +12,14 @@ pnpm workspace monorepo using TypeScript.
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
+- **Frontend**: React 19 + Vite + Tailwind CSS v4 + Shadcn UI
+- **Routing**: wouter
+- **State**: TanStack React Query + generated hooks from Orval
 - **API framework**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **Build**: esbuild (CJS bundle for API), Vite (frontend)
 - **AI**: OpenAI GPT-4o (primary), Anthropic Claude (quote validator)
 - **Auth**: Session-based (express-session + connect-pg-simple + bcrypt)
 
@@ -67,6 +70,25 @@ artifacts-monorepo/
 │           ├── quotes.ts          # quotes + quote_line_items tables
 │           ├── costEngine.ts      # material_costs, labor_rates, regional_multipliers, bls_cache
 │           └── leadCaptures.ts    # lead_captures table
+│   └── vgc-app/            # React frontend (Vite + Tailwind)
+│       └── src/
+│           ├── App.tsx           # Root router
+│           ├── index.css         # Tailwind + theme variables
+│           ├── hooks/
+│           │   └── use-auth.tsx  # Auth hook (session check + redirect)
+│           ├── components/
+│           │   ├── layout.tsx    # AppLayout with nav
+│           │   └── ui/          # Shadcn UI components
+│           └── pages/
+│               ├── landing.tsx       # Public landing page
+│               ├── auth.tsx          # Login + Register tabs
+│               ├── dashboard.tsx     # Zillow URL input (protected)
+│               ├── chat.tsx          # AI conversation (protected)
+│               ├── quote-view.tsx    # Itemized quote display (protected)
+│               ├── history.tsx       # Quote history list (protected)
+│               ├── shared-quote.tsx  # Public shareable quote (/quote/:uuid)
+│               ├── demo.tsx          # Public demo page
+│               └── not-found.tsx     # 404
 ├── scripts/                # Utility scripts
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
@@ -118,6 +140,15 @@ OpenAPI 3.1 spec with Orval codegen. Run: `pnpm --filter @workspace/api-spec run
 ### `lib/api-zod` (`@workspace/api-zod`)
 
 Generated Zod schemas from OpenAPI spec. Used by api-server for request validation.
+
+### `artifacts/vgc-app` (`@workspace/vgc-app`)
+
+React + Vite frontend. Port 24922. Dark theme. Pages: landing, auth, dashboard, chat, quote-view, shared-quote, demo, history.
+
+- Public routes: `/`, `/demo`, `/quote/:uuid`, `/login`, `/register`
+- Protected routes: `/dashboard`, `/chat/:id`, `/quotes`, `/quotes/:id`
+- Uses generated React Query hooks from `@workspace/api-client-react`
+- Auth via `useAuth()` hook checking `GET /api/auth/session`
 
 ### `lib/api-client-react` (`@workspace/api-client-react`)
 
