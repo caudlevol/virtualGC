@@ -1,0 +1,40 @@
+Hunter, I read every line of your visualization code and researched what the best tools in the space are actually using. Here is the full picture.
+What Your Code Is Currently Doing
+Your visualization system has two paths:
+Path 1 — Image Editing (the good path): When a user selects one of the Zillow listing photos as a source, the system fetches that photo, converts it to base64, and sends it to gemini-3-pro-image-preview with a carefully engineered prompt that instructs it to apply the specific renovations while keeping the room layout, camera angle, and lighting unchanged. The prompt engineering here is actually solid — it explicitly calls out what to keep and what to change.
+Path 2 — Text-to-Image (the weak path): When no source photo is provided, the system falls back to gemini-2.5-flash-image with a generic text prompt built from the last 6 conversation messages. This produces a completely fabricated room that has nothing to do with the actual property. It looks like a stock photo, not a renovation of the house being discussed.
+The core problem is not the model — it is Path 2 existing at all. A buyer standing in a house does not want to see a generated fantasy kitchen. They want to see their kitchen remodeled. Path 2 should be eliminated or replaced with a message that says "please select a listing photo to visualize."
+What Remodel AI and the Best Tools Are Using
+Remodel AI runs on their own proprietary stack called ReImage AI, which they have now opened as an API. They do not disclose the underlying model, but based on the output quality and their feature set (masking, object replacement, inpainting), they are almost certainly running a fine-tuned Stable Diffusion XL or FLUX.1 model with ControlNet for structural preservation — meaning the room's walls, layout, and perspective are locked via a depth or edge map, and only the specified surfaces are repainted. This is why their outputs look so photorealistic and structurally accurate. The room does not "drift" the way pure LLM-based image editing tends to.
+The current state of the API landscape as of March 2026 breaks down like this:
+Model / API
+Strength
+Weakness
+Best For VGC?
+Gemini 3 Pro Image Preview (what you have)
+Good instruction following, up to 4K output, 14 reference images
+Tends to over-stylize, room geometry can drift, expensive at $0.134/img
+Acceptable for MVP
+OpenAI GPT Image 1.5
+Best text rendering, precise edits, photorealistic for product-style shots
+Tops out at ~1536px, no 4K, less reference-aware
+Better for text-heavy outputs
+ReImage AI API (Remodel AI's API)
+Purpose-built for room editing, masking, structural preservation — exactly your use case
+Third-party dependency, pricing not public
+Best fit for your use case
+Stable Diffusion XL + ControlNet (self-hosted or via Replicate/fal.ai)
+Maximum control, structural locking via depth maps, cheapest at scale
+More complex to implement, requires prompt tuning
+Best long-term if you want quality parity with Remodel AI
+The Three Upgrades, Ranked by Impact
+Upgrade 1 — Eliminate Path 2 entirely (High Impact / 10 minutes)
+Remove the text-only generation fallback. Replace it with a UI prompt that says: "Select a listing photo above to see how this room could look after renovation." This immediately makes every visualization output feel grounded in the actual property rather than hallucinated. This is the single highest-leverage change you can make today.
+Upgrade 2 — Switch the image editing model to OpenAI GPT Image 1.5 (High Impact / Medium Effort)
+Your codebase already uses OpenAI for the chat pipeline. Adding gpt-image-1 for the edit path means one unified API key, simpler billing, and meaningfully better structural fidelity on room edits — particularly for surface-level changes like flooring, paint, and countertops. The prompt structure you already have (KEEP UNCHANGED / APPLY THESE CHANGES) maps perfectly to how GPT Image 1.5 processes edit instructions. The Replit Agent prompt for this change is straightforward: "Replace the editImage call in the visualization route with OpenAI's gpt-image-1 image editing endpoint, keeping the same prompt structure."
+Upgrade 3 — Integrate the ReImage AI API as a premium visualization tier (Medium Impact / Medium Effort)
+This is the partnership play identified earlier. ReImage AI is purpose-built for exactly what you are doing — room photo editing with structural preservation. Integrating their API as a "Premium Visualization" feature on your Pro tier would give you output quality parity with Remodel AI, and it creates a natural co-marketing angle. Their API is live and documented at reimage.ai. This is a Phase 2 move, not something to block your MVP on, but worth putting on the roadmap now.
+The Replit Prompt for Upgrade 2
+Paste this directly into Replit Agent when you are ready:
+In conversations.ts, in the visualization route, replace the editImage function call (which currently uses gemini-3-pro-image-preview) with OpenAI's image editing endpoint using the gpt-image-1 model. Use the existing OPENAI_API_KEY environment variable. The prompt structure (KEEP UNCHANGED / APPLY THESE CHANGES) should remain identical. Also remove the generateImage fallback path entirely — if no sourceImageUrl is provided, return a 400 error with the message: "Please select a listing photo to generate a visualization." Update the Gemini integration library to be visualization-only for the concept generation feature, or remove it if unused.
+That single session will close the biggest quality gap in the entire product.
