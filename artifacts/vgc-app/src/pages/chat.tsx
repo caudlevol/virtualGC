@@ -90,7 +90,7 @@ function formatMessage(text: string) {
   });
 }
 
-function PhotoLightbox({ photos, initialIndex, onClose, onVisualize, isVisualizing }: { photos: string[]; initialIndex: number; onClose: () => void; onVisualize?: (photoUrl: string) => void; isVisualizing?: boolean }) {
+function PhotoLightbox({ photos, initialIndex, onClose }: { photos: string[]; initialIndex: number; onClose: () => void }) {
   const [index, setIndex] = useState(initialIndex);
 
   useEffect(() => {
@@ -134,29 +134,6 @@ function PhotoLightbox({ photos, initialIndex, onClose, onVisualize, isVisualizi
           className="max-w-full max-h-full object-contain rounded-lg"
         />
 
-        {onVisualize && (
-          <button
-            onClick={() => {
-              onVisualize(photos[index]);
-              onClose();
-            }}
-            disabled={isVisualizing}
-            className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary hover:bg-primary/90 text-white font-medium text-sm shadow-lg shadow-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isVisualizing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Visualize this room
-              </>
-            )}
-          </button>
-        )}
-
         {photos.length > 1 && (
           <button
             onClick={() => setIndex(i => (i + 1) % photos.length)}
@@ -174,7 +151,7 @@ function PhotoLightbox({ photos, initialIndex, onClose, onVisualize, isVisualizi
   );
 }
 
-function PropertyPhotoCarousel({ photos, compact = false, onPhotoClick, onVisualize, isVisualizing, canVisualize }: { photos: string[]; compact?: boolean; onPhotoClick?: (index: number) => void; onVisualize?: (photoUrl: string) => void; isVisualizing?: boolean; canVisualize?: boolean }) {
+function PropertyPhotoCarousel({ photos, compact = false, onPhotoClick }: { photos: string[]; compact?: boolean; onPhotoClick?: (index: number) => void }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   if (!photos || photos.length === 0) {
@@ -197,23 +174,6 @@ function PropertyPhotoCarousel({ photos, compact = false, onPhotoClick, onVisual
         className="w-full h-full object-cover transition-opacity duration-300 cursor-pointer"
         onClick={() => onPhotoClick?.(currentIndex)}
       />
-      {canVisualize && onVisualize && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onVisualize(photos[currentIndex]);
-          }}
-          disabled={isVisualizing}
-          className="absolute top-2 right-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/90 hover:bg-primary text-white text-xs font-medium shadow-lg opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed z-10"
-        >
-          {isVisualizing ? (
-            <Loader2 className="w-3 h-3 animate-spin" />
-          ) : (
-            <Sparkles className="w-3 h-3" />
-          )}
-          Visualize
-        </button>
-      )}
       {photos.length > 1 && (
         <>
           <button
@@ -346,7 +306,7 @@ function PhotoPickerModal({ photos, onSelect, onUpload, onClose }: { photos: str
   );
 }
 
-function PhotoStrip({ photos, onPhotoClick, onVisualize, isVisualizing, canVisualize }: { photos: string[]; onPhotoClick?: (index: number) => void; onVisualize?: (photoUrl: string) => void; isVisualizing?: boolean; canVisualize?: boolean }) {
+function PhotoStrip({ photos, onPhotoClick }: { photos: string[]; onPhotoClick?: (index: number) => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   if (!photos || photos.length === 0) return null;
@@ -377,22 +337,6 @@ function PhotoStrip({ photos, onPhotoClick, onVisualize, isVisualizing, canVisua
               className="h-20 w-28 rounded-lg object-cover border border-white/10 hover:border-primary/50 transition-colors cursor-pointer"
               onClick={() => onPhotoClick?.(i)}
             />
-            {canVisualize && onVisualize && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onVisualize(photo);
-                }}
-                disabled={isVisualizing}
-                className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                title="Visualize this room"
-              >
-                <div className="flex flex-col items-center gap-0.5">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <span className="text-[10px] text-white font-medium">Visualize</span>
-                </div>
-              </button>
-            )}
           </div>
         ))}
       </div>
@@ -418,7 +362,6 @@ export default function ChatPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
-  const [lightboxIsListing, setLightboxIsListing] = useState(false);
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
 
   const [input, setInput] = useState("");
@@ -457,10 +400,9 @@ export default function ChatPage() {
     }
   }, [conv?.messages, sendMutation.isPending, visualizeMutation.isPending]);
 
-  const openLightbox = (photos: string[], index: number, isListing = false) => {
+  const openLightbox = (photos: string[], index: number) => {
     setLightboxPhotos(photos);
     setLightboxIndex(index);
-    setLightboxIsListing(isListing);
     setLightboxOpen(true);
   };
 
@@ -515,10 +457,7 @@ export default function ChatPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <PropertyPhotoCarousel
                 photos={property.listingPhotos || []}
-                onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i, true)}
-                onVisualize={handleVisualizePhoto}
-                isVisualizing={visualizeMutation.isPending}
-                canVisualize={conv.messages.length >= 2}
+                onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i)}
               />
               <div className="flex flex-col justify-between">
                 <div>
@@ -564,7 +503,7 @@ export default function ChatPage() {
                       src={property.listingPhotos![0]}
                       alt="Property"
                       className="w-12 h-12 rounded-lg object-cover cursor-pointer"
-                      onClick={() => openLightbox(property.listingPhotos || [], 0, true)}
+                      onClick={() => openLightbox(property.listingPhotos || [], 0)}
                     />
                   )}
                   <div>
@@ -602,10 +541,7 @@ export default function ChatPage() {
               >
                 <PhotoStrip
                   photos={property.listingPhotos!}
-                  onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i, true)}
-                  onVisualize={handleVisualizePhoto}
-                  isVisualizing={visualizeMutation.isPending}
-                  canVisualize={conv.messages.length >= 2}
+                  onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i)}
                 />
               </motion.div>
             )}
@@ -782,8 +718,6 @@ export default function ChatPage() {
             photos={lightboxPhotos}
             initialIndex={lightboxIndex}
             onClose={() => setLightboxOpen(false)}
-            onVisualize={lightboxIsListing && conv.messages.length >= 2 ? handleVisualizePhoto : undefined}
-            isVisualizing={visualizeMutation.isPending}
           />
         )}
       </AnimatePresence>

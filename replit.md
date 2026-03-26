@@ -20,7 +20,7 @@ pnpm workspace monorepo using TypeScript.
 - **Validation**: Zod (v3 API for forms via custom `zodFormResolver`, `zod/v4` for backend), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle for API), Vite (frontend)
-- **AI**: OpenAI GPT-4o (primary chat + visual description extraction), Anthropic Claude (quote validator), Google Gemini (renovation visualization: `gemini-3-pro-image-preview` for photo editing, `gemini-2.5-flash-image` for generic concept generation)
+- **AI**: OpenAI GPT-4o (primary chat + visual description extraction), OpenAI GPT Image 1 (renovation photo editing via `gpt-image-1`), Anthropic Claude (quote validator), Google Gemini (chat via `gemini-2.5-flash`)
 - **Auth**: Session-based (express-session + connect-pg-simple + bcrypt)
 
 ## API Keys (Replit Secrets)
@@ -76,7 +76,7 @@ artifacts-monorepo/
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   ├── integrations-gemini-ai/  # Gemini AI integration (image generation)
+│   ├── integrations-gemini-ai/  # Gemini AI integration (chat)
 │   └── db/                 # Drizzle ORM schema + DB connection
 │       └── src/schema/
 │           ├── organizations.ts   # organizations table

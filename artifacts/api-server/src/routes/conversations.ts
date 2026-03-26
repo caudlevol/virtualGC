@@ -4,8 +4,7 @@ import { eq, and, or } from "drizzle-orm";
 import { CreateConversationBody, SendMessageBody, SendMessageParams, GetConversationParams, VisualizeRenovationBody } from "@workspace/api-zod";
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC } from "../lib/aiPipeline";
-import { generateImage, editImage } from "@workspace/integrations-gemini-ai/image";
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 
 const openaiForViz = new OpenAI({ apiKey: process.env.OpenAI_API_Key });
 
@@ -330,28 +329,30 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
     }
   }
 
+  if (!hasSourceImage) {
+    res.status(400).json({ error: "Please select a listing photo or upload your own photo to visualize the renovation." });
+    return;
+  }
+
   try {
-    let result: { b64_json: string; mimeType: string };
-
-    if (hasSourceImage) {
-      let visualDescription = parsed.data.prompt;
-      let promptSource: string;
-      if (visualDescription) {
-        promptSource = "user-provided";
-      } else {
-        try {
-          visualDescription = await extractVisualDescription(existingMessages);
-          promptSource = "gpt4o-extracted";
-        } catch (extractErr) {
-          console.error("Visual description extraction failed, using fallback:", extractErr);
-          const recentContext = existingMessages.slice(-6).map(m => `${m.role}: ${m.content}`).join("\n");
-          visualDescription = `Apply the renovations discussed in this conversation:\n${recentContext}`;
-          promptSource = "raw-context-fallback";
-        }
+    let visualDescription = parsed.data.prompt;
+    let promptSource: string;
+    if (visualDescription) {
+      promptSource = "user-provided";
+    } else {
+      try {
+        visualDescription = await extractVisualDescription(existingMessages);
+        promptSource = "gpt4o-extracted";
+      } catch (extractErr) {
+        console.error("Visual description extraction failed, using fallback:", extractErr);
+        const recentContext = existingMessages.slice(-6).map(m => `${m.role}: ${m.content}`).join("\n");
+        visualDescription = `Apply the renovations discussed in this conversation:\n${recentContext}`;
+        promptSource = "raw-context-fallback";
       }
-      console.log(`[visualize] conversationId=${conversationId} promptSource=${promptSource} descriptionLength=${visualDescription.length} imageSource=${sourceImageUrl ? "listing" : "upload"}`);
+    }
+    console.log(`[visualize] conversationId=${conversationId} promptSource=${promptSource} descriptionLength=${visualDescription.length} imageSource=${sourceImageUrl ? "listing" : "upload"}`);
 
-      const editPrompt = `You are a professional interior renovation visualization tool. Edit this photo to show the following specific renovations applied to the room.
+    const editPrompt = `You are a professional interior renovation visualization tool. Edit this photo to show the following specific renovations applied to the room.
 
 KEEP UNCHANGED:
 - The exact room layout, dimensions, walls, ceiling, and floor plan
@@ -369,44 +370,50 @@ QUALITY REQUIREMENTS:
 - Edges where new materials meet existing surfaces must blend seamlessly
 - Preserve the original image resolution and color depth`;
 
-      let imgBase64: string;
-      let contentType: string;
+    let imgBuffer: Buffer;
+    let mimeType = "image/png";
 
-      if (uploadedImageBase64) {
-        imgBase64 = uploadedImageBase64;
-        contentType = uploadedImageMimeType!;
-      } else {
-        const imgResponse = await fetch(sourceImageUrl!, { signal: AbortSignal.timeout(15000) });
-        if (!imgResponse.ok) {
-          res.status(400).json({ error: "Could not fetch the source photo." });
-          return;
-        }
-        const imgBuffer = await imgResponse.arrayBuffer();
-        if (imgBuffer.byteLength > 10 * 1024 * 1024) {
-          res.status(400).json({ error: "Source image too large (max 10MB)." });
-          return;
-        }
-        imgBase64 = Buffer.from(imgBuffer).toString("base64");
-        const rawContentType = imgResponse.headers.get("content-type") || "image/jpeg";
-        contentType = rawContentType.split(";")[0].trim();
-      }
-
-      result = await editImage(imgBase64, contentType, editPrompt);
+    if (uploadedImageBase64) {
+      imgBuffer = Buffer.from(uploadedImageBase64, "base64");
+      mimeType = uploadedImageMimeType || "image/png";
     } else {
-      const recentContext = existingMessages.slice(-6).map(m => `${m.role}: ${m.content}`).join("\n");
-      const generatePrompt = `Professional renovation concept rendering for a ${property?.sqft || ""}sqft home at ${property?.address || "residential property"}. Based on this conversation:\n${recentContext}\n\nShow a photorealistic, well-lit interior rendering of the proposed renovations. Modern, high-quality finishes.`;
-      result = await generateImage(generatePrompt);
+      const imgResponse = await fetch(sourceImageUrl!, { signal: AbortSignal.timeout(15000) });
+      if (!imgResponse.ok) {
+        res.status(400).json({ error: "Could not fetch the source photo." });
+        return;
+      }
+      const arrayBuf = await imgResponse.arrayBuffer();
+      if (arrayBuf.byteLength > 10 * 1024 * 1024) {
+        res.status(400).json({ error: "Source image too large (max 10MB)." });
+        return;
+      }
+      imgBuffer = Buffer.from(arrayBuf);
+      const rawContentType = imgResponse.headers.get("content-type") || "image/png";
+      mimeType = rawContentType.split(";")[0].trim();
     }
 
-    const dataUri = `data:${result.mimeType};base64,${result.b64_json}`;
+    const ext = mimeType === "image/jpeg" ? "jpg" : mimeType === "image/webp" ? "webp" : "png";
+    const imageFile = await toFile(imgBuffer, `source.${ext}`, { type: mimeType });
+    const openaiResult = await openaiForViz.images.edit({
+      model: "gpt-image-1",
+      image: imageFile,
+      prompt: editPrompt,
+      size: "1024x1024",
+      response_format: "b64_json",
+    });
+
+    const b64Data = openaiResult.data?.[0]?.b64_json;
+    if (!b64Data) {
+      throw new Error("No image data returned from OpenAI");
+    }
+
+    const dataUri = `data:image/png;base64,${b64Data}`;
 
     const uploadedPreviewUri = uploadedImageBase64 ? `data:${uploadedImageMimeType};base64,${uploadedImageBase64}` : undefined;
 
     const assistantMessage = {
       role: "assistant" as const,
-      content: hasSourceImage
-        ? "Here's how this room could look with the proposed renovations:"
-        : "Here's a concept rendering based on our discussion:",
+      content: "Here's how this room could look with the proposed renovations:",
       imageUrl: dataUri,
       sourceImageUrl: sourceImageUrl || uploadedPreviewUri || undefined,
       timestamp: new Date().toISOString(),
