@@ -109,59 +109,48 @@ class ApifyProvider implements PropertyDataProvider {
     }
 
     try {
-      const runResponse = await fetch("https://api.apify.com/v2/acts/petr_cermak~zillow-api-scraper/runs", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          startUrls: [{ url }],
-          maxItems: 1,
-        }),
-        signal: AbortSignal.timeout(60000),
-      });
+      const runResponse = await fetch(
+        "https://api.apify.com/v2/acts/maxcopell~zillow-detail-scraper/runs?waitForFinish=60",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            startUrls: [{ url }],
+          }),
+          signal: AbortSignal.timeout(90000),
+        }
+      );
 
       if (!runResponse.ok) {
         logger.error({ status: runResponse.status }, "Apify run creation failed");
         return null;
       }
 
-      const runData = await runResponse.json() as { data?: { id?: string; defaultDatasetId?: string } };
+      const runData = await runResponse.json() as { data?: { id?: string; status?: string; defaultDatasetId?: string } };
       const runId = runData.data?.id;
+      const status = runData.data?.status;
+      const datasetId = runData.data?.defaultDatasetId;
+
       if (!runId) return null;
 
-      let attempts = 0;
-      const maxAttempts = 15;
-      while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        attempts++;
-
-        const statusResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}`, {
-          headers: { Authorization: `Bearer ${apiKey}` },
-        });
-
-        const statusData = await statusResponse.json() as { data?: { status?: string; defaultDatasetId?: string } };
-        if (statusData.data?.status === "SUCCEEDED") {
-          const datasetId = statusData.data.defaultDatasetId;
-          const itemsResponse = await fetch(`https://api.apify.com/v2/datasets/${datasetId}/items`, {
-            headers: { Authorization: `Bearer ${apiKey}` },
-          });
-
-          const items = await itemsResponse.json() as Array<Record<string, unknown>>;
-          if (items.length > 0) {
-            return this.parseApifyResult(items[0]);
-          }
-          return null;
-        }
-
-        if (statusData.data?.status === "FAILED" || statusData.data?.status === "ABORTED") {
-          logger.error({ runId, status: statusData.data.status }, "Apify run failed");
-          return null;
-        }
+      if (status !== "SUCCEEDED") {
+        logger.error({ runId, status }, "Apify run did not succeed");
+        return null;
       }
 
-      logger.error({ runId }, "Apify run timed out");
+      if (!datasetId) return null;
+
+      const itemsResponse = await fetch(`https://api.apify.com/v2/datasets/${datasetId}/items`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+
+      const items = await itemsResponse.json() as Array<Record<string, unknown>>;
+      if (items.length > 0) {
+        return this.parseApifyResult(items[0]);
+      }
       return null;
     } catch (err) {
       logger.error({ err }, "Apify fetch failed");
@@ -170,26 +159,46 @@ class ApifyProvider implements PropertyDataProvider {
   }
 
   private parseApifyResult(item: Record<string, unknown>): ZillowPropertyData {
-    const address = [
-      item.streetAddress || item.address,
-      item.city,
-      item.state,
-      item.zipcode || item.zipCode,
-    ].filter(Boolean).join(", ") as string;
+    const addressObj = item.address as { streetAddress?: string; city?: string; state?: string; zipcode?: string } | undefined;
+
+    let address: string;
+    let zipCode: string;
+    if (addressObj && typeof addressObj === "object") {
+      address = [addressObj.streetAddress, addressObj.city, addressObj.state, addressObj.zipcode].filter(Boolean).join(", ");
+      zipCode = String(addressObj.zipcode || item.zipcode || "");
+    } else {
+      address = [item.streetAddress, item.city, item.state, item.zipcode || item.zipCode].filter(Boolean).join(", ") as string;
+      zipCode = String(item.zipcode || item.zipCode || "");
+    }
+
+    const photos: string[] = [];
+    if (Array.isArray(item.originalPhotos)) {
+      for (const photo of item.originalPhotos as Array<{ mixedSources?: { jpeg?: Array<{ url: string; width: number }> } }>) {
+        const jpegs = photo.mixedSources?.jpeg;
+        if (jpegs && jpegs.length > 0) {
+          const best = jpegs.reduce((a, b) => (b.width > a.width ? b : a));
+          if (best.url) photos.push(best.url);
+        }
+      }
+    } else if (Array.isArray(item.responsivePhotos)) {
+      for (const photo of item.responsivePhotos as Array<{ mixedSources?: { jpeg?: Array<{ url: string; width: number }> } }>) {
+        const jpegs = photo.mixedSources?.jpeg;
+        if (jpegs && jpegs.length > 0) {
+          const best = jpegs.reduce((a, b) => (b.width > a.width ? b : a));
+          if (best.url) photos.push(best.url);
+        }
+      }
+    }
 
     return {
       address: address || "Unknown Address",
-      zipCode: String(item.zipcode || item.zipCode || ""),
-      sqft: Number(item.livingArea || item.sqft || item.livingAreaValue || 0),
+      zipCode,
+      sqft: Number(item.livingArea || item.livingAreaValue || 0),
       bedrooms: Number(item.bedrooms || item.beds || 0),
       bathrooms: Number(item.bathrooms || item.baths || 0),
       yearBuilt: item.yearBuilt ? Number(item.yearBuilt) : null,
-      lotSize: item.lotSize ? Number(item.lotSize) : null,
-      listingPhotos: Array.isArray(item.photos)
-        ? (item.photos as Array<Record<string, unknown>>).map(p => String(p.url || "")).filter(Boolean)
-        : Array.isArray(item.bigPhotos)
-          ? (item.bigPhotos as string[])
-          : [],
+      lotSize: item.lotSize ? Number(item.lotSize) : (item.lotAreaValue ? Number(item.lotAreaValue) : null),
+      listingPhotos: photos,
       priceHistory: (item.priceHistory as Record<string, unknown>) || null,
       rawData: item,
     };
@@ -197,8 +206,8 @@ class ApifyProvider implements PropertyDataProvider {
 }
 
 const providers: PropertyDataProvider[] = [
-  new RentCastProvider(),
   new ApifyProvider(),
+  new RentCastProvider(),
 ];
 
 export async function lookupProperty(zillowUrl: string): Promise<{ data: ZillowPropertyData; source: string } | { failure: LookupFailure }> {
