@@ -2,15 +2,31 @@ import { useRoute, Link } from "wouter";
 import { useGetSharedQuote } from "@workspace/api-client-react";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
-import { Loader2, Building, MapPin, Briefcase } from "lucide-react";
+import { Loader2, Building, MapPin, Briefcase, Copy, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+
+interface SharedLineItem {
+  id: number;
+  category: string;
+  description: string;
+  subtotal: number;
+}
 
 export default function SharedQuote() {
   const [, params] = useRoute("/quote/:uuid");
   const uuid = params?.uuid || "";
+  const [copied, setCopied] = useState(false);
 
   const { data: shared, isLoading, error } = useGetSharedQuote(uuid, { query: { retry: false }});
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   if (error || !shared) return <div className="min-h-screen bg-background flex flex-col items-center justify-center p-20 text-center">
@@ -23,15 +39,14 @@ export default function SharedQuote() {
   const agentName = shared.agentName || "Real Estate Professional";
   const agentBrokerage = shared.agentBrokerage || shared.coBrandName || "";
 
-  const groupedItems = quote.lineItems.reduce((acc, item) => {
+  const groupedItems = (quote.lineItems as SharedLineItem[]).reduce<Record<string, SharedLineItem[]>>((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
     acc[item.category].push(item);
     return acc;
-  }, {} as Record<string, typeof quote.lineItems>);
+  }, {});
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
-      {/* Co-branding Header */}
       <header className="bg-card border-b border-border py-4 sticky top-0 z-50">
         <div className="container mx-auto px-4 max-w-5xl flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -43,7 +58,13 @@ export default function SharedQuote() {
               <p className="font-bold text-sm md:text-base leading-tight">{agentName}</p>
             </div>
           </div>
-          {agentBrokerage && <Badge variant="secondary" className="hidden sm:inline-flex">{agentBrokerage}</Badge>}
+          <div className="flex items-center gap-3">
+            {agentBrokerage && <Badge variant="secondary" className="hidden sm:inline-flex">{agentBrokerage}</Badge>}
+            <Button variant="outline" size="sm" onClick={handleCopyLink} className="border-white/10">
+              {copied ? <Check className="w-4 h-4 mr-2 text-emerald-400" /> : <Copy className="w-4 h-4 mr-2" />}
+              {copied ? "Copied!" : "Copy Link"}
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -58,7 +79,6 @@ export default function SharedQuote() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Summary Column */}
           <div className="lg:col-span-1 space-y-6">
             <Card className="bg-gradient-to-b from-primary/10 to-transparent border-primary/20 shadow-xl overflow-hidden relative text-center">
               <CardContent className="p-8">
@@ -69,6 +89,9 @@ export default function SharedQuote() {
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/40 text-xs text-muted-foreground">
                   <span>Based on local {quote.property?.zipCode} rates</span>
                 </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Generated {format(new Date(quote.createdAt), 'MMMM d, yyyy')}
+                </p>
               </CardContent>
             </Card>
 
@@ -84,7 +107,6 @@ export default function SharedQuote() {
             )}
           </div>
 
-          {/* Details Column */}
           <div className="lg:col-span-2">
             <Card className="bg-card border-border shadow-xl">
               <CardHeader className="bg-secondary/30 border-b border-border">

@@ -31,14 +31,14 @@ export default function ChatPage() {
         setInput("");
         queryClient.invalidateQueries({ queryKey: [`/api/conversations/${id}`] });
       },
-      onError: (err: any) => toast({ title: "Failed to send", description: err?.data?.error || err?.message || "Unknown error", variant: "destructive" })
+      onError: (err: { data?: { error?: string }; message?: string }) => toast({ title: "Failed to send", description: err?.data?.error || err?.message || "Unknown error", variant: "destructive" })
     }
   });
 
   const quoteMutation = useGenerateQuote({
     mutation: {
       onSuccess: (data) => setLocation(`/quotes/${data.id}`),
-      onError: (err: any) => toast({ title: "Failed to generate quote", description: err?.data?.error || err?.message || "Unknown error", variant: "destructive" })
+      onError: (err: { data?: { error?: string }; message?: string }) => toast({ title: "Failed to generate quote", description: err?.data?.error || err?.message || "Unknown error", variant: "destructive" })
     }
   });
 
@@ -121,7 +121,7 @@ export default function ChatPage() {
                         </div>
                         <CardContent className="p-4 space-y-4">
                           <p className="text-sm text-muted-foreground line-clamp-3">
-                            {(msg.quoteSuggestion as any).reasoning || "Ready to generate formal estimate based on our discussion."}
+                            {(msg.quoteSuggestion as { reasoning?: string })?.reasoning || "Ready to generate formal estimate based on our discussion."}
                           </p>
                           <Button 
                             className="w-full bg-white text-black hover:bg-gray-200" 
@@ -174,7 +174,7 @@ export default function ChatPage() {
                   variant="ghost"
                   size="icon"
                   className="text-primary hover:text-primary hover:bg-primary/20"
-                  onClick={(e) => handleSend(e as any, true)}
+                  onClick={(e) => handleSend(e as React.FormEvent, true)}
                   disabled={!input.trim() || sendMutation.isPending}
                   title="Generate Quote from this message"
                 >

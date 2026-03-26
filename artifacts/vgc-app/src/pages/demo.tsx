@@ -4,12 +4,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useDemoEstimate, useCaptureLead } from "@workspace/api-client-react";
 import { formatCurrency } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
-import { Hammer, Loader2, ArrowRight, Zap, CheckCircle } from "lucide-react";
+import { motion } from "framer-motion";
+import { Hammer, Loader2, Zap, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 
@@ -19,13 +20,23 @@ const leadSchema = z.object({
   brokerage: z.string().optional(),
 });
 
+type LeadFormData = z.infer<typeof leadSchema>;
+
 export default function DemoPage() {
   const [url, setUrl] = useState("");
+  const [rateLimited, setRateLimited] = useState(false);
   const { toast } = useToast();
   
   const demoMutation = useDemoEstimate({
     mutation: {
-      onError: (err) => toast({ title: "Demo Failed", description: err.error, variant: "destructive" })
+      onError: (err: { status?: number; data?: { error?: string }; message?: string }) => {
+        if (err.status === 429) {
+          setRateLimited(true);
+          toast({ title: "Rate Limited", description: "Demo is limited to a few requests. Sign up for unlimited access!", variant: "destructive" });
+        } else {
+          toast({ title: "Demo Failed", description: err?.data?.error || err?.message || "Could not generate estimate", variant: "destructive" });
+        }
+      }
     }
   });
 
@@ -36,7 +47,7 @@ export default function DemoPage() {
     }
   });
 
-  const leadForm = useForm({
+  const leadForm = useForm<LeadFormData>({
     resolver: zodResolver(leadSchema),
     defaultValues: { name: "", email: "", brokerage: "" }
   });
@@ -68,6 +79,12 @@ export default function DemoPage() {
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">Paste a Zillow URL to instantly see localized cost data for a standard renovation.</p>
         </div>
 
+        {rateLimited && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto mb-8 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-center text-sm text-destructive">
+            You've reached the demo limit. Sign up for unlimited estimates!
+          </motion.div>
+        )}
+
         {!est ? (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-panel p-8 rounded-2xl max-w-2xl mx-auto">
             <form onSubmit={handleEstimate} className="flex flex-col gap-4">
@@ -80,7 +97,7 @@ export default function DemoPage() {
                   className="h-14 text-lg bg-black/40 border-white/10"
                 />
               </div>
-              <Button type="submit" size="lg" className="h-14 text-lg" disabled={demoMutation.isPending || !url}>
+              <Button type="submit" size="lg" className="h-14 text-lg" disabled={demoMutation.isPending || !url || rateLimited}>
                 {demoMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Zap className="w-5 h-5 mr-2" />}
                 Generate Sample Estimate
               </Button>
@@ -99,7 +116,7 @@ export default function DemoPage() {
                 </div>
                 
                 <div className="space-y-3 mb-8">
-                  {est.lineItems.slice(0, 3).map((item, i) => (
+                  {est.lineItems.slice(0, 3).map((item: { description: string; materialCost: number; laborCost: number; quantity: number }, i: number) => (
                     <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-secondary/50">
                       <span className="font-medium">{item.description}</span>
                       <span className="font-bold">{formatCurrency((item.materialCost + item.laborCost) * item.quantity)}</span>
@@ -133,6 +150,10 @@ export default function DemoPage() {
                       <Input {...leadForm.register("email")} className="bg-black/40" />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label>Brokerage (Optional)</Label>
+                    <Input {...leadForm.register("brokerage")} placeholder="Keller Williams, RE/MAX..." className="bg-black/40" />
+                  </div>
                   <Button type="submit" className="w-full" disabled={leadMutation.isPending}>
                     {leadMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     Book a Call & Get Beta Access
@@ -150,9 +171,4 @@ export default function DemoPage() {
       </main>
     </div>
   );
-}
-
-// Temporary Badge component for Demo since it wasn't imported from UI (will fall back to simple styling if missed)
-function Badge({ children, className }: any) {
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${className}`}>{children}</span>;
 }

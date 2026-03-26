@@ -1,18 +1,28 @@
-import { useRoute, Link } from "wouter";
-import { useGetQuote, useToggleShareQuote } from "@workspace/api-client-react";
+import { useState } from "react";
+import { useRoute, useLocation } from "wouter";
+import { useGetQuote, useToggleShareQuote, useGenerateQuote, useDeleteQuote } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
-import { Loader2, Share2, CheckCircle, AlertTriangle, Building, MapPin, Printer } from "lucide-react";
+import { Loader2, Share2, CheckCircle, AlertTriangle, Building, MapPin, Printer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
+type QualityTier = "economy" | "mid_range" | "premium";
+
+const tierLabels: Record<QualityTier, string> = {
+  economy: "Economy",
+  mid_range: "Mid Range",
+  premium: "Premium",
+};
+
 export default function QuoteView() {
   const { isAuthenticated, isLoading: authLoading } = useAuth(true);
   const [, params] = useRoute("/quotes/:id");
+  const [, setLocation] = useLocation();
   const id = parseInt(params?.id || "0");
   const { toast } = useToast();
 
@@ -20,9 +30,38 @@ export default function QuoteView() {
 
   const shareMutation = useToggleShareQuote({
     mutation: {
-      onSuccess: (data) => {
-        toast({ title: data.sharedUrlEnabled ? "Link enabled" : "Link disabled" });
+      onSuccess: (data: { sharedUrlEnabled: boolean }) => {
+        toast({ title: data.sharedUrlEnabled ? "Sharing enabled" : "Sharing disabled" });
         refetch();
+      },
+      onError: (err: { status?: number; data?: { error?: string }; message?: string }) => {
+        if (err.status === 403) {
+          toast({ title: "Upgrade Required", description: "Sharing requires a Pro subscription", variant: "destructive" });
+        }
+      }
+    }
+  });
+
+  const regenerateMutation = useGenerateQuote({
+    mutation: {
+      onSuccess: (data: { id: number }) => {
+        setLocation(`/quotes/${data.id}`);
+        toast({ title: "Quote regenerated with new tier" });
+      },
+      onError: (err: { data?: { error?: string }; message?: string }) => {
+        toast({ title: "Regeneration failed", description: err?.data?.error || err?.message || "Unknown error", variant: "destructive" });
+      }
+    }
+  });
+
+  const deleteMutation = useDeleteQuote({
+    mutation: {
+      onSuccess: () => {
+        toast({ title: "Quote deleted" });
+        setLocation("/quotes");
+      },
+      onError: (err: { data?: { error?: string }; message?: string }) => {
+        toast({ title: "Delete failed", description: err?.data?.error || err?.message || "Unknown error", variant: "destructive" });
       }
     }
   });
@@ -31,11 +70,22 @@ export default function QuoteView() {
   if (isLoading) return <AppLayout><div className="flex justify-center p-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></AppLayout>;
   if (!quote) return <AppLayout><div className="text-center p-20 text-muted-foreground">Quote not found.</div></AppLayout>;
 
-  const groupedItems = quote.lineItems.reduce((acc, item) => {
+  interface LineItem {
+    id: number;
+    category: string;
+    description: string;
+    quantity: number;
+    unit: string;
+    materialCost: number;
+    laborCost: number;
+    subtotal: number;
+  }
+
+  const groupedItems = (quote.lineItems as LineItem[]).reduce<Record<string, LineItem[]>>((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
     acc[item.category].push(item);
     return acc;
-  }, {} as Record<string, typeof quote.lineItems>);
+  }, {});
 
   const handleShare = () => {
     if (quote.sharedUrlEnabled) {
@@ -45,6 +95,23 @@ export default function QuoteView() {
       shareMutation.mutate({ quoteId: id, data: { enabled: true } });
     }
   };
+
+  const handleDisableShare = () => {
+    shareMutation.mutate({ quoteId: id, data: { enabled: false } });
+  };
+
+  const handleTierChange = (tier: QualityTier) => {
+    if (tier === quote.qualityTier || !quote.conversationId) return;
+    regenerateMutation.mutate({ data: { conversationId: quote.conversationId, qualityTier: tier, title: quote.title } });
+  };
+
+  const currentTier = quote.qualityTier as QualityTier;
+
+  const claudeFlags = (() => {
+    if (!quote.claudeReview || typeof quote.claudeReview !== "object") return [];
+    const review = quote.claudeReview as { flags?: Array<{ item: string; issue: string }> };
+    return review.flags || [];
+  })();
 
   return (
     <AppLayout>
@@ -60,15 +127,41 @@ export default function QuoteView() {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => window.print()} className="bg-transparent">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button variant="outline" size="sm" onClick={() => window.print()} className="bg-transparent">
               <Printer className="w-4 h-4 mr-2" /> Print
             </Button>
-            <Button onClick={handleShare} className={quote.sharedUrlEnabled ? "bg-emerald-600 hover:bg-emerald-700" : ""}>
+            <Button size="sm" onClick={handleShare} className={quote.sharedUrlEnabled ? "bg-emerald-600 hover:bg-emerald-700" : ""}>
               <Share2 className="w-4 h-4 mr-2" /> 
               {quote.sharedUrlEnabled ? "Copy Client Link" : "Enable Sharing"}
             </Button>
+            {quote.sharedUrlEnabled && (
+              <Button variant="ghost" size="sm" onClick={handleDisableShare} className="text-muted-foreground hover:text-destructive">
+                Disable Link
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ quoteId: id })} disabled={deleteMutation.isPending} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 p-1 bg-secondary/50 rounded-lg w-fit">
+          {(Object.keys(tierLabels) as QualityTier[]).map((tier) => (
+            <button
+              key={tier}
+              onClick={() => handleTierChange(tier)}
+              disabled={regenerateMutation.isPending}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                currentTier === tier
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+              }`}
+            >
+              {tierLabels[tier]}
+            </button>
+          ))}
+          {regenerateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-primary ml-2" />}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -118,7 +211,7 @@ export default function QuoteView() {
                 <div className="space-y-3 pt-6 border-t border-white/10">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Quality Tier</span>
-                    <Badge variant="secondary" className="capitalize">{quote.qualityTier.replace('_', ' ')}</Badge>
+                    <Badge variant="secondary" className="capitalize">{tierLabels[currentTier]}</Badge>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Regional Multiplier</span>
@@ -145,7 +238,7 @@ export default function QuoteView() {
               </Card>
             )}
 
-            {quote.claudeReview && (quote.claudeReview as any).flags?.length > 0 && (
+            {claudeFlags.length > 0 && (
               <Card className="bg-destructive/10 border-destructive/20">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm text-destructive flex items-center gap-2">
@@ -153,7 +246,7 @@ export default function QuoteView() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {((quote.claudeReview as any).flags || []).map((flag: any, i: number) => (
+                  {claudeFlags.map((flag, i) => (
                     <div key={i} className="text-sm">
                       <p className="font-medium text-foreground">{flag.item}</p>
                       <p className="text-destructive/80 mt-0.5">{flag.issue}</p>
