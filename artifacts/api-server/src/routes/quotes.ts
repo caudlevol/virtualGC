@@ -260,6 +260,7 @@ router.get("/quotes/:quoteId", requireAuth, async (req, res): Promise<void> => {
     aiReasoning: quote.aiReasoning,
     regionalMultiplier: quote.regionalMultiplier,
     sharedUrlEnabled: quote.sharedUrlEnabled,
+    conversationId: quote.conversationId,
     property: property ? {
       id: property.id,
       address: property.address,

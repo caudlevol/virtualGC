@@ -3,14 +3,59 @@ import { useRoute, useLocation } from "wouter";
 import { useGetConversation, useSendMessage, useGenerateQuote } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout";
-import { motion, AnimatePresence } from "framer-motion";
-import { Send, Loader2, Hammer, User, ArrowRight, Building, Bed, Bath, Square, Calendar } from "lucide-react";
+import { motion } from "framer-motion";
+import { Send, Loader2, Hammer, User, Building, Bed, Bath, Square, Calendar, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+
+function PropertyPhotoCarousel({ photos }: { photos: string[] }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  if (!photos || photos.length === 0) {
+    return (
+      <div className="w-full h-48 bg-black/30 rounded-xl flex items-center justify-center text-muted-foreground">
+        <ImageIcon className="w-8 h-8 mr-2 opacity-50" />
+        <span className="text-sm">No listing photos available</span>
+      </div>
+    );
+  }
+
+  const goNext = () => setCurrentIndex((i) => (i + 1) % photos.length);
+  const goPrev = () => setCurrentIndex((i) => (i - 1 + photos.length) % photos.length);
+
+  return (
+    <div className="relative w-full h-48 md:h-56 rounded-xl overflow-hidden group">
+      <img
+        src={photos[currentIndex]}
+        alt={`Property photo ${currentIndex + 1}`}
+        className="w-full h-full object-cover transition-opacity duration-300"
+      />
+      {photos.length > 1 && (
+        <>
+          <button
+            onClick={goPrev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={goNext}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+            {currentIndex + 1} / {photos.length}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function ChatPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth(true);
@@ -66,35 +111,76 @@ export default function ChatPage() {
   if (!conv) return <AppLayout><div className="text-center p-20">Conversation not found.</div></AppLayout>;
 
   const property = conv.property;
+  const hasPhotos = property?.listingPhotos && property.listingPhotos.length > 0;
+  const showPropertyPanel = property && (conv.messages.length <= 1);
 
   return (
     <AppLayout>
-      <div className="flex flex-col h-[calc(100vh-140px)] max-w-5xl mx-auto gap-6">
+      <div className="flex flex-col h-[calc(100vh-140px)] max-w-5xl mx-auto gap-4">
         
-        {/* Property Context Banner */}
-        {property && (
-          <Card className="bg-card border-border shadow-lg shrink-0">
-            <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
-                  <Building className="w-5 h-5" />
-                </div>
+        {showPropertyPanel && property && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-panel rounded-2xl p-5 shadow-xl shrink-0"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <PropertyPhotoCarousel photos={property.listingPhotos || []} />
+              <div className="flex flex-col justify-between">
                 <div>
-                  <h2 className="font-bold text-base md:text-lg leading-tight">{property.address}</h2>
-                  <p className="text-xs text-muted-foreground">ID: {property.id} • {property.dataSource}</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Building className="w-5 h-5 text-primary" />
+                    <h2 className="font-bold text-lg leading-tight">{property.address}</h2>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-4">{property.zipCode} &bull; {property.dataSource}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Square className="w-4 h-4 text-primary/70" />
+                      <span>{property.sqft?.toLocaleString()} sqft</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Bed className="w-4 h-4 text-primary/70" />
+                      <span>{property.bedrooms} bedrooms</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Bath className="w-4 h-4 text-primary/70" />
+                      <span>{property.bathrooms} bathrooms</span>
+                    </div>
+                    {property.yearBuilt && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="w-4 h-4 text-primary/70" />
+                        <span>Built {property.yearBuilt}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground/70 mt-4">Describe the renovation scope below to get started.</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {!showPropertyPanel && property && (
+          <Card className="bg-card border-border shadow-lg shrink-0">
+            <CardContent className="p-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                {hasPhotos && (
+                  <img src={property.listingPhotos![0]} alt="Property" className="w-12 h-12 rounded-lg object-cover" />
+                )}
+                <div>
+                  <h2 className="font-bold text-sm md:text-base leading-tight">{property.address}</h2>
+                  <p className="text-xs text-muted-foreground">{property.zipCode}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                 <Badge variant="secondary" className="font-medium bg-black/40"><Square className="w-3 h-3 mr-1"/> {property.sqft} sqft</Badge>
                 <Badge variant="secondary" className="font-medium bg-black/40"><Bed className="w-3 h-3 mr-1"/> {property.bedrooms} beds</Badge>
                 <Badge variant="secondary" className="font-medium bg-black/40"><Bath className="w-3 h-3 mr-1"/> {property.bathrooms} baths</Badge>
-                {property.yearBuilt && <Badge variant="secondary" className="font-medium bg-black/40"><Calendar className="w-3 h-3 mr-1"/> Built {property.yearBuilt}</Badge>}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Chat Area */}
         <div className="flex-1 glass-panel rounded-2xl flex flex-col overflow-hidden shadow-2xl relative">
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
             {conv.messages.map((msg, i: number) => {

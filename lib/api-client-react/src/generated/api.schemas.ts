@@ -222,6 +222,7 @@ export interface Quote {
   aiReasoning?: string;
   regionalMultiplier?: number;
   sharedUrlEnabled: boolean;
+  conversationId?: number;
   property?: Property;
   lineItems: QuoteLineItem[];
   /** @nullable */

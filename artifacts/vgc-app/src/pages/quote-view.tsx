@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useGetQuote, useToggleShareQuote, useDeleteQuote } from "@workspace/api-client-react";
+import { useGetQuote, useToggleShareQuote, useDeleteQuote, useGenerateQuote } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
@@ -38,6 +38,18 @@ export default function QuoteView() {
         if (err.status === 403) {
           toast({ title: "Upgrade Required", description: "Sharing requires a Pro subscription", variant: "destructive" });
         }
+      }
+    }
+  });
+
+  const regenerateMutation = useGenerateQuote({
+    mutation: {
+      onSuccess: (data: { id: number }) => {
+        setLocation(`/quotes/${data.id}`);
+        toast({ title: "Quote regenerated with new quality tier" });
+      },
+      onError: (err: { data?: { error?: string }; message?: string }) => {
+        toast({ title: "Regeneration failed", description: err?.data?.error || err?.message || "Unknown error", variant: "destructive" });
       }
     }
   });
@@ -88,6 +100,11 @@ export default function QuoteView() {
     shareMutation.mutate({ quoteId: id, data: { enabled: false } });
   };
 
+  const handleTierChange = (tier: QualityTier) => {
+    if (tier === quote.qualityTier || !quote.conversationId) return;
+    regenerateMutation.mutate({ data: { conversationId: quote.conversationId, qualityTier: tier, title: quote.title } });
+  };
+
   const currentTier = quote.qualityTier as QualityTier;
 
   const claudeFlags = (() => {
@@ -131,17 +148,20 @@ export default function QuoteView() {
 
         <div className="flex items-center gap-2 p-1 bg-secondary/50 rounded-lg w-fit">
           {(Object.keys(tierLabels) as QualityTier[]).map((tier) => (
-            <div
+            <button
               key={tier}
+              onClick={() => handleTierChange(tier)}
+              disabled={regenerateMutation.isPending || currentTier === tier}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 currentTier === tier
                   ? "bg-primary text-primary-foreground shadow-lg"
-                  : "text-muted-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
               }`}
             >
               {tierLabels[tier]}
-            </div>
+            </button>
           ))}
+          {regenerateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-primary ml-2" />}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

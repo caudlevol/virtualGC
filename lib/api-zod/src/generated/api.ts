@@ -230,6 +230,7 @@ export const GetQuoteResponse = zod.object({
   aiReasoning: zod.string().optional(),
   regionalMultiplier: zod.number().optional(),
   sharedUrlEnabled: zod.boolean(),
+  conversationId: zod.number().optional(),
   property: zod
     .object({
       id: zod.number(),
@@ -291,6 +292,7 @@ export const GetSharedQuoteResponse = zod.object({
     aiReasoning: zod.string().optional(),
     regionalMultiplier: zod.number().optional(),
     sharedUrlEnabled: zod.boolean(),
+    conversationId: zod.number().optional(),
     property: zod
       .object({
         id: zod.number(),
