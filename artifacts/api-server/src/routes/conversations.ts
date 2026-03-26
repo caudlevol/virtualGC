@@ -320,15 +320,21 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
 
     if (sourceImageUrl) {
       let visualDescription = parsed.data.prompt;
-      if (!visualDescription) {
+      let promptSource: string;
+      if (visualDescription) {
+        promptSource = "user-provided";
+      } else {
         try {
           visualDescription = await extractVisualDescription(existingMessages);
+          promptSource = "gpt4o-extracted";
         } catch (extractErr) {
           console.error("Visual description extraction failed, using fallback:", extractErr);
           const recentContext = existingMessages.slice(-6).map(m => `${m.role}: ${m.content}`).join("\n");
           visualDescription = `Apply the renovations discussed in this conversation:\n${recentContext}`;
+          promptSource = "raw-context-fallback";
         }
       }
+      console.log(`[visualize] conversationId=${conversationId} promptSource=${promptSource} descriptionLength=${visualDescription.length}`);
 
       const editPrompt = `You are a professional interior renovation visualization tool. Edit this photo to show the following specific renovations applied to the room.
 
