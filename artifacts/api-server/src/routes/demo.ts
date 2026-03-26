@@ -5,6 +5,7 @@ import { DemoEstimateBody, CaptureLeadBody } from "@workspace/api-zod";
 import { lookupProperty, isValidZillowUrl, getSamplePropertyForUrl, classifyProviderErrors } from "../lib/zillowService";
 import { generateDemoEstimate } from "../lib/aiPipeline";
 import { getRegionalMultiplier } from "../lib/costEngine";
+import { priceLineItemsFromCostEngine } from "../lib/costLookup";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -91,16 +92,28 @@ router.post("/demo/estimate", demoLimiter, async (req, res): Promise<void> => {
 
   const { factor } = await getRegionalMultiplier(property.zipCode);
 
-  const lineItems = scope.items.map((item, idx) => ({
+  const pricedItems = await priceLineItemsFromCostEngine(
+    scope.items.map(item => ({
+      category: item.category,
+      description: item.description,
+      quantity: item.quantity,
+      unit: item.unit,
+    })),
+    "mid_range",
+    factor,
+    property.yearBuilt
+  );
+
+  const lineItems = pricedItems.map((item, idx) => ({
     id: idx + 1,
     category: item.category,
     description: item.description,
-    materialCost: Math.round(item.materialCost * factor * 100) / 100,
-    laborCost: Math.round(item.laborCost * factor * 100) / 100,
+    materialCost: item.materialCost,
+    laborCost: item.laborCost,
     quantity: item.quantity,
     unit: item.unit,
-    qualityTier: "mid_range" as const,
-    subtotal: Math.round((item.materialCost * factor + item.laborCost * factor) * item.quantity * 100) / 100,
+    qualityTier: item.qualityTier,
+    subtotal: Math.round((item.materialCost + item.laborCost) * item.quantity * 100) / 100,
   }));
 
   const midRangeTotal = lineItems.reduce((sum, li) => sum + li.subtotal, 0);

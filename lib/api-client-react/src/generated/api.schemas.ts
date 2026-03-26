@@ -117,6 +117,10 @@ export interface VisualizeRenovationBody {
   prompt?: string;
   /** URL of a listing photo to use as the base for image editing. When provided, the AI edits this specific photo to show the renovation rather than generating a new image from scratch. */
   sourceImageUrl?: string;
+  /** Base64-encoded image data for a user-uploaded photo to use as the base for image editing. */
+  uploadedImageBase64?: string;
+  /** MIME type of the uploaded image (e.g. image/jpeg, image/png). Required when uploadedImageBase64 is provided. */
+  uploadedImageMimeType?: string;
 }
 
 export interface CreateConversationBody {

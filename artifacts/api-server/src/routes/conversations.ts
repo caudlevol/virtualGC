@@ -306,6 +306,9 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
   const existingMessages = (conversation.messages as Array<{ role: string; content: string }>) || [];
 
   const sourceImageUrl = parsed.data.sourceImageUrl;
+  const uploadedImageBase64 = parsed.data.uploadedImageBase64;
+  const uploadedImageMimeType = parsed.data.uploadedImageMimeType;
+  const hasSourceImage = !!(sourceImageUrl || uploadedImageBase64);
 
   if (sourceImageUrl) {
     const listingPhotos = (property?.listingPhotos as string[] | null) || [];
@@ -315,10 +318,22 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
     }
   }
 
+  if (uploadedImageBase64) {
+    const estimatedSize = (uploadedImageBase64.length * 3) / 4;
+    if (estimatedSize > 10 * 1024 * 1024) {
+      res.status(400).json({ error: "Uploaded image too large (max 10MB)." });
+      return;
+    }
+    if (!uploadedImageMimeType || !["image/jpeg", "image/png", "image/webp"].includes(uploadedImageMimeType)) {
+      res.status(400).json({ error: "Invalid image type. Supported: JPEG, PNG, WebP." });
+      return;
+    }
+  }
+
   try {
     let result: { b64_json: string; mimeType: string };
 
-    if (sourceImageUrl) {
+    if (hasSourceImage) {
       let visualDescription = parsed.data.prompt;
       let promptSource: string;
       if (visualDescription) {
@@ -334,7 +349,7 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
           promptSource = "raw-context-fallback";
         }
       }
-      console.log(`[visualize] conversationId=${conversationId} promptSource=${promptSource} descriptionLength=${visualDescription.length}`);
+      console.log(`[visualize] conversationId=${conversationId} promptSource=${promptSource} descriptionLength=${visualDescription.length} imageSource=${sourceImageUrl ? "listing" : "upload"}`);
 
       const editPrompt = `You are a professional interior renovation visualization tool. Edit this photo to show the following specific renovations applied to the room.
 
@@ -354,19 +369,28 @@ QUALITY REQUIREMENTS:
 - Edges where new materials meet existing surfaces must blend seamlessly
 - Preserve the original image resolution and color depth`;
 
-      const imgResponse = await fetch(sourceImageUrl, { signal: AbortSignal.timeout(15000) });
-      if (!imgResponse.ok) {
-        res.status(400).json({ error: "Could not fetch the source photo." });
-        return;
+      let imgBase64: string;
+      let contentType: string;
+
+      if (uploadedImageBase64) {
+        imgBase64 = uploadedImageBase64;
+        contentType = uploadedImageMimeType!;
+      } else {
+        const imgResponse = await fetch(sourceImageUrl!, { signal: AbortSignal.timeout(15000) });
+        if (!imgResponse.ok) {
+          res.status(400).json({ error: "Could not fetch the source photo." });
+          return;
+        }
+        const imgBuffer = await imgResponse.arrayBuffer();
+        if (imgBuffer.byteLength > 10 * 1024 * 1024) {
+          res.status(400).json({ error: "Source image too large (max 10MB)." });
+          return;
+        }
+        imgBase64 = Buffer.from(imgBuffer).toString("base64");
+        const rawContentType = imgResponse.headers.get("content-type") || "image/jpeg";
+        contentType = rawContentType.split(";")[0].trim();
       }
-      const imgBuffer = await imgResponse.arrayBuffer();
-      if (imgBuffer.byteLength > 10 * 1024 * 1024) {
-        res.status(400).json({ error: "Source image too large (max 10MB)." });
-        return;
-      }
-      const imgBase64 = Buffer.from(imgBuffer).toString("base64");
-      const rawContentType = imgResponse.headers.get("content-type") || "image/jpeg";
-      const contentType = rawContentType.split(";")[0].trim();
+
       result = await editImage(imgBase64, contentType, editPrompt);
     } else {
       const recentContext = existingMessages.slice(-6).map(m => `${m.role}: ${m.content}`).join("\n");
@@ -376,12 +400,15 @@ QUALITY REQUIREMENTS:
 
     const dataUri = `data:${result.mimeType};base64,${result.b64_json}`;
 
+    const uploadedPreviewUri = uploadedImageBase64 ? `data:${uploadedImageMimeType};base64,${uploadedImageBase64}` : undefined;
+
     const assistantMessage = {
       role: "assistant" as const,
-      content: sourceImageUrl
+      content: hasSourceImage
         ? "Here's how this room could look with the proposed renovations:"
         : "Here's a concept rendering based on our discussion:",
       imageUrl: dataUri,
+      sourceImageUrl: sourceImageUrl || uploadedPreviewUri || undefined,
       timestamp: new Date().toISOString(),
     };
 

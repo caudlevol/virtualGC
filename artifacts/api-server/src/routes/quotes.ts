@@ -136,7 +136,8 @@ router.post("/quotes/generate", requireAuth, requireTier("free"), async (req, re
       unit: item.unit,
     })),
     qualityTier || "mid_range",
-    factor
+    factor,
+    property.yearBuilt
   );
 
   const totalEstimate = lineItems.reduce((sum, item) => {

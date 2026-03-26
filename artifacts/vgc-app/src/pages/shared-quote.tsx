@@ -47,23 +47,30 @@ export default function SharedQuote() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
-      <header className="bg-card border-b border-border py-4 sticky top-0 z-50">
-        <div className="container mx-auto px-4 max-w-5xl flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-              <Briefcase className="w-5 h-5 text-primary" />
+      <header className="bg-card border-b border-border sticky top-0 z-50">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center border border-primary/20">
+                <Briefcase className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="font-bold text-base md:text-lg leading-tight">{agentName}</p>
+                {agentBrokerage && (
+                  <p className="text-sm text-muted-foreground leading-tight mt-0.5">{agentBrokerage}</p>
+                )}
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground leading-tight">Prepared for you by</p>
-              <p className="font-bold text-sm md:text-base leading-tight">{agentName}</p>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" onClick={handleCopyLink} className="border-white/10">
+                {copied ? <Check className="w-4 h-4 mr-2 text-emerald-400" /> : <Copy className="w-4 h-4 mr-2" />}
+                {copied ? "Copied!" : "Share"}
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {agentBrokerage && <Badge variant="secondary" className="hidden sm:inline-flex">{agentBrokerage}</Badge>}
-            <Button variant="outline" size="sm" onClick={handleCopyLink} className="border-white/10">
-              {copied ? <Check className="w-4 h-4 mr-2 text-emerald-400" /> : <Copy className="w-4 h-4 mr-2" />}
-              {copied ? "Copied!" : "Copy Link"}
-            </Button>
+          <div className="flex items-center gap-2 pb-3 text-xs text-muted-foreground">
+            <span>Renovation estimate powered by</span>
+            <span className="font-semibold text-primary">Virtual GC</span>
           </div>
         </div>
       </header>

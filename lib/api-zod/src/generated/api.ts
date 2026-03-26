@@ -156,6 +156,18 @@ export const VisualizeRenovationBody = zod.object({
     .describe(
       "URL of a listing photo to use as the base for image editing. When provided, the AI edits this specific photo to show the renovation rather than generating a new image from scratch.",
     ),
+  uploadedImageBase64: zod
+    .string()
+    .optional()
+    .describe(
+      "Base64-encoded image data for a user-uploaded photo to use as the base for image editing.",
+    ),
+  uploadedImageMimeType: zod
+    .string()
+    .optional()
+    .describe(
+      "MIME type of the uploaded image (e.g. image\/jpeg, image\/png). Required when uploadedImageBase64 is provided.",
+    ),
 });
 
 export const VisualizeRenovationResponse = zod.object({
