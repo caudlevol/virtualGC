@@ -1,4 +1,6 @@
 import { type Request, type Response, type NextFunction } from "express";
+import { db, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 declare module "express-session" {
   interface SessionData {
@@ -42,11 +44,27 @@ export function requireSuperAdmin(req: Request, res: Response, next: NextFunctio
     res.status(401).json({ error: "Authentication required" });
     return;
   }
-  if (req.session.role !== "super_admin") {
-    res.status(403).json({ error: "Super admin access required" });
-    return;
-  }
-  next();
+
+  db.select({ role: usersTable.role })
+    .from(usersTable)
+    .where(eq(usersTable.id, req.session.userId))
+    .limit(1)
+    .then((rows) => {
+      if (rows.length === 0) {
+        res.status(401).json({ error: "User not found" });
+        return;
+      }
+      const currentRole = rows[0].role;
+      if (currentRole !== "super_admin") {
+        res.status(403).json({ error: "Super admin access required" });
+        return;
+      }
+      req.session.role = currentRole;
+      next();
+    })
+    .catch(() => {
+      res.status(500).json({ error: "Authorization check failed" });
+    });
 }
 
 export function requireOrgAdmin(req: Request, res: Response, next: NextFunction): void {

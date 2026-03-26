@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useGetSession } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
@@ -6,6 +6,15 @@ import { Loader2 } from "lucide-react";
 export function AdminGuard({ children }: { children: ReactNode }) {
   const { data: user, isLoading, isError } = useGetSession();
   const [, setLocation] = useLocation();
+
+  const needsRedirect = !isLoading && (isError || !user || user.role !== "super_admin");
+  const redirectTarget = !user || isError ? "/login" : "/dashboard";
+
+  useEffect(() => {
+    if (needsRedirect) {
+      setLocation(redirectTarget);
+    }
+  }, [needsRedirect, redirectTarget, setLocation]);
 
   if (isLoading) {
     return (
@@ -15,13 +24,7 @@ export function AdminGuard({ children }: { children: ReactNode }) {
     );
   }
 
-  if (isError || !user) {
-    setLocation("/login");
-    return null;
-  }
-
-  if (user.role !== "super_admin") {
-    setLocation("/dashboard");
+  if (needsRedirect) {
     return null;
   }
 
