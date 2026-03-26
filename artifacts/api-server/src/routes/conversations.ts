@@ -394,11 +394,42 @@ QUALITY REQUIREMENTS:
 
     const ext = mimeType === "image/jpeg" ? "jpg" : mimeType === "image/webp" ? "webp" : "png";
     const imageFile = await toFile(imgBuffer, `source.${ext}`, { type: mimeType });
+
+    function pickOutputSize(buf: Buffer): "1024x1024" | "1536x1024" | "1024x1536" {
+      try {
+        let w = 0, h = 0;
+        if (buf[0] === 0xFF && buf[1] === 0xD8) {
+          let offset = 2;
+          while (offset < buf.length - 1) {
+            if (buf[offset] !== 0xFF) break;
+            const marker = buf[offset + 1];
+            if (marker === 0xC0 || marker === 0xC2) {
+              h = buf.readUInt16BE(offset + 5);
+              w = buf.readUInt16BE(offset + 7);
+              break;
+            }
+            const segLen = buf.readUInt16BE(offset + 2);
+            offset += 2 + segLen;
+          }
+        } else if (buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) {
+          w = buf.readUInt32BE(16);
+          h = buf.readUInt32BE(20);
+        }
+        if (w > 0 && h > 0) {
+          const ratio = w / h;
+          if (ratio > 1.2) return "1536x1024";
+          if (ratio < 0.8) return "1024x1536";
+        }
+      } catch {}
+      return "1024x1024";
+    }
+
+    const outputSize = pickOutputSize(imgBuffer);
     const openaiResult = await openaiForViz.images.edit({
       model: "gpt-image-1",
       image: imageFile,
       prompt: editPrompt,
-      size: "1024x1024",
+      size: outputSize,
       response_format: "b64_json",
     });
 
