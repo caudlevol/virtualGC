@@ -1,0 +1,47 @@
+Stack: React + Vite + TailwindCSS frontend, Express.js backend, Drizzle ORM + PostgreSQL. Dark theme UI.
+
+1. Authentication & Multi-Tenant Login
+
+Session-based auth with PostgreSQL session store (connect-pg-simple)
+Subscription tiers: Free (limited quotes/month), Pro ($X/mo, unlimited quotes, co-branding), Enterprise (white-label, API access)
+Plan gating: certain routes and features locked behind tier checks
+Org-level tenancy: users belong to an organization (brokerage). Org admin can manage agent seats. Quotes are visible within the org.
+Tables needed: users (email, password hash, role, org_id, subscription_tier), organizations (name, branding settings, seat_count), sessions
+Middleware: requireAuth (checks session), requireTier('pro') (checks subscription level), requireOrgAdmin (checks role within org)
+2. Regional Cost Engine (proven pattern from reference app)
+
+Fetch live construction labor wages from BLS QCEW API (Quarterly Census of Employment & Wages)
+URL pattern: https://data.bls.gov/cew/data/api/{YEAR}/a/industry/{NAICS}.csv
+Pull specific trade NAICS codes: plumbing (23822), electrical (23821), carpentry/framing (23816), HVAC (23822), roofing (23816), painting (23832)
+Parse CSV response, compute regional hourly wages
+Cache results for 7 days, fall back to hardcoded baseline if API is unavailable
+Fetch median property tax data from Census Bureau ACS API
+URL: https://api.census.gov/data/2023/acs/acs1?get=NAME,B25103_001E&for=state:*
+No API key required
+Store regional multipliers in PostgreSQL: zip/metro area → cost-of-living adjustment factor
+Cost engine tables: material_costs (category, item, quality_tier, base_unit_cost), labor_rates (trade_type, hourly_rate, productivity_factor, region), regional_multipliers (zip_prefix or metro, adjustment_factor)
+3. Multi-Model AI Pipeline (proven pattern)
+
+Primary (OpenAI GPT-4o): Powers the conversational Virtual GC agent. Generates itemized quotes with structured JSON output. Handles intent parsing and scope generation from chat messages.
+Secondary (Claude 3.5 Sonnet): Second-opinion review layer. After GPT-4o generates a quote, Claude validates the line items and flags anything that looks off (items priced >30% above/below regional norms).
+Temperature 0 for all cost-related calls (determinism matters for quotes).
+Batch items in groups of 20 for classification calls.
+4. Demo Page (for agent outreach, no auth required)
+
+Public route at /demo
+Paste a Zillow link → get a sample renovation quote
+Rate-limited (10 requests/hour)
+Lead capture form at the bottom (name, email, brokerage)
+"Book a Call" CTA linking to Calendly
+Show the value before asking for signup
+5. Quote Persistence & Sharing
+
+Every generated quote gets a unique shareable URL (UUID-based)
+Shareable link works without auth (read-only view for buyers/clients)
+Authenticated users can access their full quote history
+Quotes saved to PostgreSQL with all line items, property data, and AI reasoning
+6. Zillow Property Data Integration
+
+Accept a Zillow URL as input
+Use Apify Zillow Scraper to extract: sqft, room counts, lot size, year built, zip code, listing photos, price history
+Build the integration so the data source is swappable (interface pattern) — fall back to RentCast API if Apify fails, prompt user for manual entry if both fail
