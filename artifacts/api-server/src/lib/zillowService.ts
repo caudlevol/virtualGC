@@ -178,8 +178,6 @@ const providers: PropertyDataProvider[] = [
 
 export async function lookupProperty(zillowUrl: string): Promise<{ data: ZillowPropertyData; source: string } | null> {
   for (const provider of providers) {
-    if (provider.name === "manual") continue;
-
     try {
       logger.info({ provider: provider.name, url: zillowUrl }, "Attempting property lookup");
       const result = await provider.fetchProperty(zillowUrl);

@@ -8,6 +8,7 @@ export const conversationsTable = pgTable("conversations", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => usersTable.id),
   propertyId: integer("property_id").notNull().references(() => propertiesTable.id),
+  quoteId: integer("quote_id"),
   messages: jsonb("messages").notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

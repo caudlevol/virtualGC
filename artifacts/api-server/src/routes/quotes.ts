@@ -13,6 +13,7 @@ import {
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC, claudeReviewQuote } from "../lib/aiPipeline";
 import { getRegionalMultiplier } from "../lib/costEngine";
+import { priceLineItemsFromCostEngine } from "../lib/costLookup";
 
 const router: IRouter = Router();
 
@@ -103,24 +104,18 @@ router.post("/quotes/generate", requireAuth, requireTier("free"), async (req, re
   }
 
   const scope = aiResponse.quoteSuggestion;
-  const { factor, metroArea } = await getRegionalMultiplier(property.zipCode);
+  const { factor } = await getRegionalMultiplier(property.zipCode);
 
-  const tierMultipliers: Record<string, number> = {
-    economy: 0.7,
-    mid_range: 1.0,
-    premium: 1.5,
-  };
-  const tierMult = tierMultipliers[qualityTier || "mid_range"] || 1.0;
-
-  const lineItems = scope.items.map(item => ({
-    category: item.category,
-    description: item.description,
-    materialCost: Math.round(item.materialCost * factor * tierMult * 100) / 100,
-    laborCost: Math.round(item.laborCost * factor * 100) / 100,
-    quantity: item.quantity,
-    unit: item.unit,
-    qualityTier: qualityTier || "mid_range",
-  }));
+  const lineItems = await priceLineItemsFromCostEngine(
+    scope.items.map(item => ({
+      category: item.category,
+      description: item.description,
+      quantity: item.quantity,
+      unit: item.unit,
+    })),
+    qualityTier || "mid_range",
+    factor
+  );
 
   const totalEstimate = lineItems.reduce((sum, item) => {
     return sum + (item.materialCost + item.laborCost) * item.quantity;
@@ -161,6 +156,10 @@ router.post("/quotes/generate", requireAuth, requireTier("free"), async (req, re
   const insertedLineItems = await db.insert(quoteLineItemsTable).values(
     lineItems.map(li => ({ ...li, quoteId: quote.id }))
   ).returning();
+
+  await db.update(conversationsTable)
+    .set({ quoteId: quote.id })
+    .where(eq(conversationsTable.id, conversationId));
 
   res.status(201).json({
     id: quote.id,
