@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useGetConversation, useSendMessage, useGenerateQuote } from "@workspace/api-client-react";
+import { useGetConversation, useSendMessage, useGenerateQuote, useVisualizeRenovation } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout";
-import { motion } from "framer-motion";
-import { Send, Loader2, Hammer, User, Building, Bed, Bath, Square, Calendar, ChevronLeft, ChevronRight, ImageIcon, Images, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Send, Loader2, Hammer, User, Building, Bed, Bath, Square, Calendar, ChevronLeft, ChevronRight, ImageIcon, Images, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,7 +38,68 @@ function formatMessage(text: string) {
   });
 }
 
-function PropertyPhotoCarousel({ photos, compact = false }: { photos: string[]; compact?: boolean }) {
+function PhotoLightbox({ photos, initialIndex, onClose }: { photos: string[]; initialIndex: number; onClose: () => void }) {
+  const [index, setIndex] = useState(initialIndex);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") setIndex(i => (i - 1 + photos.length) % photos.length);
+      if (e.key === "ArrowRight") setIndex(i => (i + 1) % photos.length);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [photos.length, onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors z-10"
+      >
+        <X className="w-6 h-6" />
+      </button>
+
+      <div className="relative w-full h-full flex items-center justify-center p-8" onClick={e => e.stopPropagation()}>
+        {photos.length > 1 && (
+          <button
+            onClick={() => setIndex(i => (i - 1 + photos.length) % photos.length)}
+            className="absolute left-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors z-10"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+        )}
+
+        <img
+          src={photos[index]}
+          alt={`Photo ${index + 1}`}
+          className="max-w-full max-h-full object-contain rounded-lg"
+        />
+
+        {photos.length > 1 && (
+          <button
+            onClick={() => setIndex(i => (i + 1) % photos.length)}
+            className="absolute right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors z-10"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        )}
+
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-sm px-4 py-2 rounded-full">
+          {index + 1} / {photos.length}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function PropertyPhotoCarousel({ photos, compact = false, onPhotoClick }: { photos: string[]; compact?: boolean; onPhotoClick?: (index: number) => void }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   if (!photos || photos.length === 0) {
@@ -58,7 +119,8 @@ function PropertyPhotoCarousel({ photos, compact = false }: { photos: string[]; 
       <img
         src={photos[currentIndex]}
         alt={`Property photo ${currentIndex + 1}`}
-        className="w-full h-full object-cover transition-opacity duration-300"
+        className="w-full h-full object-cover transition-opacity duration-300 cursor-pointer"
+        onClick={() => onPhotoClick?.(currentIndex)}
       />
       {photos.length > 1 && (
         <>
@@ -83,7 +145,7 @@ function PropertyPhotoCarousel({ photos, compact = false }: { photos: string[]; 
   );
 }
 
-function PhotoStrip({ photos }: { photos: string[] }) {
+function PhotoStrip({ photos, onPhotoClick }: { photos: string[]; onPhotoClick?: (index: number) => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   if (!photos || photos.length === 0) return null;
@@ -112,6 +174,7 @@ function PhotoStrip({ photos }: { photos: string[] }) {
             src={photo}
             alt={`Photo ${i + 1}`}
             className="h-20 w-28 rounded-lg object-cover shrink-0 border border-white/10 hover:border-primary/50 transition-colors cursor-pointer"
+            onClick={() => onPhotoClick?.(i)}
           />
         ))}
       </div>
@@ -134,6 +197,9 @@ export default function ChatPage() {
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [photosExpanded, setPhotosExpanded] = useState(true);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
 
   const [input, setInput] = useState("");
 
@@ -156,11 +222,26 @@ export default function ChatPage() {
     }
   });
 
+  const visualizeMutation = useVisualizeRenovation({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [`/api/conversations/${id}`] });
+      },
+      onError: (err: { data?: { error?: string }; message?: string }) => toast({ title: "Visualization failed", description: err?.data?.error || err?.message || "Could not generate image", variant: "destructive" })
+    }
+  });
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [conv?.messages, sendMutation.isPending]);
+  }, [conv?.messages, sendMutation.isPending, visualizeMutation.isPending]);
+
+  const openLightbox = (photos: string[], index: number) => {
+    setLightboxPhotos(photos);
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
 
   const handleSend = (e: React.FormEvent, requestQuote = false) => {
     e.preventDefault();
@@ -173,6 +254,10 @@ export default function ChatPage() {
 
   const handleQuickAction = (text: string) => {
     sendMutation.mutate({ conversationId: id, data: { content: text } });
+  };
+
+  const handleVisualize = () => {
+    visualizeMutation.mutate({ conversationId: id, data: {} });
   };
 
   if (authLoading || !isAuthenticated) return null;
@@ -194,7 +279,10 @@ export default function ChatPage() {
             className="glass-panel rounded-2xl p-5 shadow-xl shrink-0"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <PropertyPhotoCarousel photos={property.listingPhotos || []} />
+              <PropertyPhotoCarousel
+                photos={property.listingPhotos || []}
+                onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i)}
+              />
               <div className="flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
@@ -235,7 +323,12 @@ export default function ChatPage() {
               <CardContent className="p-3 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   {hasPhotos && (
-                    <img src={property.listingPhotos![0]} alt="Property" className="w-12 h-12 rounded-lg object-cover" />
+                    <img
+                      src={property.listingPhotos![0]}
+                      alt="Property"
+                      className="w-12 h-12 rounded-lg object-cover cursor-pointer"
+                      onClick={() => openLightbox(property.listingPhotos || [], 0)}
+                    />
                   )}
                   <div>
                     <h2 className="font-bold text-sm md:text-base leading-tight">{property.address}</h2>
@@ -270,7 +363,10 @@ export default function ChatPage() {
                 exit={{ opacity: 0, height: 0 }}
                 className="bg-card/50 rounded-xl p-2 border border-white/5"
               >
-                <PhotoStrip photos={property.listingPhotos!} />
+                <PhotoStrip
+                  photos={property.listingPhotos!}
+                  onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i)}
+                />
               </motion.div>
             )}
           </div>
@@ -295,6 +391,21 @@ export default function ChatPage() {
                     <div className={`px-5 py-3.5 rounded-2xl text-sm md:text-base leading-relaxed whitespace-pre-line ${isAi ? "bg-secondary border border-white/5 text-foreground rounded-tl-none" : "bg-gradient-to-br from-primary to-indigo-600 text-white shadow-lg shadow-primary/20 rounded-tr-none"}`}>
                       {formatMessage(displayContent)}
                     </div>
+
+                    {msg.imageUrl && (
+                      <div className="mt-3 rounded-xl overflow-hidden border border-white/10 shadow-lg max-w-sm">
+                        <img
+                          src={msg.imageUrl}
+                          alt="Renovation concept"
+                          className="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => openLightbox([msg.imageUrl!], 0)}
+                        />
+                        <div className="bg-secondary/80 px-3 py-1.5 flex items-center gap-1.5">
+                          <Sparkles className="w-3 h-3 text-primary" />
+                          <span className="text-xs text-muted-foreground">AI-generated concept</span>
+                        </div>
+                      </div>
+                    )}
                     
                     {msg.quoteSuggestion && (
                       <Card className="mt-3 bg-card border-primary/30 shadow-lg shadow-primary/10 overflow-hidden w-full max-w-sm">
@@ -334,6 +445,18 @@ export default function ChatPage() {
                 </div>
               </motion.div>
             )}
+
+            {visualizeMutation.isPending && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-4">
+                <div className="shrink-0 w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div className="px-5 py-4 rounded-2xl rounded-tl-none bg-secondary border border-white/5 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Generating renovation concept...</span>
+                </div>
+              </motion.div>
+            )}
           </div>
 
           <div className="p-4 bg-background/50 backdrop-blur-md border-t border-white/5">
@@ -341,6 +464,16 @@ export default function ChatPage() {
                <Button variant="outline" size="sm" className="shrink-0 rounded-full text-xs" onClick={() => handleQuickAction("What would it cost to remodel the kitchen?")}>Remodel Kitchen</Button>
                <Button variant="outline" size="sm" className="shrink-0 rounded-full text-xs" onClick={() => handleQuickAction("Let's update the master bathroom.")}>Update Bathroom</Button>
                <Button variant="outline" size="sm" className="shrink-0 rounded-full text-xs" onClick={() => handleQuickAction("Give me a full flip estimate including floors and paint.")}>Full Flip</Button>
+               <Button
+                 variant="outline"
+                 size="sm"
+                 className="shrink-0 rounded-full text-xs border-primary/30 text-primary hover:bg-primary/10"
+                 onClick={handleVisualize}
+                 disabled={visualizeMutation.isPending || conv.messages.length < 2}
+               >
+                 <Sparkles className="w-3 h-3 mr-1" />
+                 Visualize
+               </Button>
             </div>
             <form onSubmit={(e) => handleSend(e)} className="relative flex items-center">
               <Input 
@@ -348,7 +481,7 @@ export default function ChatPage() {
                 onChange={e => setInput(e.target.value)}
                 placeholder="Ask about renovation costs..." 
                 className="pr-24 bg-black/40 border-white/10 h-14 rounded-xl text-base"
-                disabled={sendMutation.isPending || quoteMutation.isPending}
+                disabled={sendMutation.isPending || quoteMutation.isPending || visualizeMutation.isPending}
               />
               <div className="absolute right-2 flex gap-1">
                 <Button 
@@ -375,6 +508,16 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {lightboxOpen && lightboxPhotos.length > 0 && (
+          <PhotoLightbox
+            photos={lightboxPhotos}
+            initialIndex={lightboxIndex}
+            onClose={() => setLightboxOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </AppLayout>
   );
 }

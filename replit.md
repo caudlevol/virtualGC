@@ -20,7 +20,7 @@ pnpm workspace monorepo using TypeScript.
 - **Validation**: Zod (v3 API for forms via custom `zodFormResolver`, `zod/v4` for backend), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle for API), Vite (frontend)
-- **AI**: OpenAI GPT-4o (primary), Anthropic Claude (quote validator)
+- **AI**: OpenAI GPT-4o (primary), Anthropic Claude (quote validator), Google Gemini (renovation visualization)
 - **Auth**: Session-based (express-session + connect-pg-simple + bcrypt)
 
 ## API Keys (Replit Secrets)
@@ -30,6 +30,8 @@ pnpm workspace monorepo using TypeScript.
 - `Apify_API` — Zillow property data scraping (primary provider)
 - `RentCast_API_Key` — RentCast property data API (fallback provider)
 - `SESSION_SECRET` — Express session encryption
+- `AI_INTEGRATIONS_GEMINI_BASE_URL` — Gemini AI proxy URL (auto-provisioned by Replit AI Integrations)
+- `AI_INTEGRATIONS_GEMINI_API_KEY` — Gemini AI proxy key (auto-provisioned by Replit AI Integrations)
 - `DATABASE_URL` — auto-provided by Replit
 
 ## Property Lookup Provider Chain
@@ -74,6 +76,7 @@ artifacts-monorepo/
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
+│   ├── integrations-gemini-ai/  # Gemini AI integration (image generation)
 │   └── db/                 # Drizzle ORM schema + DB connection
 │       └── src/schema/
 │           ├── organizations.ts   # organizations table

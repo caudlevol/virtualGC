@@ -13,5 +13,10 @@ export interface ConversationMessage {
   content: string;
   /** @nullable */
   quoteSuggestion?: ConversationMessageQuoteSuggestion;
+  /**
+   * AI-generated renovation visualization image (data URI or URL)
+   * @nullable
+   */
+  imageUrl?: string | null;
   timestamp: Date;
 }

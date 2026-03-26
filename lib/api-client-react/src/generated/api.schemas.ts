@@ -112,6 +112,11 @@ export interface Property {
   createdAt: string;
 }
 
+export interface VisualizeRenovationBody {
+  /** Optional custom prompt for the visualization. If omitted, the AI builds one from conversation context. */
+  prompt?: string;
+}
+
 export interface CreateConversationBody {
   propertyId: number;
   initialMessage?: string;
@@ -142,6 +147,11 @@ export interface ConversationMessage {
   content: string;
   /** @nullable */
   quoteSuggestion?: ConversationMessageQuoteSuggestion;
+  /**
+   * AI-generated renovation visualization image (data URI or URL)
+   * @nullable
+   */
+  imageUrl?: string | null;
   timestamp: string;
 }
 

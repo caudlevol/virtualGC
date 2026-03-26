@@ -227,6 +227,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /conversations/{conversationId}/visualize:
+    post:
+      operationId: visualizeRenovation
+      tags: [conversations]
+      summary: Generate an AI renovation concept image
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VisualizeRenovationBody"
+      responses:
+        "200":
+          description: Generated renovation image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationMessage"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /conversations/{conversationId}:
     get:
       operationId: getConversation
@@ -809,6 +840,14 @@ components:
         - dataSource
         - createdAt
 
+    VisualizeRenovationBody:
+      type: object
+      properties:
+        prompt:
+          type: string
+          description: Optional custom prompt for the visualization. If omitted, the AI builds one from conversation context.
+      required: []
+
     CreateConversationBody:
       type: object
       properties:
@@ -840,6 +879,9 @@ components:
           type: string
         quoteSuggestion:
           type: ["object", "null"]
+        imageUrl:
+          type: ["string", "null"]
+          description: AI-generated renovation visualization image (data URI or URL)
         timestamp:
           type: string
           format: date-time

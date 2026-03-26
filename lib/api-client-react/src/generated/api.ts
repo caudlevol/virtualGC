@@ -55,6 +55,7 @@ import type {
   SharedQuote,
   SuccessResponse,
   ToggleShareBody,
+  VisualizeRenovationBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -810,6 +811,96 @@ export const useSendMessage = <
   TContext
 > => {
   return useMutation(getSendMessageMutationOptions(options));
+};
+
+/**
+ * @summary Generate an AI renovation concept image
+ */
+export const getVisualizeRenovationUrl = (conversationId: number) => {
+  return `/api/conversations/${conversationId}/visualize`;
+};
+
+export const visualizeRenovation = async (
+  conversationId: number,
+  visualizeRenovationBody: VisualizeRenovationBody,
+  options?: RequestInit,
+): Promise<ConversationMessage> => {
+  return customFetch<ConversationMessage>(
+    getVisualizeRenovationUrl(conversationId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(visualizeRenovationBody),
+    },
+  );
+};
+
+export const getVisualizeRenovationMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof visualizeRenovation>>,
+    TError,
+    { conversationId: number; data: BodyType<VisualizeRenovationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof visualizeRenovation>>,
+  TError,
+  { conversationId: number; data: BodyType<VisualizeRenovationBody> },
+  TContext
+> => {
+  const mutationKey = ["visualizeRenovation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof visualizeRenovation>>,
+    { conversationId: number; data: BodyType<VisualizeRenovationBody> }
+  > = (props) => {
+    const { conversationId, data } = props ?? {};
+
+    return visualizeRenovation(conversationId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VisualizeRenovationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof visualizeRenovation>>
+>;
+export type VisualizeRenovationMutationBody = BodyType<VisualizeRenovationBody>;
+export type VisualizeRenovationMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Generate an AI renovation concept image
+ */
+export const useVisualizeRenovation = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof visualizeRenovation>>,
+    TError,
+    { conversationId: number; data: BodyType<VisualizeRenovationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof visualizeRenovation>>,
+  TError,
+  { conversationId: number; data: BodyType<VisualizeRenovationBody> },
+  TContext
+> => {
+  return useMutation(getVisualizeRenovationMutationOptions(options));
 };
 
 /**

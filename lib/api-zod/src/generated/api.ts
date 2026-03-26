@@ -129,6 +129,37 @@ export const SendMessageResponse = zod.object({
   role: zod.enum(["user", "assistant"]),
   content: zod.string(),
   quoteSuggestion: zod.object({}).passthrough().nullish(),
+  imageUrl: zod
+    .string()
+    .nullish()
+    .describe("AI-generated renovation visualization image (data URI or URL)"),
+  timestamp: zod.date(),
+});
+
+/**
+ * @summary Generate an AI renovation concept image
+ */
+export const VisualizeRenovationParams = zod.object({
+  conversationId: zod.coerce.number(),
+});
+
+export const VisualizeRenovationBody = zod.object({
+  prompt: zod
+    .string()
+    .optional()
+    .describe(
+      "Optional custom prompt for the visualization. If omitted, the AI builds one from conversation context.",
+    ),
+});
+
+export const VisualizeRenovationResponse = zod.object({
+  role: zod.enum(["user", "assistant"]),
+  content: zod.string(),
+  quoteSuggestion: zod.object({}).passthrough().nullish(),
+  imageUrl: zod
+    .string()
+    .nullish()
+    .describe("AI-generated renovation visualization image (data URI or URL)"),
   timestamp: zod.date(),
 });
 
@@ -164,6 +195,12 @@ export const GetConversationResponse = zod.object({
       role: zod.enum(["user", "assistant"]),
       content: zod.string(),
       quoteSuggestion: zod.object({}).passthrough().nullish(),
+      imageUrl: zod
+        .string()
+        .nullish()
+        .describe(
+          "AI-generated renovation visualization image (data URI or URL)",
+        ),
       timestamp: zod.date(),
     }),
   ),

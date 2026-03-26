@@ -22,6 +22,7 @@
     "express": "^5",
     "express-rate-limit": "^8.3.1",
     "express-session": "^1.19.0",
+    "@workspace/integrations-gemini-ai": "workspace:*",
     "openai": "^6.32.0",
     "pino": "^9",
     "pino-http": "^10",

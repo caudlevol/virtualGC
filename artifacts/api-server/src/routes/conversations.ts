@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
 import { db, conversationsTable, propertiesTable } from "@workspace/db";
 import { eq, and, or } from "drizzle-orm";
-import { CreateConversationBody, SendMessageBody, SendMessageParams, GetConversationParams } from "@workspace/api-zod";
+import { CreateConversationBody, SendMessageBody, SendMessageParams, GetConversationParams, VisualizeRenovationBody } from "@workspace/api-zod";
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC } from "../lib/aiPipeline";
+import { generateImage } from "@workspace/integrations-gemini-ai/image";
 
 const router: IRouter = Router();
 
@@ -229,6 +230,69 @@ router.get("/conversations/:conversationId", requireAuth, async (req, res): Prom
     createdAt: conversation.createdAt.toISOString(),
     updatedAt: conversation.updatedAt.toISOString(),
   });
+});
+
+router.post("/conversations/:conversationId/visualize", requireAuth, async (req, res): Promise<void> => {
+  const conversationId = Number(req.params.conversationId);
+  if (isNaN(conversationId)) {
+    res.status(400).json({ error: "Invalid conversation ID" });
+    return;
+  }
+
+  const parsed = VisualizeRenovationBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const vizOwnership = [eq(conversationsTable.userId, req.session.userId!)];
+  if (req.session.orgId) {
+    const orgProps = await db.select({ id: propertiesTable.id }).from(propertiesTable)
+      .where(eq(propertiesTable.orgId, req.session.orgId));
+    if (orgProps.length > 0) {
+      vizOwnership.push(...orgProps.map(p => eq(conversationsTable.propertyId, p.id)));
+    }
+  }
+  const conversations = await db.select().from(conversationsTable).where(
+    and(eq(conversationsTable.id, conversationId), or(...vizOwnership))
+  ).limit(1);
+  if (conversations.length === 0) {
+    res.status(404).json({ error: "Conversation not found" });
+    return;
+  }
+
+  const conversation = conversations[0];
+  const properties = await db.select().from(propertiesTable).where(eq(propertiesTable.id, conversation.propertyId)).limit(1);
+  const property = properties[0];
+
+  const existingMessages = (conversation.messages as Array<{ role: string; content: string }>) || [];
+
+  const recentContext = existingMessages.slice(-6).map(m => `${m.role}: ${m.content}`).join("\n");
+
+  const imagePrompt = parsed.data.prompt ||
+    `Professional renovation concept rendering for a ${property?.sqft || ""}sqft home at ${property?.address || "residential property"}. Based on this conversation:\n${recentContext}\n\nShow a photorealistic, well-lit interior rendering of the proposed renovations. Modern, high-quality finishes.`;
+
+  try {
+    const result = await generateImage(imagePrompt);
+    const dataUri = `data:${result.mimeType};base64,${result.b64_json}`;
+
+    const assistantMessage = {
+      role: "assistant" as const,
+      content: "Here's a concept rendering based on our discussion:",
+      imageUrl: dataUri,
+      timestamp: new Date().toISOString(),
+    };
+
+    const updatedMessages = [...existingMessages, assistantMessage];
+    await db.update(conversationsTable)
+      .set({ messages: updatedMessages })
+      .where(eq(conversationsTable.id, conversationId));
+
+    res.json(assistantMessage);
+  } catch (error) {
+    console.error("Visualization generation failed:", error);
+    res.status(500).json({ error: "Failed to generate visualization. Please try again." });
+  }
 });
 
 export default router;
