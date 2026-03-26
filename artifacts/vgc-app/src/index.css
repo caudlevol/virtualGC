@@ -112,3 +112,27 @@
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-indigo-400 to-accent;
   }
 }
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print\:hidden, nav, aside, header, footer {
+    display: none !important;
+  }
+
+  * {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+}

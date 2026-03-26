@@ -1,9 +1,23 @@
-import { Link } from "wouter";
+import { useState } from "react";
+import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowRight, Hammer, CheckCircle2, Shield, Zap, TrendingUp } from "lucide-react";
+import { ArrowRight, Hammer, CheckCircle2, Shield, Zap, TrendingUp, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function LandingPage() {
+  const [zillowUrl, setZillowUrl] = useState("");
+  const [, setLocation] = useLocation();
+
+  const handlePasteAndGo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (zillowUrl.trim()) {
+      setLocation(`/demo?url=${encodeURIComponent(zillowUrl.trim())}`);
+    } else {
+      setLocation("/demo");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Background decorations */}
@@ -48,14 +62,29 @@ export default function LandingPage() {
               The AI-powered general contractor that helps real estate agents close deals faster by providing instant, accurate, region-adjusted renovation costs during property viewings.
             </p>
             
+            <form onSubmit={handlePasteAndGo} className="max-w-2xl mx-auto mb-8">
+              <div className="relative flex items-center glass-panel rounded-2xl p-2 shadow-2xl border border-white/10">
+                <Search className="absolute left-5 w-5 h-5 text-muted-foreground" />
+                <Input
+                  value={zillowUrl}
+                  onChange={(e) => setZillowUrl(e.target.value)}
+                  placeholder="Paste a Zillow link to get started..."
+                  className="flex-1 bg-transparent border-0 pl-12 h-14 text-base focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+                <Button type="submit" size="lg" className="rounded-xl px-6 h-12 text-base bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25 shrink-0">
+                  Get Estimate <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </div>
+            </form>
+
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/register">
-                <Button size="lg" className="w-full sm:w-auto rounded-full px-8 h-14 text-base bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25">
-                  Start Free Trial <ArrowRight className="ml-2 w-5 h-5" />
+                <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-full px-8 h-12 text-sm border-white/10 hover:bg-white/5">
+                  Start Free Trial <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
               <Link href="/demo">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-full px-8 h-14 text-base border-white/10 hover:bg-white/5">
+                <Button variant="ghost" size="lg" className="w-full sm:w-auto rounded-full px-8 h-12 text-sm text-muted-foreground hover:text-foreground">
                   Try the Demo
                 </Button>
               </Link>
