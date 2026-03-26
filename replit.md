@@ -27,9 +27,19 @@ pnpm workspace monorepo using TypeScript.
 
 - `OpenAI_API_Key` — GPT-4o for chat and quote generation
 - `Claude_API_Key` — Claude for second-opinion quote validation
-- `Apify_API` — Zillow property data scraping
+- `Apify_API` — Zillow property data scraping (primary provider)
+- `RentCast_API_Key` — RentCast property data API (fallback provider)
 - `SESSION_SECRET` — Express session encryption
 - `DATABASE_URL` — auto-provided by Replit
+
+## Property Lookup Provider Chain
+
+The property lookup system (`zillowService.ts`) uses a waterfall strategy:
+1. **RentCast** (fast, ~1s) — Parses address from Zillow URL slug, queries RentCast API
+2. **Apify** (slow, ~30s) — Runs `petr_cermak/zillow-api-scraper` actor, polls for results
+3. **Sample fallback** — If all providers fail, uses a hardcoded set of sample properties so the demo never breaks
+
+The demo route (`/api/demo/estimate`) returns `usedFallback: true` and a `fallbackNotice` message when sample data is used.
 
 ## Structure
 

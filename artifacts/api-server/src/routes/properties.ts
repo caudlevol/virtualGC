@@ -22,7 +22,7 @@ router.post("/properties/lookup", requireAuth, async (req, res): Promise<void> =
   }
 
   const result = await lookupProperty(zillowUrl);
-  if (!result) {
+  if ("failure" in result) {
     res.status(404).json({ error: "Could not find property data. Try entering the details manually." });
     return;
   }

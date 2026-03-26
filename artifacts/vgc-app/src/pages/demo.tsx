@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useSearch } from "wouter";
 import { z } from "zod";
 import { zodFormResolver } from "@/lib/form-resolver";
 import { useDemoEstimate, useCaptureLead } from "@workspace/api-client-react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Hammer, Loader2, Zap, CheckCircle } from "lucide-react";
+import { Hammer, Loader2, Zap, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +24,10 @@ const leadSchema = z.object({
 type LeadFormData = z.infer<typeof leadSchema>;
 
 export default function DemoPage() {
-  const [url, setUrl] = useState("");
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const urlParam = params.get("url");
+  const [url, setUrl] = useState(urlParam || "");
   const [rateLimited, setRateLimited] = useState(false);
   const { toast } = useToast();
   
@@ -58,7 +62,7 @@ export default function DemoPage() {
     demoMutation.mutate({ data: { zillowUrl: url, renovationType: "general" } });
   };
 
-  const est = demoMutation.data;
+  const est = demoMutation.data as (typeof demoMutation.data & { fallbackNotice?: string | null; usedFallback?: boolean });
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,6 +109,13 @@ export default function DemoPage() {
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-12">
+
+            {est.fallbackNotice && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-300 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                <p>{est.fallbackNotice}</p>
+              </motion.div>
+            )}
             
             <Card className="bg-card border-primary/20 shadow-2xl overflow-hidden relative">
               <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-primary to-accent" />
