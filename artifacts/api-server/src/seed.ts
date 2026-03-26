@@ -132,20 +132,20 @@ const REGIONAL_MULTIPLIERS = [
 
 export async function seedCostEngine() {
   try {
-    logger.info("Seeding material costs...");
-    for (const mat of MATERIALS) {
-      await db.insert(materialCostsTable).values(mat).onConflictDoNothing();
+    const existing = await db.select({ id: materialCostsTable.id }).from(materialCostsTable).limit(1);
+    if (existing.length > 0) {
+      logger.info("Cost engine already seeded, skipping");
+      return;
     }
+
+    logger.info("Seeding material costs...");
+    await db.insert(materialCostsTable).values(MATERIALS);
 
     logger.info("Seeding labor rates...");
-    for (const rate of LABOR_RATES) {
-      await db.insert(laborRatesTable).values(rate).onConflictDoNothing();
-    }
+    await db.insert(laborRatesTable).values(LABOR_RATES);
 
     logger.info("Seeding regional multipliers...");
-    for (const mult of REGIONAL_MULTIPLIERS) {
-      await db.insert(regionalMultipliersTable).values(mult).onConflictDoNothing();
-    }
+    await db.insert(regionalMultipliersTable).values(REGIONAL_MULTIPLIERS);
 
     logger.info("Cost engine seed complete");
   } catch (err) {

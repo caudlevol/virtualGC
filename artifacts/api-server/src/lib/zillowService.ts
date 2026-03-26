@@ -116,17 +116,64 @@ class ApifyProvider implements PropertyDataProvider {
   }
 }
 
-class ManualProvider implements PropertyDataProvider {
-  name = "manual";
+class RentCastProvider implements PropertyDataProvider {
+  name = "rentcast";
 
-  async fetchProperty(_url: string): Promise<ZillowPropertyData | null> {
-    return null;
+  async fetchProperty(url: string): Promise<ZillowPropertyData | null> {
+    const apiKey = process.env.RentCast_API_Key;
+    if (!apiKey) {
+      logger.warn("RentCast API key not configured");
+      return null;
+    }
+
+    try {
+      const addressMatch = url.match(/\/homedetails\/([^/]+)\//);
+      if (!addressMatch) return null;
+
+      const rawAddress = decodeURIComponent(addressMatch[1].replace(/-/g, " "));
+
+      const response = await fetch(
+        `https://api.rentcast.io/v1/properties?address=${encodeURIComponent(rawAddress)}`,
+        {
+          headers: {
+            "X-Api-Key": apiKey,
+            Accept: "application/json",
+          },
+          signal: AbortSignal.timeout(15000),
+        }
+      );
+
+      if (!response.ok) {
+        logger.error({ status: response.status }, "RentCast API returned non-OK status");
+        return null;
+      }
+
+      const data = await response.json() as Array<Record<string, unknown>>;
+      if (!Array.isArray(data) || data.length === 0) return null;
+
+      const property = data[0];
+      return {
+        address: [property.addressLine1, property.city, property.state, property.zipCode].filter(Boolean).join(", ") as string,
+        zipCode: String(property.zipCode || ""),
+        sqft: Number(property.squareFootage || 0),
+        bedrooms: Number(property.bedrooms || 0),
+        bathrooms: Number(property.bathrooms || 0),
+        yearBuilt: property.yearBuilt ? Number(property.yearBuilt) : null,
+        lotSize: property.lotSize ? Number(property.lotSize) : null,
+        listingPhotos: [],
+        priceHistory: null,
+        rawData: property,
+      };
+    } catch (err) {
+      logger.error({ err }, "RentCast fetch failed");
+      return null;
+    }
   }
 }
 
 const providers: PropertyDataProvider[] = [
   new ApifyProvider(),
-  new ManualProvider(),
+  new RentCastProvider(),
 ];
 
 export async function lookupProperty(zillowUrl: string): Promise<{ data: ZillowPropertyData; source: string } | null> {

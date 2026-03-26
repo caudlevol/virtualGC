@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, conversationsTable, propertiesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { CreateConversationBody, SendMessageBody } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC } from "../lib/aiPipeline";
 
 const router: IRouter = Router();

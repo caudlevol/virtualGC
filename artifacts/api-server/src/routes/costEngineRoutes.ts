@@ -1,33 +1,41 @@
 import { Router, type IRouter } from "express";
+import { GetMaterialsQueryParams, GetLaborRatesQueryParams, GetRegionalMultiplierQueryParams } from "@workspace/api-zod";
 import { getMaterialCosts, getLaborRates, getRegionalMultiplier } from "../lib/costEngine";
 
 const router: IRouter = Router();
 
 router.get("/cost-engine/materials", async (req, res): Promise<void> => {
-  const category = req.query.category as string | undefined;
-  const qualityTier = req.query.qualityTier as string | undefined;
+  const parsed = GetMaterialsQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
 
-  const materials = await getMaterialCosts(category, qualityTier);
+  const materials = await getMaterialCosts(parsed.data.category, parsed.data.qualityTier);
   res.json(materials);
 });
 
 router.get("/cost-engine/labor-rates", async (req, res): Promise<void> => {
-  const tradeType = req.query.tradeType as string | undefined;
+  const parsed = GetLaborRatesQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
 
-  const rates = await getLaborRates(tradeType);
+  const rates = await getLaborRates(parsed.data.tradeType);
   res.json(rates);
 });
 
 router.get("/cost-engine/regional-multiplier", async (req, res): Promise<void> => {
-  const zipCode = req.query.zipCode as string;
-  if (!zipCode) {
-    res.status(400).json({ error: "zipCode is required" });
+  const parsed = GetRegionalMultiplierQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
     return;
   }
 
-  const result = await getRegionalMultiplier(zipCode);
+  const result = await getRegionalMultiplier(parsed.data.zipCode);
   res.json({
-    zipPrefix: zipCode.substring(0, 3),
+    zipPrefix: parsed.data.zipCode.substring(0, 3),
     metroArea: result.metroArea,
     adjustmentFactor: result.factor,
     source: "database",

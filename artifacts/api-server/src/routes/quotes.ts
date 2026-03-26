@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { db, quotesTable, quoteLineItemsTable, propertiesTable, conversationsTable, usersTable, organizationsTable } from "@workspace/db";
 import { eq, desc, sql, and } from "drizzle-orm";
 import { GenerateQuoteBody, ToggleShareQuoteBody } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC, claudeReviewQuote } from "../lib/aiPipeline";
 import { getRegionalMultiplier } from "../lib/costEngine";
 
@@ -48,7 +48,7 @@ router.get("/quotes", requireAuth, async (req, res): Promise<void> => {
   });
 });
 
-router.post("/quotes/generate", requireAuth, async (req, res): Promise<void> => {
+router.post("/quotes/generate", requireAuth, requireTier("free"), async (req, res): Promise<void> => {
   const parsed = GenerateQuoteBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -331,7 +331,7 @@ router.get("/quotes/shared/:shareUuid", async (req, res): Promise<void> => {
   });
 });
 
-router.post("/quotes/:quoteId/share", requireAuth, async (req, res): Promise<void> => {
+router.post("/quotes/:quoteId/share", requireAuth, requireTier("pro"), async (req, res): Promise<void> => {
   const quoteId = parseInt(Array.isArray(req.params.quoteId) ? req.params.quoteId[0] : req.params.quoteId, 10);
   if (isNaN(quoteId)) {
     res.status(400).json({ error: "Invalid quote ID" });

@@ -33,8 +33,18 @@ app.use(
 
 app.set("trust proxy", 1);
 
+const allowedOrigins = process.env.REPLIT_DEV_DOMAIN
+  ? [`https://${process.env.REPLIT_DEV_DOMAIN}`, `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}`]
+  : ["http://localhost:5173"];
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
   credentials: true,
 }));
 
@@ -44,11 +54,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   session({
     store: new PgSession({
-      pool: pool as any,
+      pool,
       tableName: "session",
       createTableIfMissing: false,
     }),
-    secret: process.env.SESSION_SECRET || "virtual-gc-dev-secret",
+    secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
     cookie: {
