@@ -2,11 +2,17 @@ import bcrypt from "bcrypt";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "hunter@opsintelligencegroup.com";
-const ADMIN_NAME = process.env.ADMIN_NAME || "Hunter (Admin)";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+const ADMIN_NAME = process.env.ADMIN_NAME || "Admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 async function seedAdmin() {
+  if (!ADMIN_EMAIL) {
+    console.error("ADMIN_EMAIL env var is required.");
+    console.error("Usage: ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=secret pnpm run seed:admin");
+    process.exit(1);
+  }
+
   console.log(`Seeding super_admin account: ${ADMIN_EMAIL}`);
 
   const existing = await db
