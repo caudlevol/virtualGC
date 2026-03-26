@@ -185,6 +185,70 @@ function PropertyPhotoCarousel({ photos, compact = false, onPhotoClick, onVisual
   );
 }
 
+function PhotoPickerModal({ photos, onSelect, onClose }: { photos: string[]; onSelect: (photoUrl: string) => void; onClose: () => void }) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-card rounded-2xl border border-white/10 shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-5 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-lg">Choose a room to visualize</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">Select a photo to see the renovation applied to it</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-4 overflow-y-auto max-h-[60vh]">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {photos.map((photo, i) => (
+              <button
+                key={i}
+                onClick={() => onSelect(photo)}
+                className="relative aspect-[4/3] rounded-xl overflow-hidden border-2 border-transparent hover:border-primary transition-all group"
+              >
+                <img
+                  src={photo}
+                  alt={`Room ${i + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/90 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                    <Sparkles className="w-3 h-3" />
+                    Visualize
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function PhotoStrip({ photos, onPhotoClick, onVisualize, isVisualizing, canVisualize }: { photos: string[]; onPhotoClick?: (index: number) => void; onVisualize?: (photoUrl: string) => void; isVisualizing?: boolean; canVisualize?: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -258,6 +322,7 @@ export default function ChatPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
   const [lightboxIsListing, setLightboxIsListing] = useState(false);
+  const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
 
   const [input, setInput] = useState("");
 
@@ -316,10 +381,16 @@ export default function ChatPage() {
   };
 
   const handleVisualize = () => {
-    visualizeMutation.mutate({ conversationId: id, data: {} });
+    const photos = conv?.property?.listingPhotos;
+    if (photos && photos.length > 0) {
+      setPhotoPickerOpen(true);
+    } else {
+      visualizeMutation.mutate({ conversationId: id, data: {} });
+    }
   };
 
   const handleVisualizePhoto = (photoUrl: string) => {
+    setPhotoPickerOpen(false);
     visualizeMutation.mutate({ conversationId: id, data: { sourceImageUrl: photoUrl } });
   };
 
@@ -597,6 +668,16 @@ export default function ChatPage() {
             onClose={() => setLightboxOpen(false)}
             onVisualize={lightboxIsListing && conv.messages.length >= 2 ? handleVisualizePhoto : undefined}
             isVisualizing={visualizeMutation.isPending}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {photoPickerOpen && hasPhotos && (
+          <PhotoPickerModal
+            photos={property!.listingPhotos!}
+            onSelect={handleVisualizePhoto}
+            onClose={() => setPhotoPickerOpen(false)}
           />
         )}
       </AnimatePresence>
