@@ -300,7 +300,8 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
         return;
       }
       const imgBase64 = Buffer.from(imgBuffer).toString("base64");
-      const contentType = imgResponse.headers.get("content-type") || "image/jpeg";
+      const rawContentType = imgResponse.headers.get("content-type") || "image/jpeg";
+      const contentType = rawContentType.split(";")[0].trim();
       result = await editImage(imgBase64, contentType, editPrompt);
     } else {
       result = await generateImage(generatePrompt);

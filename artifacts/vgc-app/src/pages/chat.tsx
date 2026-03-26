@@ -122,7 +122,7 @@ function PhotoLightbox({ photos, initialIndex, onClose, onVisualize, isVisualizi
   );
 }
 
-function PropertyPhotoCarousel({ photos, compact = false, onPhotoClick }: { photos: string[]; compact?: boolean; onPhotoClick?: (index: number) => void }) {
+function PropertyPhotoCarousel({ photos, compact = false, onPhotoClick, onVisualize, isVisualizing, canVisualize }: { photos: string[]; compact?: boolean; onPhotoClick?: (index: number) => void; onVisualize?: (photoUrl: string) => void; isVisualizing?: boolean; canVisualize?: boolean }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   if (!photos || photos.length === 0) {
@@ -138,13 +138,30 @@ function PropertyPhotoCarousel({ photos, compact = false, onPhotoClick }: { phot
   const goPrev = () => setCurrentIndex((i) => (i - 1 + photos.length) % photos.length);
 
   return (
-    <div className={`relative w-full ${compact ? "h-32" : "h-48 md:h-56"} rounded-xl overflow-hidden`}>
+    <div className={`relative w-full ${compact ? "h-32" : "h-48 md:h-56"} rounded-xl overflow-hidden group`}>
       <img
         src={photos[currentIndex]}
         alt={`Property photo ${currentIndex + 1}`}
         className="w-full h-full object-cover transition-opacity duration-300 cursor-pointer"
         onClick={() => onPhotoClick?.(currentIndex)}
       />
+      {canVisualize && onVisualize && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onVisualize(photos[currentIndex]);
+          }}
+          disabled={isVisualizing}
+          className="absolute top-2 right-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/90 hover:bg-primary text-white text-xs font-medium shadow-lg opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed z-10"
+        >
+          {isVisualizing ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <Sparkles className="w-3 h-3" />
+          )}
+          Visualize
+        </button>
+      )}
       {photos.length > 1 && (
         <>
           <button
@@ -326,6 +343,9 @@ export default function ChatPage() {
               <PropertyPhotoCarousel
                 photos={property.listingPhotos || []}
                 onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i)}
+                onVisualize={handleVisualizePhoto}
+                isVisualizing={visualizeMutation.isPending}
+                canVisualize={conv.messages.length >= 2}
               />
               <div className="flex flex-col justify-between">
                 <div>
