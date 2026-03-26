@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import rateLimit from "express-rate-limit";
 import { db, propertiesTable, leadCapturesTable } from "@workspace/db";
 import { DemoEstimateBody, CaptureLeadBody } from "@workspace/api-zod";
-import { lookupProperty, isValidZillowUrl, getSamplePropertyForUrl } from "../lib/zillowService";
+import { lookupProperty, isValidZillowUrl, getSamplePropertyForUrl, classifyProviderErrors } from "../lib/zillowService";
 import { generateDemoEstimate } from "../lib/aiPipeline";
 import { getRegionalMultiplier } from "../lib/costEngine";
 import { logger } from "../lib/logger";
@@ -52,17 +52,14 @@ router.post("/demo/estimate", demoLimiter, async (req, res): Promise<void> => {
     usedFallback = true;
     providerErrors = result.failure.details;
 
-    const hasAuthError = providerErrors.some(e => e.includes("401") || e.includes("invalid"));
-    const hasTimeout = providerErrors.some(e => e.includes("timed out"));
-    const hasScraperFail = providerErrors.some(e => e.includes("FAILED") || e.includes("ABORTED"));
-
-    if (hasAuthError && hasScraperFail) {
-      fallbackReason = "Our property data services are temporarily unavailable. This estimate uses a comparable sample property to demonstrate the experience.";
-    } else if (hasScraperFail || hasTimeout) {
-      fallbackReason = "The property scraper is temporarily unavailable. This estimate uses a comparable sample property. Try again shortly or sign up for more reliable access.";
-    } else {
-      fallbackReason = "We couldn't fetch the exact property details for this listing. This estimate uses a comparable sample property in a similar region. Sign up to get precise estimates from real listing data.";
-    }
+    const errorClass = classifyProviderErrors(providerErrors);
+    const fallbackMessages: Record<string, string> = {
+      auth_error: "Our property data services are experiencing authentication issues. This estimate uses a comparable sample property to demonstrate the experience.",
+      scraper_unavailable: "The property scraper is temporarily unavailable. This estimate uses a comparable sample property. Try again shortly or sign up for more reliable access.",
+      timeout: "The property lookup timed out. This estimate uses a comparable sample property. The listing may be temporarily unavailable — try again in a few minutes.",
+      no_data: "We couldn't fetch the exact property details for this listing. This estimate uses a comparable sample property in a similar region. Sign up to get precise estimates from real listing data.",
+    };
+    fallbackReason = fallbackMessages[errorClass];
   }
 
   const [property] = await db.insert(propertiesTable).values({

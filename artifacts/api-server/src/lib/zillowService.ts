@@ -125,7 +125,7 @@ class ApifyProvider implements PropertyDataProvider {
       );
 
       if (!runResponse.ok) {
-        logger.error({ status: runResponse.status }, "Apify run creation failed");
+        logger.error({ status: runResponse.status }, "Apify run creation failed (status " + runResponse.status + ")");
         return null;
       }
 
@@ -137,7 +137,7 @@ class ApifyProvider implements PropertyDataProvider {
       if (!runId) return null;
 
       if (status !== "SUCCEEDED") {
-        logger.error({ runId, status }, "Apify run did not succeed");
+        logger.error({ runId, status }, "Apify run did not succeed (status: " + status + ")");
         return null;
       }
 
@@ -234,6 +234,14 @@ export async function lookupProperty(zillowUrl: string): Promise<{ data: ZillowP
       details: errors,
     }
   };
+}
+
+export function classifyProviderErrors(details: string[]): "auth_error" | "scraper_unavailable" | "timeout" | "no_data" {
+  const joined = details.join(" ").toLowerCase();
+  if (joined.includes("401") || joined.includes("invalid") || joined.includes("unauthorized")) return "auth_error";
+  if (joined.includes("failed") || joined.includes("aborted") || joined.includes("did not succeed")) return "scraper_unavailable";
+  if (joined.includes("timed out") || joined.includes("timeout") || joined.includes("aborted")) return "timeout";
+  return "no_data";
 }
 
 const SAMPLE_PROPERTIES: ZillowPropertyData[] = [

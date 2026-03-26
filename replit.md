@@ -35,11 +35,11 @@ pnpm workspace monorepo using TypeScript.
 ## Property Lookup Provider Chain
 
 The property lookup system (`zillowService.ts`) uses a waterfall strategy:
-1. **RentCast** (fast, ~1s) — Parses address from Zillow URL slug, queries RentCast API
-2. **Apify** (slow, ~30s) — Runs `petr_cermak/zillow-api-scraper` actor, polls for results
-3. **Sample fallback** — If all providers fail, uses a hardcoded set of sample properties so the demo never breaks
+1. **Apify** (primary, ~15-30s) — Runs `maxcopell/zillow-detail-scraper` actor with `waitForFinish=60`. Parses nested `address` object and `originalPhotos`/`responsivePhotos` arrays for listing images.
+2. **RentCast** (fallback, ~1s) — Parses address from Zillow URL slug, queries RentCast REST API
+3. **Sample fallback** — If all providers fail, uses a hardcoded set of 5 sample properties so the demo never breaks
 
-The demo route (`/api/demo/estimate`) returns `usedFallback: true` and a `fallbackNotice` message when sample data is used.
+The demo route (`/api/demo/estimate`) returns `usedFallback: true` and a provider-specific `fallbackNotice` message when sample data is used.
 
 ## Structure
 
