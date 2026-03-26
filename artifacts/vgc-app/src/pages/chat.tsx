@@ -480,10 +480,21 @@ export default function ChatPage() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 placeholder="Ask about renovation costs..." 
-                className="pr-24 bg-black/40 border-white/10 h-14 rounded-xl text-base"
+                className="pr-32 bg-black/40 border-white/10 h-14 rounded-xl text-base"
                 disabled={sendMutation.isPending || quoteMutation.isPending || visualizeMutation.isPending}
               />
               <div className="absolute right-2 flex gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-amber-400 hover:text-amber-300 hover:bg-amber-400/20"
+                  onClick={handleVisualize}
+                  disabled={visualizeMutation.isPending || conv.messages.length < 2}
+                  title="Generate renovation concept image"
+                >
+                  <Sparkles className="w-5 h-5" />
+                </Button>
                 <Button 
                   type="button"
                   variant="ghost"
