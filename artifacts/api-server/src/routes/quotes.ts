@@ -412,7 +412,7 @@ router.post("/quotes/:quoteId/share", requireAuth, requireTier("pro"), async (re
 
   res.json({
     sharedUrlEnabled: updated.sharedUrlEnabled,
-    shareUrl: updated.sharedUrlEnabled ? `/quote/${updated.shareUuid}` : null,
+    shareUrl: updated.sharedUrlEnabled ? `/api/quotes/shared/${updated.shareUuid}` : null,
   });
 });
 

@@ -195,7 +195,9 @@ export async function lookupProperty(zillowUrl: string): Promise<{ data: ZillowP
 export function isValidZillowUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.hostname.includes("zillow.com") || parsed.hostname.includes("redfin.com");
+    const host = parsed.hostname.toLowerCase();
+    return host === "zillow.com" || host.endsWith(".zillow.com") ||
+           host === "redfin.com" || host.endsWith(".redfin.com");
   } catch {
     return false;
   }
