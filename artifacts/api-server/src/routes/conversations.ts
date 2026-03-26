@@ -5,6 +5,44 @@ import { CreateConversationBody, SendMessageBody, SendMessageParams, GetConversa
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC } from "../lib/aiPipeline";
 import { generateImage, editImage } from "@workspace/integrations-gemini-ai/image";
+import OpenAI from "openai";
+
+const openaiForViz = new OpenAI({ apiKey: process.env.OpenAI_API_Key });
+
+async function extractVisualDescription(
+  messages: Array<{ role: string; content: string }>
+): Promise<string> {
+  const recentMessages = messages.slice(-10);
+  const conversationText = recentMessages
+    .map(m => `${m.role}: ${m.content}`)
+    .join("\n");
+
+  const response = await openaiForViz.chat.completions.create({
+    model: "gpt-4o",
+    temperature: 0,
+    messages: [
+      {
+        role: "system",
+        content: `You are a renovation visual description extractor. Given a conversation between a user and a renovation advisor, extract ONLY the specific visual changes discussed. Output a concise list of visual renovation instructions.
+
+Rules:
+- Focus on VISUAL details only: materials, colors, textures, fixtures, finishes, styles
+- Be extremely specific: "polished Absolute Black granite countertops" not "new countertops"
+- Include spatial details: "extend upper cabinets to ceiling height" not "update cabinets"
+- Mention hardware, lighting, and accent details when discussed
+- If multiple rooms are discussed, focus on the most recently discussed room
+- Output as a numbered list of specific changes, no preamble
+- If no specific renovations are discussed, output "General modern renovation update with contemporary finishes"`,
+      },
+      {
+        role: "user",
+        content: `Extract the specific visual renovation changes from this conversation:\n\n${conversationText}`,
+      },
+    ],
+  });
+
+  return response.choices[0]?.message?.content || "General modern renovation update with contemporary finishes";
+}
 
 const router: IRouter = Router();
 
@@ -267,8 +305,6 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
 
   const existingMessages = (conversation.messages as Array<{ role: string; content: string }>) || [];
 
-  const recentContext = existingMessages.slice(-6).map(m => `${m.role}: ${m.content}`).join("\n");
-
   const sourceImageUrl = parsed.data.sourceImageUrl;
 
   if (sourceImageUrl) {
@@ -279,16 +315,39 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
     }
   }
 
-  const editPrompt = parsed.data.prompt ||
-    `Based on this renovation discussion:\n${recentContext}\n\nApply the discussed renovations to this room. Keep the same room layout, angle, and perspective. Show photorealistic, modern, high-quality finishes. Make the changes look natural and professional.`;
-
-  const generatePrompt = parsed.data.prompt ||
-    `Professional renovation concept rendering for a ${property?.sqft || ""}sqft home at ${property?.address || "residential property"}. Based on this conversation:\n${recentContext}\n\nShow a photorealistic, well-lit interior rendering of the proposed renovations. Modern, high-quality finishes.`;
-
   try {
     let result: { b64_json: string; mimeType: string };
 
     if (sourceImageUrl) {
+      let visualDescription = parsed.data.prompt;
+      if (!visualDescription) {
+        try {
+          visualDescription = await extractVisualDescription(existingMessages);
+        } catch (extractErr) {
+          console.error("Visual description extraction failed, using fallback:", extractErr);
+          const recentContext = existingMessages.slice(-6).map(m => `${m.role}: ${m.content}`).join("\n");
+          visualDescription = `Apply the renovations discussed in this conversation:\n${recentContext}`;
+        }
+      }
+
+      const editPrompt = `You are a professional interior renovation visualization tool. Edit this photo to show the following specific renovations applied to the room.
+
+KEEP UNCHANGED:
+- The exact room layout, dimensions, walls, ceiling, and floor plan
+- The camera angle, perspective, and field of view
+- The natural lighting direction and window positions
+- Any structural elements (doors, windows, archways) not mentioned in changes
+
+APPLY THESE SPECIFIC CHANGES:
+${visualDescription}
+
+QUALITY REQUIREMENTS:
+- Photorealistic rendering — the result must look like an actual photograph, not a digital rendering
+- New materials must have correct reflections, shadows, and textures matching the room's lighting
+- Maintain consistent color temperature across existing and new elements
+- Edges where new materials meet existing surfaces must blend seamlessly
+- Preserve the original image resolution and color depth`;
+
       const imgResponse = await fetch(sourceImageUrl, { signal: AbortSignal.timeout(15000) });
       if (!imgResponse.ok) {
         res.status(400).json({ error: "Could not fetch the source photo." });
@@ -304,6 +363,8 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
       const contentType = rawContentType.split(";")[0].trim();
       result = await editImage(imgBase64, contentType, editPrompt);
     } else {
+      const recentContext = existingMessages.slice(-6).map(m => `${m.role}: ${m.content}`).join("\n");
+      const generatePrompt = `Professional renovation concept rendering for a ${property?.sqft || ""}sqft home at ${property?.address || "residential property"}. Based on this conversation:\n${recentContext}\n\nShow a photorealistic, well-lit interior rendering of the proposed renovations. Modern, high-quality finishes.`;
       result = await generateImage(generatePrompt);
     }
 

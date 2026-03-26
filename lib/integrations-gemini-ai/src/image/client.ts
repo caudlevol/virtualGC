@@ -65,7 +65,7 @@ export async function editImage(
 ): Promise<{ b64_json: string; mimeType: string }> {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-image",
+    model: "gemini-3-pro-image-preview",
     contents: [{
       role: "user",
       parts: [

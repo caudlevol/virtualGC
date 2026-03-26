@@ -20,7 +20,7 @@ pnpm workspace monorepo using TypeScript.
 - **Validation**: Zod (v3 API for forms via custom `zodFormResolver`, `zod/v4` for backend), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle for API), Vite (frontend)
-- **AI**: OpenAI GPT-4o (primary), Anthropic Claude (quote validator), Google Gemini (renovation visualization)
+- **AI**: OpenAI GPT-4o (primary chat + visual description extraction), Anthropic Claude (quote validator), Google Gemini (renovation visualization: `gemini-3-pro-image-preview` for photo editing, `gemini-2.5-flash-image` for generic concept generation)
 - **Auth**: Session-based (express-session + connect-pg-simple + bcrypt)
 
 ## API Keys (Replit Secrets)
