@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useLogout, useGetSession } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Building, LayoutDashboard, History, LogOut, Loader2 } from "lucide-react";
+import { Building, LayoutDashboard, History, LogOut, Loader2, ShieldCheck, Users, Building2 } from "lucide-react";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -22,6 +22,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { href: "/dashboard", label: "Workspace", icon: LayoutDashboard },
     { href: "/quotes", label: "History", icon: History },
   ];
+
+  const adminItems = user?.role === "super_admin"
+    ? [
+        { href: "/admin", label: "Admin Overview", icon: ShieldCheck },
+        { href: "/admin/users", label: "Users", icon: Users },
+        { href: "/admin/organizations", label: "Organizations", icon: Building2 },
+      ]
+    : [];
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -53,6 +61,31 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
+
+          {adminItems.length > 0 && (
+            <>
+              <div className="pt-4 pb-2 px-4">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/50">Admin</span>
+              </div>
+              {adminItems.map(({ href, label, icon: Icon }) => {
+                const active = location === href || (href !== "/admin" && location.startsWith(href));
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                      active
+                        ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                        : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    {label}
+                  </Link>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         <div className="p-4 border-t border-white/5">

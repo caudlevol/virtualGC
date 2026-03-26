@@ -6,6 +6,7 @@ import conversationsRouter from "./conversations";
 import quotesRouter from "./quotes";
 import demoRouter from "./demo";
 import costEngineRouter from "./costEngineRoutes";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(conversationsRouter);
 router.use(quotesRouter);
 router.use(demoRouter);
 router.use(costEngineRouter);
+router.use(adminRouter);
 
 export default router;

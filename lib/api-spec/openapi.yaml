@@ -22,6 +22,8 @@ tags:
     description: Public demo
   - name: costEngine
     description: Cost engine data
+  - name: admin
+    description: Admin dashboard (super_admin only)
 
 paths:
   /healthz:
@@ -499,6 +501,151 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RegionalMultiplier"
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get platform statistics (super_admin only)
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users:
+    get:
+      operationId: getAdminUsers
+      tags: [admin]
+      summary: List all users (super_admin only)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: User list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserList"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users/{userId}:
+    patch:
+      operationId: updateAdminUser
+      tags: [admin]
+      summary: Update user role or subscription tier (super_admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/organizations:
+    get:
+      operationId: getAdminOrganizations
+      tags: [admin]
+      summary: List all organizations (super_admin only)
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Organization list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOrgList"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/organizations/{orgId}:
+    patch:
+      operationId: updateAdminOrganization
+      tags: [admin]
+      summary: Update organization settings (super_admin only)
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUpdateOrgBody"
+      responses:
+        "200":
+          description: Updated organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOrg"
+        "404":
+          description: Organization not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
@@ -1038,3 +1185,126 @@ components:
         - adjustmentFactor
         - source
         - lastUpdated
+
+    AdminStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalQuotes:
+          type: integer
+        totalOrganizations:
+          type: integer
+        usersByTier:
+          type: object
+          additionalProperties:
+            type: integer
+        usersByRole:
+          type: object
+          additionalProperties:
+            type: integer
+      required:
+        - totalUsers
+        - totalQuotes
+        - totalOrganizations
+        - usersByTier
+        - usersByRole
+
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [agent, org_admin, super_admin]
+        subscriptionTier:
+          type: string
+          enum: [free, pro, enterprise]
+        orgId:
+          type: ["integer", "null"]
+        brokerage:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - name
+        - role
+        - subscriptionTier
+        - createdAt
+
+    AdminUserList:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+        total:
+          type: integer
+      required:
+        - users
+        - total
+
+    AdminUpdateUserBody:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [agent, org_admin, super_admin]
+        subscriptionTier:
+          type: string
+          enum: [free, pro, enterprise]
+
+    AdminOrg:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        coBrandName:
+          type: ["string", "null"]
+        seatCount:
+          type: integer
+        memberCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - seatCount
+        - createdAt
+
+    AdminOrgList:
+      type: object
+      properties:
+        organizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminOrg"
+        total:
+          type: integer
+      required:
+        - organizations
+        - total
+
+    AdminUpdateOrgBody:
+      type: object
+      properties:
+        name:
+          type: string
+        coBrandName:
+          type: ["string", "null"]
+        seatCount:
+          type: integer
+          minimum: 1

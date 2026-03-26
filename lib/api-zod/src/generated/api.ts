@@ -465,3 +465,112 @@ export const GetRegionalMultiplierResponse = zod.object({
   source: zod.string(),
   lastUpdated: zod.date(),
 });
+
+/**
+ * @summary Get platform statistics (super_admin only)
+ */
+export const GetAdminStatsResponse = zod.object({
+  totalUsers: zod.number(),
+  totalQuotes: zod.number(),
+  totalOrganizations: zod.number(),
+  usersByTier: zod.record(zod.string(), zod.number()),
+  usersByRole: zod.record(zod.string(), zod.number()),
+});
+
+/**
+ * @summary List all users (super_admin only)
+ */
+export const getAdminUsersQueryLimitDefault = 50;
+export const getAdminUsersQueryOffsetDefault = 0;
+
+export const GetAdminUsersQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
+  limit: zod.coerce.number().default(getAdminUsersQueryLimitDefault),
+  offset: zod.coerce.number().default(getAdminUsersQueryOffsetDefault),
+});
+
+export const GetAdminUsersResponse = zod.object({
+  users: zod.array(
+    zod.object({
+      id: zod.number(),
+      email: zod.string(),
+      name: zod.string(),
+      role: zod.enum(["agent", "org_admin", "super_admin"]),
+      subscriptionTier: zod.enum(["free", "pro", "enterprise"]),
+      orgId: zod.number().nullish(),
+      brokerage: zod.string().nullish(),
+      createdAt: zod.date(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Update user role or subscription tier (super_admin only)
+ */
+export const UpdateAdminUserParams = zod.object({
+  userId: zod.coerce.number(),
+});
+
+export const UpdateAdminUserBody = zod.object({
+  role: zod.enum(["agent", "org_admin", "super_admin"]).optional(),
+  subscriptionTier: zod.enum(["free", "pro", "enterprise"]).optional(),
+});
+
+export const UpdateAdminUserResponse = zod.object({
+  id: zod.number(),
+  email: zod.string(),
+  name: zod.string(),
+  role: zod.enum(["agent", "org_admin", "super_admin"]),
+  subscriptionTier: zod.enum(["free", "pro", "enterprise"]),
+  orgId: zod.number().nullish(),
+  brokerage: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary List all organizations (super_admin only)
+ */
+export const getAdminOrganizationsQueryLimitDefault = 50;
+export const getAdminOrganizationsQueryOffsetDefault = 0;
+
+export const GetAdminOrganizationsQueryParams = zod.object({
+  limit: zod.coerce.number().default(getAdminOrganizationsQueryLimitDefault),
+  offset: zod.coerce.number().default(getAdminOrganizationsQueryOffsetDefault),
+});
+
+export const GetAdminOrganizationsResponse = zod.object({
+  organizations: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      coBrandName: zod.string().nullish(),
+      seatCount: zod.number(),
+      memberCount: zod.number().optional(),
+      createdAt: zod.date(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Update organization settings (super_admin only)
+ */
+export const UpdateAdminOrganizationParams = zod.object({
+  orgId: zod.coerce.number(),
+});
+
+export const UpdateAdminOrganizationBody = zod.object({
+  name: zod.string().optional(),
+  coBrandName: zod.string().nullish(),
+  seatCount: zod.number().min(1).optional(),
+});
+
+export const UpdateAdminOrganizationResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  coBrandName: zod.string().nullish(),
+  seatCount: zod.number(),
+  memberCount: zod.number().optional(),
+  createdAt: zod.date(),
+});

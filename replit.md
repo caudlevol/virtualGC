@@ -57,7 +57,9 @@ artifacts-monorepo/
 │           │   ├── zillowService.ts  # Apify Zillow scraper with fallback chain
 │           │   └── logger.ts        # Pino logger
 │           ├── middlewares/
-│           │   └── auth.ts          # requireAuth, requireTier, requireOrgAdmin
+│           │   └── auth.ts          # requireAuth, requireTier, requireOrgAdmin, requireSuperAdmin
+│           ├── scripts/
+│           │   └── seed-admin.ts    # Seed/promote super_admin account
 │           └── routes/
 │               ├── index.ts         # Mount all sub-routers
 │               ├── health.ts        # GET /api/healthz
@@ -66,7 +68,8 @@ artifacts-monorepo/
 │               ├── conversations.ts # POST /api/conversations, messages, GET conversation
 │               ├── quotes.ts        # CRUD /api/quotes, sharing, generate
 │               ├── demo.ts          # POST /api/demo/{estimate,lead}
-│               └── costEngineRoutes.ts  # GET /api/cost-engine/{materials,labor-rates,regional-multiplier}
+│               ├── costEngineRoutes.ts  # GET /api/cost-engine/{materials,labor-rates,regional-multiplier}
+│               └── admin.ts         # GET/PATCH /api/admin/{stats,users,organizations} (super_admin only)
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks

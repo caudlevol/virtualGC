@@ -11,6 +11,10 @@ import QuoteView from "@/pages/quote-view";
 import SharedQuote from "@/pages/shared-quote";
 import DemoPage from "@/pages/demo";
 import HistoryPage from "@/pages/history";
+import AdminOverview from "@/pages/admin/overview";
+import AdminUsers from "@/pages/admin/users";
+import AdminOrganizations from "@/pages/admin/organizations";
+import { AdminGuard } from "@/components/admin-guard";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -35,6 +39,17 @@ function Router() {
       <Route path="/chat/:id" component={ChatPage} />
       <Route path="/quotes" component={HistoryPage} />
       <Route path="/quotes/:id" component={QuoteView} />
+
+      {/* Admin Routes (Protected by AdminGuard — requires super_admin role) */}
+      <Route path="/admin">
+        {() => <AdminGuard><AdminOverview /></AdminGuard>}
+      </Route>
+      <Route path="/admin/users">
+        {() => <AdminGuard><AdminUsers /></AdminGuard>}
+      </Route>
+      <Route path="/admin/organizations">
+        {() => <AdminGuard><AdminOrganizations /></AdminGuard>}
+      </Route>
 
       {/* 404 */}
       <Route component={NotFound} />

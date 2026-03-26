@@ -341,6 +341,99 @@ export interface RegionalMultiplier {
   lastUpdated: string;
 }
 
+export type AdminStatsUsersByTier = { [key: string]: number };
+
+export type AdminStatsUsersByRole = { [key: string]: number };
+
+export interface AdminStats {
+  totalUsers: number;
+  totalQuotes: number;
+  totalOrganizations: number;
+  usersByTier: AdminStatsUsersByTier;
+  usersByRole: AdminStatsUsersByRole;
+}
+
+export type AdminUserRole = (typeof AdminUserRole)[keyof typeof AdminUserRole];
+
+export const AdminUserRole = {
+  agent: "agent",
+  org_admin: "org_admin",
+  super_admin: "super_admin",
+} as const;
+
+export type AdminUserSubscriptionTier =
+  (typeof AdminUserSubscriptionTier)[keyof typeof AdminUserSubscriptionTier];
+
+export const AdminUserSubscriptionTier = {
+  free: "free",
+  pro: "pro",
+  enterprise: "enterprise",
+} as const;
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  name: string;
+  role: AdminUserRole;
+  subscriptionTier: AdminUserSubscriptionTier;
+  /** @nullable */
+  orgId?: number | null;
+  /** @nullable */
+  brokerage?: string | null;
+  createdAt: string;
+}
+
+export interface AdminUserList {
+  users: AdminUser[];
+  total: number;
+}
+
+export type AdminUpdateUserBodyRole =
+  (typeof AdminUpdateUserBodyRole)[keyof typeof AdminUpdateUserBodyRole];
+
+export const AdminUpdateUserBodyRole = {
+  agent: "agent",
+  org_admin: "org_admin",
+  super_admin: "super_admin",
+} as const;
+
+export type AdminUpdateUserBodySubscriptionTier =
+  (typeof AdminUpdateUserBodySubscriptionTier)[keyof typeof AdminUpdateUserBodySubscriptionTier];
+
+export const AdminUpdateUserBodySubscriptionTier = {
+  free: "free",
+  pro: "pro",
+  enterprise: "enterprise",
+} as const;
+
+export interface AdminUpdateUserBody {
+  role?: AdminUpdateUserBodyRole;
+  subscriptionTier?: AdminUpdateUserBodySubscriptionTier;
+}
+
+export interface AdminOrg {
+  id: number;
+  name: string;
+  /** @nullable */
+  coBrandName?: string | null;
+  seatCount: number;
+  memberCount?: number;
+  createdAt: string;
+}
+
+export interface AdminOrgList {
+  organizations: AdminOrg[];
+  total: number;
+}
+
+export interface AdminUpdateOrgBody {
+  name?: string;
+  /** @nullable */
+  coBrandName?: string | null;
+  /** @minimum 1 */
+  seatCount?: number;
+}
+
 export type ListQuotesParams = {
   limit?: number;
   offset?: number;
@@ -367,4 +460,15 @@ export type GetLaborRatesParams = {
 
 export type GetRegionalMultiplierParams = {
   zipCode: string;
+};
+
+export type GetAdminUsersParams = {
+  search?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type GetAdminOrganizationsParams = {
+  limit?: number;
+  offset?: number;
 };
