@@ -23,6 +23,19 @@ router.get("/cost-engine/labor-rates", async (req, res): Promise<void> => {
   }
 
   const rates = await getLaborRates(parsed.data.tradeType);
+
+  if (parsed.data.zipCode) {
+    const { factor, metroArea } = await getRegionalMultiplier(parsed.data.zipCode);
+    const adjustedRates = rates.map(r => ({
+      ...r,
+      adjustedHourlyRate: Math.round(r.hourlyRate * factor * 100) / 100,
+      regionalMultiplier: factor,
+      metroArea,
+    }));
+    res.json(adjustedRates);
+    return;
+  }
+
   res.json(rates);
 });
 

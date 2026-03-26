@@ -31,6 +31,58 @@ interface RenovationScope {
   reasoning: string;
 }
 
+const VALID_CATEGORIES = [
+  "kitchen", "bathroom", "flooring", "painting", "roofing",
+  "electrical", "plumbing", "hvac", "windows", "drywall",
+  "insulation", "demolition", "tiling", "landscaping", "general",
+];
+
+const VALID_UNITS = ["sqft", "linear_ft", "each", "hour", "room"];
+
+async function classifyAndNormalizeBatch(
+  items: RenovationLineItem[],
+  _propertyData: PropertyData
+): Promise<RenovationLineItem[]> {
+  return items.map(item => {
+    let category = item.category.toLowerCase().trim();
+    if (!VALID_CATEGORIES.includes(category)) {
+      if (category.includes("kitchen") || category.includes("cabinet")) category = "kitchen";
+      else if (category.includes("bath") || category.includes("shower") || category.includes("toilet")) category = "bathroom";
+      else if (category.includes("floor") || category.includes("carpet") || category.includes("hardwood")) category = "flooring";
+      else if (category.includes("paint")) category = "painting";
+      else if (category.includes("roof")) category = "roofing";
+      else if (category.includes("electric") || category.includes("wiring") || category.includes("outlet")) category = "electrical";
+      else if (category.includes("plumb") || category.includes("pipe") || category.includes("water")) category = "plumbing";
+      else if (category.includes("hvac") || category.includes("heating") || category.includes("cooling")) category = "hvac";
+      else if (category.includes("window") || category.includes("door")) category = "windows";
+      else if (category.includes("drywall") || category.includes("wall")) category = "drywall";
+      else if (category.includes("insul")) category = "insulation";
+      else if (category.includes("demo")) category = "demolition";
+      else if (category.includes("tile")) category = "tiling";
+      else if (category.includes("landscape") || category.includes("yard")) category = "landscaping";
+      else category = "general";
+    }
+
+    let unit = item.unit.toLowerCase().trim();
+    if (!VALID_UNITS.includes(unit)) {
+      if (unit.includes("sq") || unit.includes("foot") || unit.includes("feet")) unit = "sqft";
+      else if (unit.includes("linear") || unit.includes("ln")) unit = "linear_ft";
+      else if (unit.includes("hr") || unit.includes("hour")) unit = "hour";
+      else if (unit.includes("room")) unit = "room";
+      else unit = "each";
+    }
+
+    return {
+      ...item,
+      category,
+      unit,
+      quantity: Math.max(item.quantity, 0),
+      materialCost: Math.max(item.materialCost, 0),
+      laborCost: Math.max(item.laborCost, 0),
+    };
+  });
+}
+
 const SYSTEM_PROMPT = `You are the Virtual General Contractor (Virtual GC), an experienced, friendly, and knowledgeable AI construction estimator. You speak like a real general contractor — direct, practical, and honest.
 
 Your role:
@@ -108,12 +160,14 @@ Include ALL discussed renovation items with realistic per-unit material and labo
 
       const BATCH_SIZE = 20;
       if (parsed.items.length <= BATCH_SIZE) {
-        allItems.push(...parsed.items);
+        const classified = await classifyAndNormalizeBatch(parsed.items, propertyData);
+        allItems.push(...classified);
       } else {
         for (let i = 0; i < parsed.items.length; i += BATCH_SIZE) {
           const batch = parsed.items.slice(i, i + BATCH_SIZE);
-          allItems.push(...batch);
-          logger.info({ batchStart: i, batchSize: batch.length, totalItems: parsed.items.length }, "Processing item batch");
+          logger.info({ batchStart: i, batchSize: batch.length, totalItems: parsed.items.length }, "Classifying item batch");
+          const classified = await classifyAndNormalizeBatch(batch, propertyData);
+          allItems.push(...classified);
         }
       }
 

@@ -132,22 +132,31 @@ const REGIONAL_MULTIPLIERS = [
 
 export async function seedCostEngine() {
   try {
-    const existing = await db.select({ id: materialCostsTable.id }).from(materialCostsTable).limit(1);
-    if (existing.length > 0) {
-      logger.info("Cost engine already seeded, skipping");
-      return;
+    const existingMaterials = await db.select({ id: materialCostsTable.id }).from(materialCostsTable).limit(1);
+    if (existingMaterials.length === 0) {
+      logger.info("Seeding material costs...");
+      await db.insert(materialCostsTable).values(MATERIALS);
+    } else {
+      logger.info("Material costs already seeded, skipping");
     }
 
-    logger.info("Seeding material costs...");
-    await db.insert(materialCostsTable).values(MATERIALS);
+    const existingLabor = await db.select({ id: laborRatesTable.id }).from(laborRatesTable).limit(1);
+    if (existingLabor.length === 0) {
+      logger.info("Seeding labor rates...");
+      await db.insert(laborRatesTable).values(LABOR_RATES);
+    } else {
+      logger.info("Labor rates already seeded, skipping");
+    }
 
-    logger.info("Seeding labor rates...");
-    await db.insert(laborRatesTable).values(LABOR_RATES);
+    const existingRegional = await db.select({ id: regionalMultipliersTable.id }).from(regionalMultipliersTable).limit(1);
+    if (existingRegional.length === 0) {
+      logger.info("Seeding regional multipliers...");
+      await db.insert(regionalMultipliersTable).values(REGIONAL_MULTIPLIERS);
+    } else {
+      logger.info("Regional multipliers already seeded, skipping");
+    }
 
-    logger.info("Seeding regional multipliers...");
-    await db.insert(regionalMultipliersTable).values(REGIONAL_MULTIPLIERS);
-
-    logger.info("Cost engine seed complete");
+    logger.info("Cost engine seed check complete");
   } catch (err) {
     logger.error({ err }, "Seed failed");
     throw err;
