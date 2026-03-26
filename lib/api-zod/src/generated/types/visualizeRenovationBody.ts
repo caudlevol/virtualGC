@@ -9,4 +9,6 @@
 export interface VisualizeRenovationBody {
   /** Optional custom prompt for the visualization. If omitted, the AI builds one from conversation context. */
   prompt?: string;
+  /** URL of a listing photo to use as the base for image editing. When provided, the AI edits this specific photo to show the renovation rather than generating a new image from scratch. */
+  sourceImageUrl?: string;
 }

@@ -38,7 +38,7 @@ function formatMessage(text: string) {
   });
 }
 
-function PhotoLightbox({ photos, initialIndex, onClose }: { photos: string[]; initialIndex: number; onClose: () => void }) {
+function PhotoLightbox({ photos, initialIndex, onClose, onVisualize, isVisualizing }: { photos: string[]; initialIndex: number; onClose: () => void; onVisualize?: (photoUrl: string) => void; isVisualizing?: boolean }) {
   const [index, setIndex] = useState(initialIndex);
 
   useEffect(() => {
@@ -81,6 +81,29 @@ function PhotoLightbox({ photos, initialIndex, onClose }: { photos: string[]; in
           alt={`Photo ${index + 1}`}
           className="max-w-full max-h-full object-contain rounded-lg"
         />
+
+        {onVisualize && (
+          <button
+            onClick={() => {
+              onVisualize(photos[index]);
+              onClose();
+            }}
+            disabled={isVisualizing}
+            className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary hover:bg-primary/90 text-white font-medium text-sm shadow-lg shadow-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isVisualizing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Visualize this room
+              </>
+            )}
+          </button>
+        )}
 
         {photos.length > 1 && (
           <button
@@ -145,7 +168,7 @@ function PropertyPhotoCarousel({ photos, compact = false, onPhotoClick }: { phot
   );
 }
 
-function PhotoStrip({ photos, onPhotoClick }: { photos: string[]; onPhotoClick?: (index: number) => void }) {
+function PhotoStrip({ photos, onPhotoClick, onVisualize, isVisualizing, canVisualize }: { photos: string[]; onPhotoClick?: (index: number) => void; onVisualize?: (photoUrl: string) => void; isVisualizing?: boolean; canVisualize?: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   if (!photos || photos.length === 0) return null;
@@ -169,13 +192,30 @@ function PhotoStrip({ photos, onPhotoClick }: { photos: string[]; onPhotoClick?:
         className="flex gap-2 overflow-x-auto scrollbar-hide px-8 py-1"
       >
         {photos.map((photo, i) => (
-          <img
-            key={i}
-            src={photo}
-            alt={`Photo ${i + 1}`}
-            className="h-20 w-28 rounded-lg object-cover shrink-0 border border-white/10 hover:border-primary/50 transition-colors cursor-pointer"
-            onClick={() => onPhotoClick?.(i)}
-          />
+          <div key={i} className="relative shrink-0 group">
+            <img
+              src={photo}
+              alt={`Photo ${i + 1}`}
+              className="h-20 w-28 rounded-lg object-cover border border-white/10 hover:border-primary/50 transition-colors cursor-pointer"
+              onClick={() => onPhotoClick?.(i)}
+            />
+            {canVisualize && onVisualize && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onVisualize(photo);
+                }}
+                disabled={isVisualizing}
+                className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                title="Visualize this room"
+              >
+                <div className="flex flex-col items-center gap-0.5">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="text-[10px] text-white font-medium">Visualize</span>
+                </div>
+              </button>
+            )}
+          </div>
         ))}
       </div>
       <button
@@ -258,6 +298,10 @@ export default function ChatPage() {
 
   const handleVisualize = () => {
     visualizeMutation.mutate({ conversationId: id, data: {} });
+  };
+
+  const handleVisualizePhoto = (photoUrl: string) => {
+    visualizeMutation.mutate({ conversationId: id, data: { sourceImageUrl: photoUrl } });
   };
 
   if (authLoading || !isAuthenticated) return null;
@@ -366,6 +410,9 @@ export default function ChatPage() {
                 <PhotoStrip
                   photos={property.listingPhotos!}
                   onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i)}
+                  onVisualize={handleVisualizePhoto}
+                  isVisualizing={visualizeMutation.isPending}
+                  canVisualize={conv.messages.length >= 2}
                 />
               </motion.div>
             )}
@@ -526,6 +573,8 @@ export default function ChatPage() {
             photos={lightboxPhotos}
             initialIndex={lightboxIndex}
             onClose={() => setLightboxOpen(false)}
+            onVisualize={conv.messages.length >= 2 ? handleVisualizePhoto : undefined}
+            isVisualizing={visualizeMutation.isPending}
           />
         )}
       </AnimatePresence>

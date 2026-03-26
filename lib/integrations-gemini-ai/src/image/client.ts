@@ -27,18 +27,7 @@ function getAI(): GoogleGenAI {
 
 export { getAI as ai };
 
-export async function generateImage(
-  prompt: string
-): Promise<{ b64_json: string; mimeType: string }> {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-image",
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    config: {
-      responseModalities: [Modality.TEXT, Modality.IMAGE],
-    },
-  });
-
+function extractImageFromResponse(response: { candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { data?: string; mimeType?: string } }> } }> }): { b64_json: string; mimeType: string } {
   const candidate = response.candidates?.[0];
   const imagePart = candidate?.content?.parts?.find(
     (part: { inlineData?: { data?: string; mimeType?: string } }) => part.inlineData
@@ -52,4 +41,42 @@ export async function generateImage(
     b64_json: imagePart.inlineData.data,
     mimeType: imagePart.inlineData.mimeType || "image/png",
   };
+}
+
+export async function generateImage(
+  prompt: string
+): Promise<{ b64_json: string; mimeType: string }> {
+  const ai = getAI();
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-image",
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    config: {
+      responseModalities: [Modality.TEXT, Modality.IMAGE],
+    },
+  });
+
+  return extractImageFromResponse(response);
+}
+
+export async function editImage(
+  sourceImageBase64: string,
+  sourceMimeType: string,
+  prompt: string
+): Promise<{ b64_json: string; mimeType: string }> {
+  const ai = getAI();
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-image",
+    contents: [{
+      role: "user",
+      parts: [
+        { text: prompt },
+        { inlineData: { data: sourceImageBase64, mimeType: sourceMimeType } },
+      ],
+    }],
+    config: {
+      responseModalities: [Modality.TEXT, Modality.IMAGE],
+    },
+  });
+
+  return extractImageFromResponse(response);
 }

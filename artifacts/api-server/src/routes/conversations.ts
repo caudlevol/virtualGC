@@ -4,7 +4,7 @@ import { eq, and, or } from "drizzle-orm";
 import { CreateConversationBody, SendMessageBody, SendMessageParams, GetConversationParams, VisualizeRenovationBody } from "@workspace/api-zod";
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC } from "../lib/aiPipeline";
-import { generateImage } from "@workspace/integrations-gemini-ai/image";
+import { generateImage, editImage } from "@workspace/integrations-gemini-ai/image";
 
 const router: IRouter = Router();
 
@@ -269,16 +269,50 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
 
   const recentContext = existingMessages.slice(-6).map(m => `${m.role}: ${m.content}`).join("\n");
 
-  const imagePrompt = parsed.data.prompt ||
+  const sourceImageUrl = parsed.data.sourceImageUrl;
+
+  if (sourceImageUrl) {
+    const listingPhotos = (property?.listingPhotos as string[] | null) || [];
+    if (!listingPhotos.includes(sourceImageUrl)) {
+      res.status(400).json({ error: "Source image must be one of the property's listing photos." });
+      return;
+    }
+  }
+
+  const editPrompt = parsed.data.prompt ||
+    `Based on this renovation discussion:\n${recentContext}\n\nApply the discussed renovations to this room. Keep the same room layout, angle, and perspective. Show photorealistic, modern, high-quality finishes. Make the changes look natural and professional.`;
+
+  const generatePrompt = parsed.data.prompt ||
     `Professional renovation concept rendering for a ${property?.sqft || ""}sqft home at ${property?.address || "residential property"}. Based on this conversation:\n${recentContext}\n\nShow a photorealistic, well-lit interior rendering of the proposed renovations. Modern, high-quality finishes.`;
 
   try {
-    const result = await generateImage(imagePrompt);
+    let result: { b64_json: string; mimeType: string };
+
+    if (sourceImageUrl) {
+      const imgResponse = await fetch(sourceImageUrl, { signal: AbortSignal.timeout(15000) });
+      if (!imgResponse.ok) {
+        res.status(400).json({ error: "Could not fetch the source photo." });
+        return;
+      }
+      const imgBuffer = await imgResponse.arrayBuffer();
+      if (imgBuffer.byteLength > 10 * 1024 * 1024) {
+        res.status(400).json({ error: "Source image too large (max 10MB)." });
+        return;
+      }
+      const imgBase64 = Buffer.from(imgBuffer).toString("base64");
+      const contentType = imgResponse.headers.get("content-type") || "image/jpeg";
+      result = await editImage(imgBase64, contentType, editPrompt);
+    } else {
+      result = await generateImage(generatePrompt);
+    }
+
     const dataUri = `data:${result.mimeType};base64,${result.b64_json}`;
 
     const assistantMessage = {
       role: "assistant" as const,
-      content: "Here's a concept rendering based on our discussion:",
+      content: sourceImageUrl
+        ? "Here's how this room could look with the proposed renovations:"
+        : "Here's a concept rendering based on our discussion:",
       imageUrl: dataUri,
       timestamp: new Date().toISOString(),
     };
