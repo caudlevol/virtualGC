@@ -1,9 +1,13 @@
 import { pgTable, serial, text, integer, real, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { usersTable } from "./users";
+import { organizationsTable } from "./organizations";
 
 export const propertiesTable = pgTable("properties", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => usersTable.id),
+  orgId: integer("org_id").references(() => organizationsTable.id),
   zillowUrl: text("zillow_url"),
   address: text("address").notNull(),
   zipCode: text("zip_code").notNull(),

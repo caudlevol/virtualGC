@@ -146,6 +146,30 @@ export async function getLaborRates(tradeType?: string) {
   return db.select().from(laborRatesTable);
 }
 
+export async function fetchCensusACSPropertyTax(zipCode: string): Promise<{ medianPropertyTax: number | null; source: string }> {
+  try {
+    const year = new Date().getFullYear() - 2;
+    const url = `https://api.census.gov/data/${year}/acs/acs5?get=B25103_001E&for=zip%20code%20tabulation%20area:${zipCode}`;
+
+    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!response.ok) {
+      logger.warn({ zipCode, status: response.status }, "Census ACS API returned non-OK status");
+      return { medianPropertyTax: null, source: "census_acs_unavailable" };
+    }
+
+    const data = await response.json() as string[][];
+    if (data.length < 2) return { medianPropertyTax: null, source: "census_acs_no_data" };
+
+    const taxValue = parseInt(data[1][0], 10);
+    if (isNaN(taxValue) || taxValue <= 0) return { medianPropertyTax: null, source: "census_acs_invalid" };
+
+    return { medianPropertyTax: taxValue, source: "census_acs" };
+  } catch (err) {
+    logger.warn({ err, zipCode }, "Census ACS property tax fetch failed");
+    return { medianPropertyTax: null, source: "census_acs_error" };
+  }
+}
+
 export async function computeLocalizedCost(
   baseMaterialCost: number,
   baseLaborCost: number,

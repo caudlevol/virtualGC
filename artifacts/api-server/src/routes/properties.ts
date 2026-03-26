@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, propertiesTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import { LookupPropertyBody, ManualPropertyEntryBody } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
 import { lookupProperty, isValidZillowUrl } from "../lib/zillowService";
@@ -27,6 +28,8 @@ router.post("/properties/lookup", requireAuth, async (req, res): Promise<void> =
   }
 
   const [property] = await db.insert(propertiesTable).values({
+    userId: req.session.userId,
+    orgId: req.session.orgId,
     zillowUrl,
     address: result.data.address,
     zipCode: result.data.zipCode,
@@ -67,6 +70,8 @@ router.post("/properties/manual", requireAuth, async (req, res): Promise<void> =
 
   const [property] = await db.insert(propertiesTable).values({
     ...parsed.data,
+    userId: req.session.userId,
+    orgId: req.session.orgId,
     dataSource: "manual",
   }).returning();
 

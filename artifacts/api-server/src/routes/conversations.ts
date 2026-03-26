@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, conversationsTable, propertiesTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
-import { CreateConversationBody, SendMessageBody } from "@workspace/api-zod";
+import { eq, and, or } from "drizzle-orm";
+import { CreateConversationBody, SendMessageBody, SendMessageParams, GetConversationParams } from "@workspace/api-zod";
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC } from "../lib/aiPipeline";
 
@@ -14,7 +14,14 @@ router.post("/conversations", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const properties = await db.select().from(propertiesTable).where(eq(propertiesTable.id, parsed.data.propertyId)).limit(1);
+  const ownershipConditions = [eq(propertiesTable.userId, req.session.userId!)];
+  if (req.session.orgId) {
+    ownershipConditions.push(eq(propertiesTable.orgId, req.session.orgId));
+  }
+
+  const properties = await db.select().from(propertiesTable).where(
+    and(eq(propertiesTable.id, parsed.data.propertyId), or(...ownershipConditions))
+  ).limit(1);
   if (properties.length === 0) {
     res.status(404).json({ error: "Property not found" });
     return;
@@ -97,8 +104,8 @@ router.post("/conversations", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.post("/conversations/:conversationId/messages", requireAuth, async (req, res): Promise<void> => {
-  const conversationId = parseInt(Array.isArray(req.params.conversationId) ? req.params.conversationId[0] : req.params.conversationId, 10);
-  if (isNaN(conversationId)) {
+  const paramsParsed = SendMessageParams.safeParse({ conversationId: Number(req.params.conversationId) });
+  if (!paramsParsed.success) {
     res.status(400).json({ error: "Invalid conversation ID" });
     return;
   }
@@ -108,6 +115,8 @@ router.post("/conversations/:conversationId/messages", requireAuth, async (req, 
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+
+  const conversationId = paramsParsed.data.conversationId;
 
   const conversations = await db.select().from(conversationsTable).where(
     and(eq(conversationsTable.id, conversationId), eq(conversationsTable.userId, req.session.userId!))
@@ -119,6 +128,10 @@ router.post("/conversations/:conversationId/messages", requireAuth, async (req, 
 
   const conversation = conversations[0];
   const properties = await db.select().from(propertiesTable).where(eq(propertiesTable.id, conversation.propertyId)).limit(1);
+  if (properties.length === 0) {
+    res.status(404).json({ error: "Property not found" });
+    return;
+  }
   const property = properties[0];
 
   const existingMessages = (conversation.messages as Array<{ role: string; content: string }>) || [];
@@ -159,11 +172,13 @@ router.post("/conversations/:conversationId/messages", requireAuth, async (req, 
 });
 
 router.get("/conversations/:conversationId", requireAuth, async (req, res): Promise<void> => {
-  const conversationId = parseInt(Array.isArray(req.params.conversationId) ? req.params.conversationId[0] : req.params.conversationId, 10);
-  if (isNaN(conversationId)) {
+  const paramsParsed = GetConversationParams.safeParse({ conversationId: Number(req.params.conversationId) });
+  if (!paramsParsed.success) {
     res.status(400).json({ error: "Invalid conversation ID" });
     return;
   }
+
+  const conversationId = paramsParsed.data.conversationId;
 
   const conversations = await db.select().from(conversationsTable).where(
     and(eq(conversationsTable.id, conversationId), eq(conversationsTable.userId, req.session.userId!))

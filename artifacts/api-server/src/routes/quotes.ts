@@ -1,7 +1,15 @@
 import { Router, type IRouter } from "express";
 import { db, quotesTable, quoteLineItemsTable, propertiesTable, conversationsTable, usersTable, organizationsTable } from "@workspace/db";
 import { eq, desc, sql, and } from "drizzle-orm";
-import { GenerateQuoteBody, ToggleShareQuoteBody } from "@workspace/api-zod";
+import {
+  GenerateQuoteBody,
+  ToggleShareQuoteBody,
+  ListQuotesQueryParams,
+  GetQuoteParams,
+  DeleteQuoteParams,
+  GetSharedQuoteParams,
+  ToggleShareQuoteParams,
+} from "@workspace/api-zod";
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC, claudeReviewQuote } from "../lib/aiPipeline";
 import { getRegionalMultiplier } from "../lib/costEngine";
@@ -9,8 +17,9 @@ import { getRegionalMultiplier } from "../lib/costEngine";
 const router: IRouter = Router();
 
 router.get("/quotes", requireAuth, async (req, res): Promise<void> => {
-  const limit = parseInt(String(req.query.limit || "20"), 10);
-  const offset = parseInt(String(req.query.offset || "0"), 10);
+  const queryParsed = ListQuotesQueryParams.safeParse(req.query);
+  const limit = queryParsed.success ? (queryParsed.data.limit ?? 20) : 20;
+  const offset = queryParsed.success ? (queryParsed.data.offset ?? 0) : 0;
 
   const userId = req.session.userId!;
 
@@ -178,7 +187,7 @@ router.post("/quotes/generate", requireAuth, requireTier("free"), async (req, re
       dataSource: property.dataSource,
       createdAt: property.createdAt.toISOString(),
     },
-    lineItems: insertedLineItems.map(li => ({
+    lineItems: insertedLineItems.map((li: typeof insertedLineItems[number]) => ({
       ...li,
       subtotal: (li.materialCost + li.laborCost) * li.quantity,
     })),
@@ -189,11 +198,13 @@ router.post("/quotes/generate", requireAuth, requireTier("free"), async (req, re
 });
 
 router.get("/quotes/:quoteId", requireAuth, async (req, res): Promise<void> => {
-  const quoteId = parseInt(Array.isArray(req.params.quoteId) ? req.params.quoteId[0] : req.params.quoteId, 10);
-  if (isNaN(quoteId)) {
+  const paramsParsed = GetQuoteParams.safeParse({ quoteId: Number(req.params.quoteId) });
+  if (!paramsParsed.success) {
     res.status(400).json({ error: "Invalid quote ID" });
     return;
   }
+
+  const quoteId = paramsParsed.data.quoteId;
 
   const quotes = await db.select().from(quotesTable).where(
     and(eq(quotesTable.id, quoteId), eq(quotesTable.userId, req.session.userId!))
@@ -233,7 +244,7 @@ router.get("/quotes/:quoteId", requireAuth, async (req, res): Promise<void> => {
       dataSource: property.dataSource,
       createdAt: property.createdAt.toISOString(),
     } : undefined,
-    lineItems: lineItems.map(li => ({
+    lineItems: lineItems.map((li: typeof lineItems[number]) => ({
       ...li,
       subtotal: (li.materialCost + li.laborCost) * li.quantity,
     })),
@@ -244,14 +255,14 @@ router.get("/quotes/:quoteId", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.delete("/quotes/:quoteId", requireAuth, async (req, res): Promise<void> => {
-  const quoteId = parseInt(Array.isArray(req.params.quoteId) ? req.params.quoteId[0] : req.params.quoteId, 10);
-  if (isNaN(quoteId)) {
+  const paramsParsed = DeleteQuoteParams.safeParse({ quoteId: Number(req.params.quoteId) });
+  if (!paramsParsed.success) {
     res.status(400).json({ error: "Invalid quote ID" });
     return;
   }
 
   const result = await db.delete(quotesTable).where(
-    and(eq(quotesTable.id, quoteId), eq(quotesTable.userId, req.session.userId!))
+    and(eq(quotesTable.id, paramsParsed.data.quoteId), eq(quotesTable.userId, req.session.userId!))
   ).returning();
   if (result.length === 0) {
     res.status(404).json({ error: "Quote not found" });
@@ -262,7 +273,13 @@ router.delete("/quotes/:quoteId", requireAuth, async (req, res): Promise<void> =
 });
 
 router.get("/quotes/shared/:shareUuid", async (req, res): Promise<void> => {
-  const shareUuid = Array.isArray(req.params.shareUuid) ? req.params.shareUuid[0] : req.params.shareUuid;
+  const paramsParsed = GetSharedQuoteParams.safeParse({ shareUuid: req.params.shareUuid });
+  if (!paramsParsed.success) {
+    res.status(400).json({ error: "Invalid share UUID" });
+    return;
+  }
+
+  const shareUuid = paramsParsed.data.shareUuid;
 
   const quotes = await db.select().from(quotesTable).where(eq(quotesTable.shareUuid, shareUuid)).limit(1);
   if (quotes.length === 0 || !quotes[0].sharedUrlEnabled) {
@@ -317,7 +334,7 @@ router.get("/quotes/shared/:shareUuid", async (req, res): Promise<void> => {
         dataSource: property.dataSource,
         createdAt: property.createdAt.toISOString(),
       } : undefined,
-      lineItems: lineItems.map(li => ({
+      lineItems: lineItems.map((li: typeof lineItems[number]) => ({
         ...li,
         subtotal: (li.materialCost + li.laborCost) * li.quantity,
       })),
@@ -332,8 +349,8 @@ router.get("/quotes/shared/:shareUuid", async (req, res): Promise<void> => {
 });
 
 router.post("/quotes/:quoteId/share", requireAuth, requireTier("pro"), async (req, res): Promise<void> => {
-  const quoteId = parseInt(Array.isArray(req.params.quoteId) ? req.params.quoteId[0] : req.params.quoteId, 10);
-  if (isNaN(quoteId)) {
+  const paramsParsed = ToggleShareQuoteParams.safeParse({ quoteId: Number(req.params.quoteId) });
+  if (!paramsParsed.success) {
     res.status(400).json({ error: "Invalid quote ID" });
     return;
   }
@@ -347,7 +364,7 @@ router.post("/quotes/:quoteId/share", requireAuth, requireTier("pro"), async (re
   const [updated] = await db
     .update(quotesTable)
     .set({ sharedUrlEnabled: parsed.data.enabled })
-    .where(and(eq(quotesTable.id, quoteId), eq(quotesTable.userId, req.session.userId!)))
+    .where(and(eq(quotesTable.id, paramsParsed.data.quoteId), eq(quotesTable.userId, req.session.userId!)))
     .returning();
 
   if (!updated) {
