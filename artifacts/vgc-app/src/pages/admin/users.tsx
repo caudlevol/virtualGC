@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { AppLayout } from "@/components/layout";
 import { useGetAdminUsers, useUpdateAdminUser } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -46,15 +46,15 @@ export default function AdminUsers() {
     },
   });
 
-  let searchTimeout: ReturnType<typeof setTimeout>;
-  const handleSearchChange = (value: string) => {
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
       setDebouncedSearch(value);
       setPage(0);
     }, 300);
-  };
+  }, []);
 
   const totalPages = Math.ceil((data?.total ?? 0) / PAGE_SIZE);
 

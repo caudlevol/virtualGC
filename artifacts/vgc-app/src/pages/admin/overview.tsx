@@ -76,12 +76,12 @@ export default function AdminOverview() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {Object.entries(stats?.usersByTier ?? {}).map(([tier, tierCount]) => (
+                {Object.entries(stats?.usersByTier ?? {} as Record<string, number>).map(([tier, tierCount]) => (
                   <div key={tier} className="flex items-center justify-between">
                     <Badge variant="outline" className={tierColors[tier] || ""}>
                       {tier}
                     </Badge>
-                    <span className="text-lg font-semibold">{tierCount}</span>
+                    <span className="text-lg font-semibold">{tierCount as number}</span>
                   </div>
                 ))}
                 {Object.keys(stats?.usersByTier ?? {}).length === 0 && (
@@ -97,12 +97,12 @@ export default function AdminOverview() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {Object.entries(stats?.usersByRole ?? {}).map(([role, roleCount]) => (
+                {Object.entries(stats?.usersByRole ?? {} as Record<string, number>).map(([role, roleCount]) => (
                   <div key={role} className="flex items-center justify-between">
                     <Badge variant="outline" className={roleColors[role] || ""}>
                       {role}
                     </Badge>
-                    <span className="text-lg font-semibold">{roleCount}</span>
+                    <span className="text-lg font-semibold">{roleCount as number}</span>
                   </div>
                 ))}
                 {Object.keys(stats?.usersByRole ?? {}).length === 0 && (
