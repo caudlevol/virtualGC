@@ -209,7 +209,8 @@ export interface ConfiguratorQuoteResult {
 export async function generateConfiguratorQuote(
   renovationType: string,
   selections: Record<string, string>,
-  property: PropertyInfo
+  property: PropertyInfo,
+  conversationId?: number
 ): Promise<ConfiguratorQuoteResult> {
   const config = CONFIGURATOR_MAP[renovationType];
   if (!config) {
@@ -245,8 +246,7 @@ export async function generateConfiguratorQuote(
   }
 
   const selectionHash = computeSelectionHash(renovationType, selections);
-  const propertyKey = `${property.zipCode}:${property.sqft}:${property.bedrooms}:${property.bathrooms}:${property.yearBuilt ?? 0}`;
-  const cacheKey = `${propertyKey}:${selectionHash}`;
+  const cacheKey = `${conversationId ?? "no-conv"}:${selectionHash}`;
   const cached = configuratorQuoteCache.get(cacheKey);
   if (cached) {
     return cached;

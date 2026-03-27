@@ -270,7 +270,8 @@ router.post("/conversations/:conversationId/configurator-quote", requireAuth, as
         bathrooms: property.bathrooms,
         yearBuilt: property.yearBuilt,
         zipCode: property.zipCode,
-      }
+      },
+      conversationId
     );
     res.json(quote);
   } catch (err: any) {
