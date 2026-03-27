@@ -137,7 +137,7 @@ export const SendMessageResponse = zod.object({
     .string()
     .nullish()
     .describe(
-      "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows)",
+      "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping)",
     ),
   timestamp: zod.date(),
 });
@@ -188,7 +188,7 @@ export const VisualizeRenovationResponse = zod.object({
     .string()
     .nullish()
     .describe(
-      "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows)",
+      "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping)",
     ),
   timestamp: zod.date(),
 });
@@ -207,6 +207,14 @@ export const GenerateConfiguratorQuoteBody = zod.object({
     "flooring",
     "painting",
     "windows",
+    "staircase",
+    "roof",
+    "hvac",
+    "deck",
+    "garage",
+    "basement",
+    "exteriorPaint",
+    "landscaping",
   ]),
   selections: zod.record(zod.string(), zod.string()),
 });
@@ -247,6 +255,14 @@ export const GetConfiguratorOptionsQueryParams = zod.object({
     "flooring",
     "painting",
     "windows",
+    "staircase",
+    "roof",
+    "hvac",
+    "deck",
+    "garage",
+    "basement",
+    "exteriorPaint",
+    "landscaping",
   ]),
 });
 
@@ -309,7 +325,7 @@ export const GetConversationResponse = zod.object({
         .string()
         .nullish()
         .describe(
-          "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows)",
+          "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping)",
         ),
       timestamp: zod.date(),
     }),

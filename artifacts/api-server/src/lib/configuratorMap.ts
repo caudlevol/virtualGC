@@ -505,6 +505,11 @@ const RENOVATION_PATTERNS: Array<{ type: string; keywords: string[]; strictKeywo
     strictKeywords: ["new floor", "replace floor", "flooring", "hardwood floor", "new carpet", "replace carpet", "redo floor"],
   },
   {
+    type: "exteriorPaint",
+    keywords: ["exterior paint", "paint outside", "outside paint", "paint exterior", "siding", "new siding", "vinyl siding", "replace siding", "house paint", "exterior stain"],
+    strictKeywords: ["exterior paint", "paint exterior", "new siding", "replace siding", "siding replacement", "exterior painting"],
+  },
+  {
     type: "painting",
     keywords: ["paint ", "repaint", "new paint", "painting", "interior paint", "paint job", "fresh paint", "paint throughout", "fresh coat"],
     strictKeywords: ["interior paint", "paint job", "paint throughout", "repaint entire", "repaint all", "full repaint", "whole house paint"],
@@ -543,11 +548,6 @@ const RENOVATION_PATTERNS: Array<{ type: string; keywords: string[]; strictKeywo
     type: "basement",
     keywords: ["basement", "finish basement", "basement remodel", "basement renovation", "unfinished basement", "basement conversion", "basement finishing"],
     strictKeywords: ["finish basement", "basement remodel", "basement renovation", "basement finishing", "basement conversion"],
-  },
-  {
-    type: "exteriorPaint",
-    keywords: ["exterior paint", "paint outside", "outside paint", "paint exterior", "siding", "new siding", "vinyl siding", "replace siding", "house paint", "exterior stain"],
-    strictKeywords: ["exterior paint", "paint exterior", "new siding", "replace siding", "siding replacement", "exterior painting"],
   },
   {
     type: "landscaping",

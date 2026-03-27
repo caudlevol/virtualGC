@@ -19,7 +19,7 @@ export interface ConversationMessage {
    */
   imageUrl?: string | null;
   /**
-   * Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows)
+   * Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping)
    * @nullable
    */
   configuratorType?: string | null;

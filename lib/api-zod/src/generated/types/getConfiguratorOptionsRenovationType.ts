@@ -15,4 +15,12 @@ export const GetConfiguratorOptionsRenovationType = {
   flooring: "flooring",
   painting: "painting",
   windows: "windows",
+  staircase: "staircase",
+  roof: "roof",
+  hvac: "hvac",
+  deck: "deck",
+  garage: "garage",
+  basement: "basement",
+  exteriorPaint: "exteriorPaint",
+  landscaping: "landscaping",
 } as const;
