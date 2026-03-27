@@ -334,13 +334,21 @@ export function detectRenovationIntent(message: string): string | null {
   return null;
 }
 
+const RECOMMENDATION_VERBS = ["recommend", "suggest", "start with", "focus on", "consider", "let's start", "begin with", "tackle", "prioritize", "biggest impact"];
+
 function detectRenovationIntentStrict(message: string): string | null {
   const msg = message.toLowerCase().replace(/\b(the|a|an|my|our|this|that|master|guest|main|half)\b/g, " ").replace(/\s+/g, " ").trim();
 
+  const hasRecommendationContext = RECOMMENDATION_VERBS.some(v => msg.includes(v));
+
   for (const pattern of RENOVATION_PATTERNS) {
-    if (pattern.strictKeywords.some(kw => msg.includes(kw))) {
-      return pattern.type;
-    }
+    const strictMatch = pattern.strictKeywords.some(kw => msg.includes(kw));
+    if (!strictMatch) continue;
+
+    if (hasRecommendationContext) return pattern.type;
+
+    const keywordHits = pattern.keywords.filter(kw => msg.includes(kw)).length;
+    if (keywordHits >= 2) return pattern.type;
   }
 
   return null;

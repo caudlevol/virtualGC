@@ -99,7 +99,7 @@ export default function AuthPage({ defaultTab = "login" }: { defaultTab?: "login
                   <Label htmlFor="login-password">Password</Label>
                   <Input id="login-password" type="password" {...loginForm.register("password")} className="bg-black/20" />
                 </div>
-                <Button type="submit" className="w-full mt-6" disabled={loginMutation.isPending}>
+                <Button type="submit" className="w-full mt-6 h-12 touch-target" disabled={loginMutation.isPending}>
                   {loginMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   Sign In
                 </Button>
@@ -133,7 +133,7 @@ export default function AuthPage({ defaultTab = "login" }: { defaultTab?: "login
                   <Input id="reg-password" type="password" {...registerForm.register("password")} className="bg-black/20" />
                   {registerForm.formState.errors.password && <p className="text-xs text-destructive">{registerForm.formState.errors.password.message}</p>}
                 </div>
-                <Button type="submit" className="w-full mt-6" disabled={registerMutation.isPending}>
+                <Button type="submit" className="w-full mt-6 h-12 touch-target" disabled={registerMutation.isPending}>
                   {registerMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   Create Account
                 </Button>

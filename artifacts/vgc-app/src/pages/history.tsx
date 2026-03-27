@@ -82,7 +82,7 @@ export default function HistoryPage() {
           <h1 className="text-3xl font-display font-bold tracking-tight">Quote History</h1>
           <p className="text-muted-foreground mt-1">{quotes.length} total estimates</p>
         </div>
-        <Button onClick={() => setLocation("/dashboard")}>
+        <Button onClick={() => setLocation("/dashboard")} className="touch-target">
           <Plus className="w-4 h-4 mr-2" /> New Quote
         </Button>
       </div>
@@ -102,7 +102,7 @@ export default function HistoryPage() {
             variant="outline"
             size="sm"
             onClick={() => setShowFilters(!showFilters)}
-            className={`shrink-0 ${hasActiveFilters ? "border-primary text-primary" : ""}`}
+            className={`shrink-0 touch-target ${hasActiveFilters ? "border-primary text-primary" : ""}`}
           >
             <Filter className="w-4 h-4 mr-2" />
             Filters {hasActiveFilters && `(${[tierFilter, statusFilter, dateFilter].filter(f => f !== "all").length})`}
@@ -196,7 +196,7 @@ export default function HistoryPage() {
             {search || hasActiveFilters ? "Try adjusting your search or filters." : "You haven't generated any estimates yet. Paste a Zillow URL to get started."}
           </p>
           {!search && !hasActiveFilters && (
-            <Button onClick={() => setLocation("/dashboard")}>Create your first quote</Button>
+            <Button onClick={() => setLocation("/dashboard")} className="touch-target">Create your first quote</Button>
           )}
         </Card>
       ) : (

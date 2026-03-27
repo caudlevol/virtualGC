@@ -124,16 +124,16 @@ export default function SharedQuote() {
               </CardHeader>
               <CardContent className="p-0">
                 {Object.entries(groupedItems).map(([category, items], idx) => (
-                  <div key={category} className={`p-6 ${idx !== 0 ? 'border-t border-border' : ''}`}>
-                    <h3 className="text-base font-bold capitalize mb-4 flex items-center">
+                  <div key={category} className={`p-3 sm:p-6 ${idx !== 0 ? 'border-t border-border' : ''}`}>
+                    <h3 className="text-sm sm:text-base font-bold capitalize mb-3 sm:mb-4 flex items-center">
                       <div className="w-2 h-2 rounded-full bg-primary mr-2" />
                       {category}
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                       {items.map(item => (
                         <div key={item.id} className="flex justify-between items-start py-2 border-b border-white/5 last:border-0">
-                          <div className="pr-4">
-                            <p className="font-medium text-sm text-foreground/90">{item.description}</p>
+                          <div className="pr-3 sm:pr-4 min-w-0">
+                            <p className="font-medium text-sm text-foreground/90 truncate">{item.description}</p>
                           </div>
                           <div className="text-right shrink-0">
                             <p className="font-bold text-sm">{formatCurrency(item.subtotal)}</p>
