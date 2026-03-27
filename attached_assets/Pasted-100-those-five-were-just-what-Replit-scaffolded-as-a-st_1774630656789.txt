@@ -1,0 +1,68 @@
+100% — those five were just what Replit scaffolded as a starting point. There is no technical reason to be limited to them. Here is how I would think about expanding it strategically.
+The Full Expansion List
+Here are all the renovation types worth adding as supported configurator types, organized by priority:
+Tier 1 — Add Immediately (High Frequency, High Value)
+These come up in nearly every showing conversation and have enough material/labor variables to make a configurator genuinely useful:
+Renovation Type
+Why It Matters
+Staircase
+Comes up constantly — treads, railings, balusters, carpet vs. hardwood
+Roof
+One of the biggest inspection report items — age, material, full vs. patch
+HVAC
+Buyers always ask about system age and replacement cost
+Deck / Patio
+Huge in suburban markets — wood vs. composite, size, railing
+Garage
+Door replacement, epoxy floor, insulation — common mid-range ask
+Basement Finishing
+High-value add — framing, drywall, flooring, egress windows
+Exterior Paint / Siding
+Curb appeal plays — full repaint, siding replacement, trim
+Landscaping / Curb Appeal
+Sod, grading, beds, driveway — common buyer ask on older homes
+Tier 2 — Add in Phase 2 (Moderate Frequency, Specific Scope)
+These are more specialized but come up regularly enough to warrant a configurator:
+Renovation Type
+Why It Matters
+Electrical Panel Upgrade
+Inspection report staple — 100A to 200A upgrade, EV charger add
+Plumbing
+Water heater replacement, re-pipe, fixture upgrades
+Insulation
+Energy efficiency play — attic, crawlspace, spray foam
+Drywall / Interior Walls
+Crack repair, full room, open wall concept
+Laundry Room
+Hookup upgrades, cabinetry, tile — underrated ask
+Home Office Conversion
+Bedroom-to-office or basement-to-office — post-COVID staple
+ADU / In-Law Suite
+High-value, complex — garage conversion, basement unit
+Tier 3 — AI Conversational Only (Too Variable for a Configurator)
+These are too custom or too complex to reduce to a chip-selection flow. Keep these in the AI conversational path with clarifying questions:
+Renovation Type
+Why
+Full Gut Renovation
+Too many variables — scope it conversationally
+Foundation / Structural
+Requires inspection data — AI should ask for specifics
+Pool / Hot Tub
+Highly regional and custom
+Solar / EV
+Incentive-dependent, utility-specific
+Custom Additions
+Room additions, second story — architect-level scope
+The Replit Prompt to Expand the Configurator
+Expand the supported configurator renovation types from 5 to 13. Add the following types to the configurator chip-selection flow, each with their own material/quality selection options:
+Staircase: Options — Carpet treads / Hardwood refinish / New hardwood treads / Full replacement with new railings. Quality tiers — Basic / Mid / High-end.
+Roof: Options — Patch repair / 3-tab asphalt replacement / Architectural shingle replacement / Metal roof. Size input — approximate square footage or use property sqft as default.
+HVAC: Options — Repair / Single unit replacement / Full system replacement (furnace + AC) / Mini-split addition. Age input — current system age.
+Deck / Patio: Options — Pressure-treated wood / Composite decking / Concrete patio / Stamped concrete. Size input — approximate square footage.
+Garage: Options — Door replacement only / Epoxy floor / Full interior finish / Conversion to living space.
+Basement Finishing: Options — Basic framing + drywall / Full finish with flooring + lighting / Full finish with bathroom add / Full finish with egress windows.
+Exterior Paint / Siding: Options — Full exterior repaint / Trim only / Vinyl siding replacement / Fiber cement siding replacement.
+Landscaping: Options — Basic cleanup + sod / Full front yard redesign / Full yard + hardscape / Driveway replacement.
+For each new type, add the appropriate material cost rows to seed.ts using the same structure as the existing kitchen/bathroom entries. Use national average unit costs from RSMeans 2024 as the baseline. Apply the existing regional multiplier logic — no changes needed to the cost engine itself.
+Also update the SYSTEM_PROMPT clarifying questions section to cover all new types with 1–2 targeted questions each, following the same pattern as the staircase/HVAC/roofing questions already added.
+Bottom line: Going from 5 to 13 configurator types covers roughly 85% of what comes up in a real showing conversation. The remaining 15% (structural, full gut, custom additions) stays in the AI conversational path where it belongs. This is a meaningful product upgrade and it makes the "Locked Estimate" badge far more useful — agents can get a deterministic quote on almost anything a buyer asks about.
