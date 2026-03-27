@@ -4,7 +4,7 @@ import { eq, and, or } from "drizzle-orm";
 import { CreateConversationBody, SendMessageBody, SendMessageParams, GetConversationParams, VisualizeRenovationBody, GenerateConfiguratorQuoteBody } from "@workspace/api-zod";
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC } from "../lib/aiPipeline";
-import { detectRenovationIntent, generateConfiguratorQuote, getConfiguratorOptions } from "../lib/configuratorMap";
+import { detectRenovationIntentFromBoth, generateConfiguratorQuote, getConfiguratorOptions } from "../lib/configuratorMap";
 import OpenAI from "openai";
 import FormData from "form-data";
 import { editImage } from "@workspace/integrations-gemini-ai";
@@ -69,7 +69,7 @@ router.post("/conversations", requireAuth, async (req, res): Promise<void> => {
   }
 
   const property = properties[0];
-  const initialMessages: Array<{ role: string; content: string; timestamp: string }> = [];
+  const initialMessages: Array<{ role: string; content: string; timestamp: string; configuratorType?: string | null }> = [];
 
   if (parsed.data.initialMessage) {
     initialMessages.push({
@@ -90,9 +90,11 @@ router.post("/conversations", requireAuth, async (req, res): Promise<void> => {
       }
     );
 
+    const initConfigType = detectRenovationIntentFromBoth(parsed.data.initialMessage, aiResponse.content);
     initialMessages.push({
       role: "assistant",
       content: aiResponse.content,
+      configuratorType: initConfigType || null,
       timestamp: new Date().toISOString(),
     });
   } else {
@@ -108,9 +110,11 @@ router.post("/conversations", requireAuth, async (req, res): Promise<void> => {
       }
     );
 
+    const greetingConfigType = detectRenovationIntentFromBoth("", greeting.content);
     initialMessages.push({
       role: "assistant",
       content: greeting.content,
+      configuratorType: greetingConfigType || null,
       timestamp: new Date().toISOString(),
     });
   }
@@ -204,7 +208,7 @@ router.post("/conversations/:conversationId/messages", requireAuth, async (req, 
     parsed.data.requestQuote || false
   );
 
-  const configuratorType = detectRenovationIntent(parsed.data.content);
+  const configuratorType = detectRenovationIntentFromBoth(parsed.data.content, aiResponse.content);
 
   const assistantMessage = {
     role: "assistant" as const,
