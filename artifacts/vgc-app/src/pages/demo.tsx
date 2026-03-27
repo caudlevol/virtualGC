@@ -79,7 +79,7 @@ export default function DemoPage() {
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         <div className="text-center mb-12">
           <Badge className="mb-4 bg-primary/20 text-primary border-0 hover:bg-primary/20">Free Live Demo</Badge>
-          <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">See Virtual GC in Action</h1>
+          <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">See Showstimate in Action</h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">Paste a Zillow URL to instantly see localized cost data for a standard renovation.</p>
         </div>
 

@@ -36,10 +36,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <aside className="hidden md:flex flex-col w-64 border-r border-white/5 bg-background/50 backdrop-blur-xl fixed inset-y-0 left-0 z-40 print:hidden">
         <div className="p-5 border-b border-white/5">
           <Link href="/dashboard" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-all">
-              <Building className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-display font-bold text-lg tracking-tight">Virtual<span className="text-primary">GC</span></span>
+            <img src="/logo.png" alt="Showstimate" className="w-[100px] h-auto object-contain" />
           </Link>
         </div>
 

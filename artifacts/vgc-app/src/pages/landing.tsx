@@ -27,10 +27,7 @@ export default function LandingPage() {
 
       <header className="container mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <Hammer className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-display font-bold text-lg sm:text-xl tracking-tight">Virtual<span className="text-primary">GC</span></span>
+          <img src="/logo.png" alt="Showstimate" className="w-[100px] h-auto object-contain" />
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <Link href="/demo" className="text-sm font-medium text-muted-foreground hover:text-foreground hidden sm:block">Try Demo</Link>

@@ -1,6 +1,6 @@
 {
-  "name": "Virtual General Contractor",
-  "short_name": "VGC",
+  "name": "Showstimate",
+  "short_name": "Showstimate",
   "description": "Instant, AI-powered renovation estimates for real estate pros. Paste a Zillow link, get itemized quotes in seconds — not weeks.",
   "start_url": "/",
   "display": "standalone",

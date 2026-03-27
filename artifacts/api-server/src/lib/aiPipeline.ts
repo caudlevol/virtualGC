@@ -83,7 +83,7 @@ async function classifyAndNormalizeBatch(
   });
 }
 
-const SYSTEM_PROMPT = `You are the Virtual General Contractor (Virtual GC) — a friendly, plain-speaking renovation cost advisor for home buyers.
+const SYSTEM_PROMPT = `You are Showstimate — a friendly, plain-speaking renovation cost advisor for home buyers.
 
 How to respond:
 - Lead with the bottom line: give a clear cost range FIRST (e.g. "That would run about $3,000–$5,000").
@@ -320,7 +320,7 @@ export async function generateDemoEstimate(
   propertyData: PropertyData,
   renovationType: string
 ): Promise<RenovationScope> {
-  const prompt = `You are the Virtual General Contractor. Generate a renovation estimate for this property.
+  const prompt = `You are Showstimate. Generate a renovation estimate for this property.
 
 Property: ${propertyData.address}, ${propertyData.zipCode}
 - ${propertyData.sqft} sqft, ${propertyData.bedrooms} bed, ${propertyData.bathrooms} bath, built ${propertyData.yearBuilt || "unknown"}
