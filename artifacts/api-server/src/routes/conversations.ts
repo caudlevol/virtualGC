@@ -6,6 +6,7 @@ import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC } from "../lib/aiPipeline";
 import OpenAI from "openai";
 import FormData from "form-data";
+import { editImage } from "@workspace/integrations-gemini-ai";
 
 const openaiForViz = new OpenAI({ apiKey: process.env.OpenAI_API_Key });
 
@@ -354,9 +355,11 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
     console.log(`[visualize] conversationId=${conversationId} promptSource=${promptSource} descriptionLength=${visualDescription.length} imageSource=${sourceImageUrl ? "listing" : "upload"}`);
 
     let imgBuffer: Buffer;
+    let mimeType = "image/jpeg";
 
     if (uploadedImageBase64) {
       imgBuffer = Buffer.from(uploadedImageBase64, "base64");
+      mimeType = uploadedImageMimeType || "image/png";
     } else {
       const imgResponse = await fetch(sourceImageUrl!, { signal: AbortSignal.timeout(15000) });
       if (!imgResponse.ok) {
@@ -369,67 +372,123 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
         return;
       }
       imgBuffer = Buffer.from(arrayBuf);
+      const rawCt = imgResponse.headers.get("content-type") || "image/jpeg";
+      mimeType = rawCt.split(";")[0].trim();
     }
+
+    function detectRoomType(description: string): string {
+      const d = description.toLowerCase();
+      if (d.includes("kitchen")) return "kitchen";
+      if (d.includes("bathroom") || d.includes("bath ") || d.includes("shower") || d.includes("vanity")) return "bathroom";
+      if (d.includes("bedroom") || d.includes("bed room") || d.includes("master")) return "bedroom";
+      if (d.includes("dining")) return "diningRoom";
+      if (d.includes("office") || d.includes("study")) return "homeOffice";
+      if (d.includes("basement")) return "basement";
+      if (d.includes("laundry")) return "laundryRoom";
+      if (d.includes("exterior") || d.includes("outside") || d.includes("facade") || d.includes("front of")) return "exterior";
+      return "livingRoom";
+    }
+
+    const roomType = detectRoomType(visualDescription);
+    const isExterior = roomType === "exterior";
+
+    let dataUri: string | null = null;
 
     const reimageApiKey = process.env.ReImage_API_Key;
-    if (!reimageApiKey) {
-      throw new Error("ReImage_API_Key is not configured");
-    }
+    if (reimageApiKey) {
+      try {
+        const reimageBase = "https://api.reimage.io/api/v1";
+        const endpoint = isExterior ? "exterior-remodel" : "interior-remodel";
 
-    const reimageBase = "https://api.reimage.io/api/v1";
+        const form = new FormData();
+        form.append("image", imgBuffer, { filename: "room.jpg", contentType: "image/jpeg" });
+        form.append("prompt", visualDescription);
+        if (!isExterior) {
+          form.append("room_type", roomType);
+        }
 
-    const form = new FormData();
-    form.append("image", imgBuffer, { filename: "room.jpg", contentType: "image/jpeg" });
-    form.append("prompt", visualDescription);
-    form.append("preset", "modern");
+        const submitResponse = await fetch(`${reimageBase}/${endpoint}`, {
+          method: "POST",
+          headers: { "Authorization": reimageApiKey, ...form.getHeaders() },
+          body: form.getBuffer(),
+        });
 
-    const submitResponse = await fetch(`${reimageBase}/interior-remodel`, {
-      method: "POST",
-      headers: { "Authorization": reimageApiKey, ...form.getHeaders() },
-      body: form.getBuffer(),
-    });
+        if (submitResponse.status === 429) {
+          console.warn("[visualize] ReImage rate limited (429), falling back to Gemini");
+          throw new Error("RATE_LIMITED");
+        }
 
-    if (!submitResponse.ok) {
-      const errText = await submitResponse.text();
-      console.error("[visualize] ReImage submit failed:", submitResponse.status, errText);
-      throw new Error(`ReImage API submission failed: ${submitResponse.status}`);
-    }
+        if (!submitResponse.ok) {
+          const errText = await submitResponse.text();
+          console.error("[visualize] ReImage submit failed:", submitResponse.status, errText);
+          throw new Error(`ReImage submit failed: ${submitResponse.status}`);
+        }
 
-    const submitResult = await submitResponse.json() as { jobID: number };
-    const jobId = submitResult.jobID;
-    console.log(`[visualize] ReImage job submitted: ${jobId}`);
+        const submitResult = await submitResponse.json() as { jobID: number };
+        const jobId = submitResult.jobID;
+        console.log(`[visualize] ReImage job submitted: ${jobId} endpoint=${endpoint} roomType=${roomType}`);
 
-    let jobStatus = "rendering";
-    const maxWait = 90_000;
-    const pollInterval = 3_000;
-    const startTime = Date.now();
+        let jobStatus = "rendering";
+        const maxWait = 120_000;
+        const pollInterval = 3_000;
+        const startTime = Date.now();
 
-    while (jobStatus !== "complete" && (Date.now() - startTime) < maxWait) {
-      await new Promise(r => setTimeout(r, pollInterval));
-      const statusRes = await fetch(`${reimageBase}/job/${jobId}/status`, {
-        headers: { "Authorization": reimageApiKey },
-      });
-      if (!statusRes.ok) {
-        console.error("[visualize] ReImage poll failed:", statusRes.status);
-        continue;
+        while (jobStatus !== "complete" && jobStatus !== "error" && (Date.now() - startTime) < maxWait) {
+          await new Promise(r => setTimeout(r, pollInterval));
+          const statusRes = await fetch(`${reimageBase}/job/${jobId}/status`, {
+            headers: { "Authorization": reimageApiKey },
+          });
+          if (!statusRes.ok) continue;
+          const statusData = await statusRes.json() as { status: string; output_values?: Record<string, string> };
+          jobStatus = statusData.status;
+          if (jobStatus === "error") {
+            const errMsg = statusData.output_values?.error || "Unknown error";
+            console.error(`[visualize] ReImage job ${jobId} failed: ${errMsg}`);
+            throw new Error(`ReImage job error: ${errMsg}`);
+          }
+        }
+
+        if (jobStatus !== "complete") {
+          throw new Error("ReImage timed out");
+        }
+
+        const resultRes = await fetch(`${reimageBase}/job/${jobId}/results/image-0`, {
+          headers: { "Authorization": reimageApiKey },
+        });
+        if (!resultRes.ok) throw new Error("Failed to download result");
+
+        const resultBuffer = Buffer.from(await resultRes.arrayBuffer());
+        dataUri = `data:image/png;base64,${resultBuffer.toString("base64")}`;
+        console.log(`[visualize] ReImage success for job ${jobId}`);
+      } catch (reimageErr: any) {
+        console.warn(`[visualize] ReImage failed (${reimageErr.message}), falling back to Gemini`);
       }
-      const statusData = await statusRes.json() as { status: string };
-      jobStatus = statusData.status;
     }
 
-    if (jobStatus !== "complete") {
-      throw new Error("Visualization timed out — please try again.");
-    }
+    if (!dataUri) {
+      console.log("[visualize] Using Gemini fallback");
+      const editPrompt = `You are a professional interior renovation visualization tool. Edit this photo to show the following specific renovations applied to the room.
 
-    const resultRes = await fetch(`${reimageBase}/job/${jobId}/results/image-0`, {
-      headers: { "Authorization": reimageApiKey },
-    });
-    if (!resultRes.ok) {
-      throw new Error("Failed to download visualization result.");
+KEEP UNCHANGED:
+- The exact room layout, dimensions, walls, ceiling, and floor plan
+- The camera angle, perspective, and field of view
+- The natural lighting direction and window positions
+- Any structural elements (doors, windows, archways) not mentioned in changes
+
+APPLY THESE SPECIFIC CHANGES:
+${visualDescription}
+
+QUALITY REQUIREMENTS:
+- Photorealistic rendering — the result must look like an actual photograph, not a digital rendering
+- New materials must have correct reflections, shadows, and textures matching the room's lighting
+- Maintain consistent color temperature across existing and new elements
+- Edges where new materials meet existing surfaces must blend seamlessly
+- Preserve the original image resolution and color depth`;
+
+      const geminiResult = await editImage(imgBuffer.toString("base64"), mimeType, editPrompt);
+      dataUri = `data:${geminiResult.mimeType};base64,${geminiResult.b64_json}`;
+      console.log("[visualize] Gemini fallback success");
     }
-    const resultBuffer = Buffer.from(await resultRes.arrayBuffer());
-    const resultB64 = resultBuffer.toString("base64");
-    const dataUri = `data:image/png;base64,${resultB64}`;
 
     const uploadedPreviewUri = uploadedImageBase64 ? `data:${uploadedImageMimeType};base64,${uploadedImageBase64}` : undefined;
 
