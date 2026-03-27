@@ -2,6 +2,10 @@ import { priceLineItemsFromCostEngine } from "./costLookup";
 import { getRegionalMultiplier } from "./costEngine";
 import { createHash } from "crypto";
 
+const configuratorQuoteCache = new Map<string, ConfiguratorQuoteResult>();
+const CACHE_TTL_MS = 10 * 60 * 1000;
+setInterval(() => configuratorQuoteCache.clear(), CACHE_TTL_MS);
+
 interface ConfiguratorOption {
   label: string;
   price: string;
@@ -240,7 +244,14 @@ export async function generateConfiguratorQuote(
     throw new Error(`Unknown selection keys: ${unknownKeys.join(", ")}`);
   }
 
-  const aiItems: Array<{ category: string; description: string; quantity: number; unit: string }> = [];
+  const selectionHash = computeSelectionHash(renovationType, selections);
+  const cacheKey = `${property.zipCode}:${selectionHash}`;
+  const cached = configuratorQuoteCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const aiItems: Array<{ category: string; description: string; quantity: number; unit: string; qualityTierOverride: string }> = [];
 
   for (const group of config.groups) {
     const selectedLabel = selections[group.key];
@@ -252,14 +263,13 @@ export async function generateConfiguratorQuote(
       description: option.item,
       quantity: qty.quantity,
       unit: qty.unit,
+      qualityTierOverride: option.qualityTier,
     });
   }
 
-  const avgTier = determineAverageTier(selections, config);
-
   const lineItems = await priceLineItemsFromCostEngine(
     aiItems,
-    avgTier,
+    "mid_range",
     regional.factor,
     property.yearBuilt
   );
@@ -267,17 +277,20 @@ export async function generateConfiguratorQuote(
   const totalMaterialCost = lineItems.reduce((sum, li) => sum + li.materialCost * li.quantity, 0);
   const totalLaborCost = lineItems.reduce((sum, li) => sum + li.laborCost * li.quantity, 0);
 
-  return {
+  const result: ConfiguratorQuoteResult = {
     lineItems,
     totalMaterialCost: Math.round(totalMaterialCost),
     totalLaborCost: Math.round(totalLaborCost),
     grandTotal: Math.round(totalMaterialCost + totalLaborCost),
-    selectionHash: computeSelectionHash(renovationType, selections),
+    selectionHash,
     renovationType,
     selections,
     regionalMultiplier: regional.factor,
     metroArea: regional.metroArea,
   };
+
+  configuratorQuoteCache.set(cacheKey, result);
+  return result;
 }
 
 function determineAverageTier(selections: Record<string, string>, config: ConfiguratorRenovationType): string {

@@ -521,7 +521,7 @@ function ConfiguratorChips({
         {config.groups.map(group => (
           <div key={group.key} className="space-y-2">
             <label className="text-xs font-semibold text-foreground uppercase tracking-wide">{group.label}</label>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
               {group.options.map(opt => {
                 const isSelected = selections[group.key] === opt.label;
                 return (

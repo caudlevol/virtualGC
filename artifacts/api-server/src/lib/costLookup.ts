@@ -9,6 +9,7 @@ interface AIScopeItem {
   quantity: number;
   unit: string;
   tradeType?: string;
+  qualityTierOverride?: string;
 }
 
 interface PricedLineItem {
@@ -139,7 +140,8 @@ export async function priceLineItemsFromCostEngine(
     const allMaterials = await db.select().from(materialCostsTable)
       .where(eq(materialCostsTable.category, category));
 
-    const bestMatch = findBestMaterialMatch(allMaterials, item.description, qualityTier);
+    const effectiveTier = item.qualityTierOverride || qualityTier;
+    const bestMatch = findBestMaterialMatch(allMaterials, item.description, effectiveTier);
     const baseMaterialCost = bestMatch ? bestMatch.baseUnitCost : 25;
 
     const blsLaborRate = await getLaborRate(tradeType);
@@ -156,7 +158,7 @@ export async function priceLineItemsFromCostEngine(
       laborCost: Math.round(laborCostPerUnit * regionalMultiplier * ageFactor * 100) / 100,
       quantity: item.quantity,
       unit: item.unit,
-      qualityTier,
+      qualityTier: effectiveTier,
     });
   }
 
