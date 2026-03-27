@@ -264,29 +264,33 @@ function PhotoPickerModal({ photos, onSelect, onUpload, onClose }: { photos: str
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center sm:p-4"
       onClick={onClose}
     >
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-card rounded-2xl border border-white/10 shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+        initial={{ opacity: 0, y: 100 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 100 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="bg-card rounded-t-2xl sm:rounded-2xl border border-white/10 shadow-2xl max-w-2xl w-full max-h-[85vh] sm:max-h-[80vh] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        <div className="p-5 border-b border-white/10 flex items-center justify-between">
+        <div className="flex justify-center sm:hidden pt-2 pb-1">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+        <div className="px-4 py-3 sm:p-5 border-b border-white/10 flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-lg">Choose a room to visualize</h3>
-            <p className="text-sm text-muted-foreground mt-0.5">Select a listing photo or upload your own</p>
+            <h3 className="font-bold text-base sm:text-lg">Choose a room to visualize</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Select a listing photo or upload your own</p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+            className="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors touch-target"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="p-4 overflow-y-auto max-h-[60vh]">
+        <div className="p-3 sm:p-4 overflow-y-auto max-h-[65vh] sm:max-h-[60vh]" style={{ WebkitOverflowScrolling: 'touch' }}>
           {uploadError && (
             <div className="mb-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
               {uploadError}
@@ -470,7 +474,7 @@ function ConfiguratorChips({
 
   if (submitted && quoteResult) {
     return (
-      <Card className="mt-3 bg-card border-emerald-500/30 shadow-lg shadow-emerald-500/10 overflow-hidden w-full max-w-md">
+      <Card className="mt-3 bg-card border-emerald-500/30 shadow-lg shadow-emerald-500/10 overflow-hidden w-full max-w-[calc(100vw-4rem)] sm:max-w-md">
         <div className="bg-emerald-500/10 px-4 py-2 border-b border-emerald-500/20 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Lock className="w-3.5 h-3.5 text-emerald-400" />
@@ -508,7 +512,7 @@ function ConfiguratorChips({
   }
 
   return (
-    <Card className="mt-3 bg-card border-primary/30 shadow-lg shadow-primary/10 overflow-hidden w-full max-w-md">
+    <Card className="mt-3 bg-card border-primary/30 shadow-lg shadow-primary/10 overflow-hidden w-full max-w-[calc(100vw-4rem)] sm:max-w-md">
       <div className="bg-primary/10 px-4 py-2 border-b border-primary/20 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Zap className="w-3.5 h-3.5 text-primary" />
@@ -528,7 +532,7 @@ function ConfiguratorChips({
                   <button
                     key={opt.label}
                     onClick={() => setSelections(prev => ({ ...prev, [group.key]: opt.label }))}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                    className={`px-3 py-2.5 sm:py-1.5 rounded-full text-xs font-medium transition-all border ${
                       isSelected
                         ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
                         : "bg-white/5 text-muted-foreground border-white/10 hover:border-primary/50 hover:text-foreground"
@@ -579,7 +583,7 @@ export default function ChatPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [photosExpanded, setPhotosExpanded] = useState(true);
+  const [photosExpanded, setPhotosExpanded] = useState(window.innerWidth >= 640);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
@@ -669,48 +673,57 @@ export default function ChatPage() {
 
   return (
     <AppLayout>
-      <div className="flex flex-col h-[calc(100vh-140px)] max-w-5xl mx-auto gap-3">
+      <div className="flex flex-col h-[calc(100vh-120px)] sm:h-[calc(100vh-140px)] max-w-5xl mx-auto gap-2 sm:gap-3 overflow-hidden">
 
         {isFirstMessage && property && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-panel rounded-2xl p-5 shadow-xl shrink-0"
+            className="glass-panel rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-xl shrink-0"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <PropertyPhotoCarousel
-                photos={property.listingPhotos || []}
-                onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i)}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
+              <div className="hidden sm:block">
+                <PropertyPhotoCarousel
+                  photos={property.listingPhotos || []}
+                  onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i)}
+                />
+              </div>
               <div className="flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Building className="w-5 h-5 text-primary" />
-                    <h2 className="font-bold text-lg leading-tight">{property.address}</h2>
+                  <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                    <Building className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
+                    <h2 className="font-bold text-sm sm:text-lg leading-tight truncate">{property.address}</h2>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-4">{property.zipCode}</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Square className="w-4 h-4 text-primary/70" />
-                      <span>{property.sqft?.toLocaleString()} sqft</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Bed className="w-4 h-4 text-primary/70" />
-                      <span>{property.bedrooms} bedrooms</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Bath className="w-4 h-4 text-primary/70" />
-                      <span>{property.bathrooms} bathrooms</span>
-                    </div>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2">
+                    <span className="inline-flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                      <Square className="w-3 h-3 sm:w-4 sm:h-4 text-primary/70" />
+                      {property.sqft?.toLocaleString()} sqft
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                      <Bed className="w-3 h-3 sm:w-4 sm:h-4 text-primary/70" />
+                      {property.bedrooms} beds
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                      <Bath className="w-3 h-3 sm:w-4 sm:h-4 text-primary/70" />
+                      {property.bathrooms} baths
+                    </span>
                     {property.yearBuilt && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="w-4 h-4 text-primary/70" />
-                        <span>Built {property.yearBuilt}</span>
-                      </div>
+                      <span className="inline-flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-primary/70" />
+                        {property.yearBuilt}
+                      </span>
                     )}
                   </div>
+                  {hasPhotos && (
+                    <div className="sm:hidden mt-2">
+                      <PhotoStrip
+                        photos={property.listingPhotos!}
+                        onPhotoClick={(i) => openLightbox(property.listingPhotos || [], i)}
+                      />
+                    </div>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground/70 mt-4">Describe the renovation scope below to get started.</p>
+                <p className="text-xs text-muted-foreground/70 mt-2 sm:mt-4">Describe the renovation scope below to get started.</p>
               </div>
             </div>
           </motion.div>
@@ -771,8 +784,8 @@ export default function ChatPage() {
           </div>
         )}
 
-        <div className="flex-1 glass-panel rounded-2xl flex flex-col overflow-hidden shadow-2xl relative min-h-0">
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        <div className="flex-1 glass-panel rounded-xl sm:rounded-2xl flex flex-col overflow-hidden shadow-2xl relative min-h-0">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6" style={{ WebkitOverflowScrolling: 'touch' }}>
             {conv.messages.map((msg, i: number) => {
               const isAi = msg.role === "assistant";
               const displayContent = isAi ? sanitizeAIMessage(msg.content) : msg.content;
@@ -781,13 +794,13 @@ export default function ChatPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   key={i} 
-                  className={`flex gap-4 ${isAi ? "flex-row" : "flex-row-reverse"}`}
+                  className={`flex gap-2 sm:gap-4 ${isAi ? "flex-row" : "flex-row-reverse"}`}
                 >
-                  <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isAi ? "bg-primary/20 text-primary" : "bg-accent/20 text-accent"}`}>
-                    {isAi ? <Hammer className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                  <div className={`shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${isAi ? "bg-primary/20 text-primary" : "bg-accent/20 text-accent"}`}>
+                    {isAi ? <Hammer className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                   </div>
-                  <div className={`flex flex-col max-w-[85%] ${isAi ? "items-start" : "items-end"}`}>
-                    <div className={`px-5 py-3.5 rounded-2xl text-sm md:text-base leading-relaxed whitespace-pre-line ${isAi ? "bg-secondary border border-white/5 text-foreground rounded-tl-none" : "bg-gradient-to-br from-primary to-indigo-600 text-white shadow-lg shadow-primary/20 rounded-tr-none"}`}>
+                  <div className={`flex flex-col max-w-[90%] sm:max-w-[85%] ${isAi ? "items-start" : "items-end"}`}>
+                    <div className={`px-3.5 py-2.5 sm:px-5 sm:py-3.5 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${isAi ? "bg-secondary border border-white/5 text-foreground rounded-tl-none" : "bg-gradient-to-br from-primary to-indigo-600 text-white shadow-lg shadow-primary/20 rounded-tr-none"}`}>
                       {formatMessage(displayContent)}
                     </div>
 
@@ -885,15 +898,15 @@ export default function ChatPage() {
             )}
           </div>
 
-          <div className="p-4 bg-background/50 backdrop-blur-md border-t border-white/5">
-            <div className="flex gap-2 mb-3 overflow-x-auto pb-2 scrollbar-hide">
-               <Button variant="outline" size="sm" className="shrink-0 rounded-full text-xs" onClick={() => handleQuickAction("What would it cost to remodel the kitchen?")}>Remodel Kitchen</Button>
-               <Button variant="outline" size="sm" className="shrink-0 rounded-full text-xs" onClick={() => handleQuickAction("Let's update the master bathroom.")}>Update Bathroom</Button>
-               <Button variant="outline" size="sm" className="shrink-0 rounded-full text-xs" onClick={() => handleQuickAction("Give me a full flip estimate including floors and paint.")}>Full Flip</Button>
+          <div className="p-2.5 sm:p-4 bg-background/50 backdrop-blur-md border-t border-white/5">
+            <div className="flex gap-1.5 sm:gap-2 mb-2 sm:mb-3 overflow-x-auto pb-1 scrollbar-hide scroll-snap-x -mx-1 px-1">
+               <Button variant="outline" size="sm" className="shrink-0 rounded-full text-xs h-8 touch-target" onClick={() => handleQuickAction("What would it cost to remodel the kitchen?")}>Remodel Kitchen</Button>
+               <Button variant="outline" size="sm" className="shrink-0 rounded-full text-xs h-8 touch-target" onClick={() => handleQuickAction("Let's update the master bathroom.")}>Update Bathroom</Button>
+               <Button variant="outline" size="sm" className="shrink-0 rounded-full text-xs h-8 touch-target" onClick={() => handleQuickAction("Give me a full flip estimate including floors and paint.")}>Full Flip</Button>
                <Button
                  variant="outline"
                  size="sm"
-                 className="shrink-0 rounded-full text-xs border-primary/30 text-primary hover:bg-primary/10"
+                 className="shrink-0 rounded-full text-xs h-8 touch-target border-primary/30 text-primary hover:bg-primary/10"
                  onClick={handleVisualize}
                  disabled={visualizeMutation.isPending || conv.messages.length < 2}
                >
@@ -906,39 +919,39 @@ export default function ChatPage() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 placeholder="Ask about renovation costs..." 
-                className="pr-32 bg-black/40 border-white/10 h-14 rounded-xl text-base"
+                className="pr-[7.5rem] sm:pr-36 bg-black/40 border-white/10 h-12 sm:h-14 rounded-xl text-sm sm:text-base"
                 disabled={sendMutation.isPending || quoteMutation.isPending || visualizeMutation.isPending}
               />
-              <div className="absolute right-2 flex gap-1">
+              <div className="absolute right-1.5 sm:right-2 flex gap-0.5 sm:gap-1">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="text-amber-400 hover:text-amber-300 hover:bg-amber-400/20"
+                  className="text-amber-400 hover:text-amber-300 hover:bg-amber-400/20 w-9 h-9 sm:w-10 sm:h-10"
                   onClick={handleVisualize}
                   disabled={visualizeMutation.isPending || conv.messages.length < 2}
                   title="Generate renovation concept image"
                 >
-                  <Sparkles className="w-5 h-5" />
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
                 <Button 
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="text-primary hover:text-primary hover:bg-primary/20"
+                  className="text-primary hover:text-primary hover:bg-primary/20 w-9 h-9 sm:w-10 sm:h-10"
                   onClick={(e) => handleSend(e as React.FormEvent, true)}
                   disabled={!input.trim() || sendMutation.isPending}
                   title="Generate Quote from this message"
                 >
-                  <Hammer className="w-5 h-5" />
+                  <Hammer className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
                 <Button 
                   type="submit" 
                   size="icon" 
-                  className="bg-primary hover:bg-primary/90 text-white"
+                  className="bg-primary hover:bg-primary/90 text-white w-9 h-9 sm:w-10 sm:h-10"
                   disabled={!input.trim() || sendMutation.isPending}
                 >
-                  <Send className="w-5 h-5" />
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
               </div>
             </form>

@@ -66,33 +66,33 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div className="max-w-4xl mx-auto space-y-10">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-10">
         <div className="flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-8 shadow-xl shadow-primary/10">
-            <Building className="w-8 h-8 text-primary" />
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4 sm:mb-8 shadow-xl shadow-primary/10">
+            <Building className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
           </div>
           
-          <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight mb-4">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-display font-bold tracking-tight mb-2 sm:mb-4">
             Start a New Estimate
           </h1>
-          <p className="text-lg text-muted-foreground mb-12 max-w-xl">
-            Paste any Zillow or Redfin URL below. Virtual GC will extract the property details and prepare an interactive renovation workspace.
+          <p className="text-sm sm:text-lg text-muted-foreground mb-6 sm:mb-12 max-w-xl px-2">
+            Paste any Zillow or Redfin URL below to get an interactive renovation workspace.
           </p>
 
           <form onSubmit={handleSubmit} className="w-full relative group max-w-3xl">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
-            <div className="relative flex items-center glass-panel rounded-xl p-2 pl-6">
-              <Search className="w-6 h-6 text-muted-foreground mr-4" />
+            <div className="relative flex items-center glass-panel rounded-xl p-1.5 sm:p-2 pl-3 sm:pl-6">
+              <Search className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground mr-2 sm:mr-4 shrink-0" />
               <Input 
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://www.zillow.com/homedetails/..." 
-                className="flex-1 border-0 bg-transparent text-lg focus-visible:ring-0 focus-visible:ring-offset-0 px-0 placeholder:text-muted-foreground/50 h-14"
+                placeholder="Paste Zillow or Redfin URL..." 
+                className="flex-1 border-0 bg-transparent text-sm sm:text-lg focus-visible:ring-0 focus-visible:ring-offset-0 px-0 placeholder:text-muted-foreground/50 h-11 sm:h-14"
                 disabled={isPending}
               />
-              <Button size="lg" type="submit" disabled={!url || isPending} className="rounded-lg px-8 h-12 ml-2">
+              <Button size="lg" type="submit" disabled={!url || isPending} className="rounded-lg px-4 sm:px-8 h-10 sm:h-12 ml-1.5 sm:ml-2 text-sm sm:text-base touch-target shrink-0">
                 {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Analyze"}
-                {!isPending && <ArrowRight className="w-5 h-5 ml-2" />}
+                {!isPending && <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1 sm:ml-2" />}
               </Button>
             </div>
           </form>
@@ -141,7 +141,7 @@ export default function Dashboard() {
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Recent Quotes</h3>
                 <Button variant="ghost" size="sm" onClick={() => setLocation('/quotes')} className="text-primary">View All</Button>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {recentQuotes.map((quote) => (
                   <motion.div 
                     key={quote.id}
@@ -149,11 +149,11 @@ export default function Dashboard() {
                     className="group cursor-pointer"
                     onClick={() => setLocation(`/quotes/${quote.id}`)}
                   >
-                    <Card className="bg-card/50 border-white/5 hover:border-primary/20 transition-colors">
-                      <CardContent className="p-4 flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4 flex-1 min-w-0">
-                          <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                            <MapPin className="w-5 h-5 text-muted-foreground" />
+                    <Card className="bg-card/50 border-white/5 hover:border-primary/20 transition-colors active:scale-[0.99]">
+                      <CardContent className="p-3 sm:p-4 flex items-center justify-between gap-3 sm:gap-4 touch-target">
+                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                            <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium text-sm truncate">{quote.title}</p>
@@ -161,7 +161,7 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="font-bold">{formatCurrency(quote.totalEstimate)}</p>
+                          <p className="font-bold text-sm sm:text-base">{formatCurrency(quote.totalEstimate)}</p>
                           <p className="text-[10px] text-muted-foreground capitalize">{quote.qualityTier.replace('_', ' ')}</p>
                         </div>
                       </CardContent>

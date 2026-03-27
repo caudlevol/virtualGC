@@ -48,49 +48,49 @@ export default function SharedQuote() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
       <header className="bg-card border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center border border-primary/20">
-                <Briefcase className="w-6 h-6 text-primary" />
+        <div className="container mx-auto px-3 sm:px-4 max-w-5xl">
+          <div className="flex items-center justify-between py-3 sm:py-4">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
+                <Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
-              <div>
-                <p className="font-bold text-base md:text-lg leading-tight">{agentName}</p>
+              <div className="min-w-0">
+                <p className="font-bold text-sm sm:text-base md:text-lg leading-tight truncate">{agentName}</p>
                 {agentBrokerage && (
-                  <p className="text-sm text-muted-foreground leading-tight mt-0.5">{agentBrokerage}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-tight mt-0.5 truncate">{agentBrokerage}</p>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" onClick={handleCopyLink} className="border-white/10">
-                {copied ? <Check className="w-4 h-4 mr-2 text-emerald-400" /> : <Copy className="w-4 h-4 mr-2" />}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <Button variant="outline" size="sm" onClick={handleCopyLink} className="border-white/10 touch-target">
+                {copied ? <Check className="w-4 h-4 mr-1 sm:mr-2 text-emerald-400" /> : <Copy className="w-4 h-4 mr-1 sm:mr-2" />}
                 {copied ? "Copied!" : "Share"}
               </Button>
             </div>
           </div>
-          <div className="flex items-center gap-2 pb-3 text-xs text-muted-foreground">
-            <span>Renovation estimate powered by</span>
+          <div className="flex items-center gap-2 pb-2 sm:pb-3 text-xs text-muted-foreground">
+            <span>Powered by</span>
             <span className="font-semibold text-primary">Virtual GC</span>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 pt-12 max-w-5xl space-y-8">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-5xl font-display font-bold tracking-tight mb-4">{quote.title}</h1>
+      <main className="container mx-auto px-3 sm:px-4 pt-6 sm:pt-12 max-w-5xl space-y-6 sm:space-y-8">
+        <div className="text-center mb-6 sm:mb-12">
+          <h1 className="text-2xl sm:text-3xl md:text-5xl font-display font-bold tracking-tight mb-2 sm:mb-4">{quote.title}</h1>
           {quote.property && (
-            <p className="text-lg text-muted-foreground flex items-center justify-center gap-2">
-              <MapPin className="w-5 h-5" /> {quote.property.address}
+            <p className="text-sm sm:text-lg text-muted-foreground flex items-center justify-center gap-2">
+              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" /> <span className="truncate">{quote.property.address}</span>
             </p>
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+          <div className="lg:col-span-1 space-y-4 sm:space-y-6">
             <Card className="bg-gradient-to-b from-primary/10 to-transparent border-primary/20 shadow-xl overflow-hidden relative text-center">
-              <CardContent className="p-8">
-                <p className="text-sm font-semibold text-primary mb-2 uppercase tracking-wider">Estimated Cost</p>
-                <p className="text-5xl font-display font-bold text-foreground mb-4">
+              <CardContent className="p-5 sm:p-8">
+                <p className="text-xs sm:text-sm font-semibold text-primary mb-2 uppercase tracking-wider">Estimated Cost</p>
+                <p className="text-3xl sm:text-5xl font-display font-bold text-foreground mb-3 sm:mb-4">
                   {formatCurrency(quote.totalEstimate)}
                 </p>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/40 text-xs text-muted-foreground">

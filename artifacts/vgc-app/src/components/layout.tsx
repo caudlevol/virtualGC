@@ -111,18 +111,18 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex-1 md:ml-64 pb-16 md:pb-0">
-        <main className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="flex-1 md:ml-64 pb-20 md:pb-0 overflow-x-hidden">
+        <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-6xl overflow-x-hidden">
           {children}
         </main>
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-xl border-t border-white/5 print:hidden">
-        <div className="flex items-center justify-around h-16">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-xl border-t border-white/5 safe-bottom print:hidden">
+        <div className="flex items-center justify-around h-14">
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = location === href;
             return (
-              <Link key={href} href={href} className={`flex flex-col items-center gap-1 px-4 py-2 transition-colors ${active ? "text-primary" : "text-muted-foreground"}`}>
+              <Link key={href} href={href} className={`flex flex-col items-center justify-center gap-0.5 touch-target px-3 transition-colors ${active ? "text-primary" : "text-muted-foreground"}`}>
                 <Icon className="w-5 h-5" />
                 <span className="text-[10px] font-medium">{label}</span>
               </Link>
@@ -131,7 +131,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <button
             onClick={() => logout.mutate()}
             disabled={logout.isPending}
-            className="flex flex-col items-center gap-1 px-4 py-2 text-muted-foreground"
+            className="flex flex-col items-center justify-center gap-0.5 touch-target px-3 text-muted-foreground"
           >
             {logout.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
             <span className="text-[10px] font-medium">Log Out</span>

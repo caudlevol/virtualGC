@@ -115,44 +115,44 @@ export default function QuoteView() {
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto space-y-8 pb-20">
+      <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8 pb-20">
         
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 pb-4 sm:pb-6 border-b border-white/10">
           <div>
-            <Badge variant="outline" className="mb-3 border-primary/30 text-primary bg-primary/5">{quote.status.toUpperCase()}</Badge>
-            <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight mb-2">{quote.title}</h1>
+            <Badge variant="outline" className="mb-2 sm:mb-3 border-primary/30 text-primary bg-primary/5">{quote.status.toUpperCase()}</Badge>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold tracking-tight mb-1 sm:mb-2">{quote.title}</h1>
             {quote.property && (
-              <p className="text-muted-foreground flex items-center gap-2">
-                <MapPin className="w-4 h-4" /> {quote.property.address}
+              <p className="text-sm sm:text-base text-muted-foreground flex items-center gap-2">
+                <MapPin className="w-4 h-4 shrink-0" /> <span className="truncate">{quote.property.address}</span>
               </p>
             )}
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => window.print()} className="bg-transparent">
-              <Printer className="w-4 h-4 mr-2" /> Print
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <Button variant="outline" size="sm" onClick={() => window.print()} className="bg-transparent touch-target">
+              <Printer className="w-4 h-4 mr-1.5" /> Print
             </Button>
-            <Button size="sm" onClick={handleShare} className={quote.sharedUrlEnabled ? "bg-emerald-600 hover:bg-emerald-700" : ""}>
-              <Share2 className="w-4 h-4 mr-2" /> 
-              {quote.sharedUrlEnabled ? "Copy Client Link" : "Enable Sharing"}
+            <Button size="sm" onClick={handleShare} className={`touch-target ${quote.sharedUrlEnabled ? "bg-emerald-600 hover:bg-emerald-700" : ""}`}>
+              <Share2 className="w-4 h-4 mr-1.5" /> 
+              {quote.sharedUrlEnabled ? "Copy Link" : "Share"}
             </Button>
             {quote.sharedUrlEnabled && (
-              <Button variant="ghost" size="sm" onClick={handleDisableShare} className="text-muted-foreground hover:text-destructive">
-                Disable Link
+              <Button variant="ghost" size="sm" onClick={handleDisableShare} className="text-muted-foreground hover:text-destructive touch-target">
+                Disable
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ quoteId: id })} disabled={deleteMutation.isPending} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+            <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ quoteId: id })} disabled={deleteMutation.isPending} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 touch-target">
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 p-1 bg-secondary/50 rounded-lg w-fit">
+        <div className="flex items-center gap-1 sm:gap-2 p-1 bg-secondary/50 rounded-lg w-full sm:w-fit overflow-x-auto scrollbar-hide">
           {(Object.keys(tierLabels) as QualityTier[]).map((tier) => (
             <button
               key={tier}
               onClick={() => handleTierChange(tier)}
               disabled={regenerateMutation.isPending || currentTier === tier}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 rounded-md text-sm font-medium transition-all touch-target ${
                 currentTier === tier
                   ? "bg-primary text-primary-foreground shadow-lg"
                   : "text-muted-foreground hover:text-foreground hover:bg-white/5"
@@ -161,39 +161,39 @@ export default function QuoteView() {
               {tierLabels[tier]}
             </button>
           ))}
-          {regenerateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-primary ml-2" />}
+          {regenerateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-primary ml-2 shrink-0" />}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           <Card className="md:col-span-2 bg-card border-border shadow-xl">
-            <CardHeader className="bg-secondary/50 border-b border-border pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
+            <CardHeader className="bg-secondary/50 border-b border-border pb-3 sm:pb-4">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <Building className="w-5 h-5 text-primary" />
-                Itemized Scope of Work
+                Scope of Work
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {Object.entries(groupedItems).map(([category, items], idx) => (
-                <div key={category} className={`p-6 ${idx !== 0 ? 'border-t border-border' : ''}`}>
-                  <h3 className="text-lg font-bold capitalize mb-4 text-primary flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-primary mr-3" />
+                <div key={category} className={`p-3 sm:p-6 ${idx !== 0 ? 'border-t border-border' : ''}`}>
+                  <h3 className="text-base sm:text-lg font-bold capitalize mb-3 sm:mb-4 text-primary flex items-center">
+                    <div className="w-2 h-2 rounded-full bg-primary mr-2 sm:mr-3" />
                     {category}
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {items.map(item => (
-                      <div key={item.id} className="p-4 rounded-xl bg-black/20 border border-white/5">
-                        <div className="flex justify-between items-start gap-4 mb-2">
-                          <div className="flex-1">
-                            <p className="font-semibold text-foreground">{item.description}</p>
+                      <div key={item.id} className="p-3 sm:p-4 rounded-xl bg-black/20 border border-white/5">
+                        <div className="flex justify-between items-start gap-2 sm:gap-4 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm sm:text-base text-foreground">{item.description}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {item.quantity} {item.unit}
                             </p>
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold text-lg">{formatCurrency(item.subtotal)}</p>
+                          <div className="text-right shrink-0">
+                            <p className="font-bold text-base sm:text-lg">{formatCurrency(item.subtotal)}</p>
                           </div>
                         </div>
-                        <div className="flex gap-4 text-xs text-muted-foreground pt-2 border-t border-white/5">
+                        <div className="flex gap-3 sm:gap-4 text-xs text-muted-foreground pt-2 border-t border-white/5">
                           <span>Materials: <span className="text-foreground font-medium">{formatCurrency(item.materialCost * item.quantity)}</span></span>
                           <span>Labor: <span className="text-foreground font-medium">{formatCurrency(item.laborCost * item.quantity)}</span></span>
                         </div>
