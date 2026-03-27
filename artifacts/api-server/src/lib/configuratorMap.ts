@@ -520,8 +520,13 @@ const RENOVATION_PATTERNS: Array<{ type: string; keywords: string[]; strictKeywo
     strictKeywords: ["replace window", "new window", "window replacement", "upgrade window", "window upgrade"],
   },
   {
+    type: "deck",
+    keywords: ["deck", "patio", "new deck", "replace deck", "build deck", "deck remodel", "outdoor deck", "composite deck", "porch", "deck railing"],
+    strictKeywords: ["new deck", "build deck", "replace deck", "deck remodel", "deck renovation", "new patio", "patio renovation"],
+  },
+  {
     type: "staircase",
-    keywords: ["stair", "staircase", "stairway", "banister", "railing", "baluster", "newel", "tread", "stair reno", "stair remodel", "update stair", "modernize stair"],
+    keywords: ["stair", "staircase", "stairway", "banister", "stair railing", "baluster", "newel", "stair tread", "stair reno", "stair remodel", "update stair", "modernize stair"],
     strictKeywords: ["staircase remodel", "staircase renovation", "update staircase", "redo staircase", "new staircase", "stair renovation", "stair remodel", "modernize stair"],
   },
   {
@@ -533,11 +538,6 @@ const RENOVATION_PATTERNS: Array<{ type: string; keywords: string[]; strictKeywo
     type: "hvac",
     keywords: ["hvac", "heating", "air conditioning", "furnace", "heat pump", "central air", "ac unit", "ductwork", "new ac", "replace furnace", "replace hvac"],
     strictKeywords: ["new hvac", "replace hvac", "hvac system", "new furnace", "replace furnace", "new ac unit", "replace ac", "hvac upgrade"],
-  },
-  {
-    type: "deck",
-    keywords: ["deck", "patio", "new deck", "replace deck", "build deck", "deck remodel", "outdoor deck", "composite deck", "porch"],
-    strictKeywords: ["new deck", "build deck", "replace deck", "deck remodel", "deck renovation", "new patio", "patio renovation"],
   },
   {
     type: "garage",
