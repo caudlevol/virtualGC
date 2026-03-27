@@ -245,7 +245,8 @@ export async function generateConfiguratorQuote(
   }
 
   const selectionHash = computeSelectionHash(renovationType, selections);
-  const cacheKey = `${property.zipCode}:${selectionHash}`;
+  const propertyKey = `${property.zipCode}:${property.sqft}:${property.bedrooms}:${property.bathrooms}:${property.yearBuilt ?? 0}`;
+  const cacheKey = `${propertyKey}:${selectionHash}`;
   const cached = configuratorQuoteCache.get(cacheKey);
   if (cached) {
     return cached;
