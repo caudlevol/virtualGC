@@ -26,6 +26,9 @@ import type {
   AdminUserList,
   AuthUser,
   CaptureLeadBody,
+  ConfiguratorOptions,
+  ConfiguratorQuoteBody,
+  ConfiguratorQuoteResponse,
   Conversation,
   ConversationMessage,
   CreateConversationBody,
@@ -35,6 +38,7 @@ import type {
   GenerateQuoteBody,
   GetAdminOrganizationsParams,
   GetAdminUsersParams,
+  GetConfiguratorOptionsParams,
   GetLaborRatesParams,
   GetMaterialsParams,
   GetRegionalMultiplierParams,
@@ -902,6 +906,221 @@ export const useVisualizeRenovation = <
 > => {
   return useMutation(getVisualizeRenovationMutationOptions(options));
 };
+
+/**
+ * @summary Generate a deterministic quote from configurator selections
+ */
+export const getGenerateConfiguratorQuoteUrl = (conversationId: number) => {
+  return `/api/conversations/${conversationId}/configurator-quote`;
+};
+
+export const generateConfiguratorQuote = async (
+  conversationId: number,
+  configuratorQuoteBody: ConfiguratorQuoteBody,
+  options?: RequestInit,
+): Promise<ConfiguratorQuoteResponse> => {
+  return customFetch<ConfiguratorQuoteResponse>(
+    getGenerateConfiguratorQuoteUrl(conversationId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(configuratorQuoteBody),
+    },
+  );
+};
+
+export const getGenerateConfiguratorQuoteMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateConfiguratorQuote>>,
+    TError,
+    { conversationId: number; data: BodyType<ConfiguratorQuoteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateConfiguratorQuote>>,
+  TError,
+  { conversationId: number; data: BodyType<ConfiguratorQuoteBody> },
+  TContext
+> => {
+  const mutationKey = ["generateConfiguratorQuote"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateConfiguratorQuote>>,
+    { conversationId: number; data: BodyType<ConfiguratorQuoteBody> }
+  > = (props) => {
+    const { conversationId, data } = props ?? {};
+
+    return generateConfiguratorQuote(conversationId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateConfiguratorQuoteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateConfiguratorQuote>>
+>;
+export type GenerateConfiguratorQuoteMutationBody =
+  BodyType<ConfiguratorQuoteBody>;
+export type GenerateConfiguratorQuoteMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Generate a deterministic quote from configurator selections
+ */
+export const useGenerateConfiguratorQuote = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateConfiguratorQuote>>,
+    TError,
+    { conversationId: number; data: BodyType<ConfiguratorQuoteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateConfiguratorQuote>>,
+  TError,
+  { conversationId: number; data: BodyType<ConfiguratorQuoteBody> },
+  TContext
+> => {
+  return useMutation(getGenerateConfiguratorQuoteMutationOptions(options));
+};
+
+/**
+ * @summary Get configurator options for a renovation type
+ */
+export const getGetConfiguratorOptionsUrl = (
+  conversationId: number,
+  params: GetConfiguratorOptionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/conversations/${conversationId}/configurator-options?${stringifiedParams}`
+    : `/api/conversations/${conversationId}/configurator-options`;
+};
+
+export const getConfiguratorOptions = async (
+  conversationId: number,
+  params: GetConfiguratorOptionsParams,
+  options?: RequestInit,
+): Promise<ConfiguratorOptions> => {
+  return customFetch<ConfiguratorOptions>(
+    getGetConfiguratorOptionsUrl(conversationId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetConfiguratorOptionsQueryKey = (
+  conversationId: number,
+  params?: GetConfiguratorOptionsParams,
+) => {
+  return [
+    `/api/conversations/${conversationId}/configurator-options`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetConfiguratorOptionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getConfiguratorOptions>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  conversationId: number,
+  params: GetConfiguratorOptionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getConfiguratorOptions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetConfiguratorOptionsQueryKey(conversationId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getConfiguratorOptions>>
+  > = ({ signal }) =>
+    getConfiguratorOptions(conversationId, params, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!conversationId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getConfiguratorOptions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetConfiguratorOptionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getConfiguratorOptions>>
+>;
+export type GetConfiguratorOptionsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get configurator options for a renovation type
+ */
+
+export function useGetConfiguratorOptions<
+  TData = Awaited<ReturnType<typeof getConfiguratorOptions>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  conversationId: number,
+  params: GetConfiguratorOptionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getConfiguratorOptions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetConfiguratorOptionsQueryOptions(
+    conversationId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get conversation with all messages

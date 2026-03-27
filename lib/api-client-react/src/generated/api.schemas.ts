@@ -158,6 +158,11 @@ export interface ConversationMessage {
    * @nullable
    */
   imageUrl?: string | null;
+  /**
+   * Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows)
+   * @nullable
+   */
+  configuratorType?: string | null;
   timestamp: string;
 }
 
@@ -449,6 +454,80 @@ export interface AdminUpdateOrgBody {
   /** @minimum 1 */
   seatCount?: number;
 }
+
+export type ConfiguratorQuoteBodyRenovationType =
+  (typeof ConfiguratorQuoteBodyRenovationType)[keyof typeof ConfiguratorQuoteBodyRenovationType];
+
+export const ConfiguratorQuoteBodyRenovationType = {
+  kitchen: "kitchen",
+  bathroom: "bathroom",
+  flooring: "flooring",
+  painting: "painting",
+  windows: "windows",
+} as const;
+
+export type ConfiguratorQuoteBodySelections = { [key: string]: string };
+
+export interface ConfiguratorQuoteBody {
+  renovationType: ConfiguratorQuoteBodyRenovationType;
+  selections: ConfiguratorQuoteBodySelections;
+}
+
+export interface ConfiguratorQuoteLineItem {
+  category: string;
+  description: string;
+  materialCost: number;
+  laborCost: number;
+  quantity: number;
+  unit: string;
+  qualityTier: string;
+}
+
+export type ConfiguratorQuoteResponseSelections = { [key: string]: string };
+
+export interface ConfiguratorQuoteResponse {
+  lineItems: ConfiguratorQuoteLineItem[];
+  totalMaterialCost: number;
+  totalLaborCost: number;
+  grandTotal: number;
+  selectionHash: string;
+  renovationType: string;
+  selections: ConfiguratorQuoteResponseSelections;
+  regionalMultiplier: number;
+  metroArea: string;
+}
+
+export interface ConfiguratorOptionItem {
+  label: string;
+  price: string;
+}
+
+export interface ConfiguratorGroup {
+  label: string;
+  key: string;
+  options: ConfiguratorOptionItem[];
+}
+
+export interface ConfiguratorOptions {
+  renovationType: string;
+  label: string;
+  groups: ConfiguratorGroup[];
+}
+
+export type GetConfiguratorOptionsParams = {
+  renovationType: GetConfiguratorOptionsRenovationType;
+};
+
+export type GetConfiguratorOptionsRenovationType =
+  (typeof GetConfiguratorOptionsRenovationType)[keyof typeof GetConfiguratorOptionsRenovationType];
+
+export const GetConfiguratorOptionsRenovationType = {
+  kitchen: "kitchen",
+  bathroom: "bathroom",
+  flooring: "flooring",
+  painting: "painting",
+  windows: "windows",
+} as const;
 
 export type ListQuotesParams = {
   limit?: number;

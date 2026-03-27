@@ -133,6 +133,12 @@ export const SendMessageResponse = zod.object({
     .string()
     .nullish()
     .describe("AI-generated renovation visualization image (data URI or URL)"),
+  configuratorType: zod
+    .string()
+    .nullish()
+    .describe(
+      "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows)",
+    ),
   timestamp: zod.date(),
 });
 
@@ -178,7 +184,87 @@ export const VisualizeRenovationResponse = zod.object({
     .string()
     .nullish()
     .describe("AI-generated renovation visualization image (data URI or URL)"),
+  configuratorType: zod
+    .string()
+    .nullish()
+    .describe(
+      "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows)",
+    ),
   timestamp: zod.date(),
+});
+
+/**
+ * @summary Generate a deterministic quote from configurator selections
+ */
+export const GenerateConfiguratorQuoteParams = zod.object({
+  conversationId: zod.coerce.number(),
+});
+
+export const GenerateConfiguratorQuoteBody = zod.object({
+  renovationType: zod.enum([
+    "kitchen",
+    "bathroom",
+    "flooring",
+    "painting",
+    "windows",
+  ]),
+  selections: zod.record(zod.string(), zod.string()),
+});
+
+export const GenerateConfiguratorQuoteResponse = zod.object({
+  lineItems: zod.array(
+    zod.object({
+      category: zod.string(),
+      description: zod.string(),
+      materialCost: zod.number(),
+      laborCost: zod.number(),
+      quantity: zod.number(),
+      unit: zod.string(),
+      qualityTier: zod.string(),
+    }),
+  ),
+  totalMaterialCost: zod.number(),
+  totalLaborCost: zod.number(),
+  grandTotal: zod.number(),
+  selectionHash: zod.string(),
+  renovationType: zod.string(),
+  selections: zod.record(zod.string(), zod.string()),
+  regionalMultiplier: zod.number(),
+  metroArea: zod.string(),
+});
+
+/**
+ * @summary Get configurator options for a renovation type
+ */
+export const GetConfiguratorOptionsParams = zod.object({
+  conversationId: zod.coerce.number(),
+});
+
+export const GetConfiguratorOptionsQueryParams = zod.object({
+  renovationType: zod.enum([
+    "kitchen",
+    "bathroom",
+    "flooring",
+    "painting",
+    "windows",
+  ]),
+});
+
+export const GetConfiguratorOptionsResponse = zod.object({
+  renovationType: zod.string(),
+  label: zod.string(),
+  groups: zod.array(
+    zod.object({
+      label: zod.string(),
+      key: zod.string(),
+      options: zod.array(
+        zod.object({
+          label: zod.string(),
+          price: zod.string(),
+        }),
+      ),
+    }),
+  ),
 });
 
 /**
@@ -218,6 +304,12 @@ export const GetConversationResponse = zod.object({
         .nullish()
         .describe(
           "AI-generated renovation visualization image (data URI or URL)",
+        ),
+      configuratorType: zod
+        .string()
+        .nullish()
+        .describe(
+          "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows)",
         ),
       timestamp: zod.date(),
     }),

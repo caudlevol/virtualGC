@@ -1,0 +1,336 @@
+import { priceLineItemsFromCostEngine } from "./costLookup";
+import { getRegionalMultiplier } from "./costEngine";
+import { createHash } from "crypto";
+
+interface ConfiguratorOption {
+  label: string;
+  price: string;
+  item: string;
+  qualityTier: string;
+}
+
+interface ConfiguratorGroup {
+  label: string;
+  key: string;
+  options: ConfiguratorOption[];
+}
+
+interface ConfiguratorRenovationType {
+  label: string;
+  groups: ConfiguratorGroup[];
+  category: string;
+  defaultQuantities: (property: PropertyInfo) => Record<string, { quantity: number; unit: string }>;
+}
+
+interface PropertyInfo {
+  sqft: number;
+  bedrooms: number;
+  bathrooms: number;
+  yearBuilt: number | null;
+  zipCode: string;
+}
+
+export const CONFIGURATOR_MAP: Record<string, ConfiguratorRenovationType> = {
+  kitchen: {
+    label: "Kitchen Remodel",
+    category: "kitchen",
+    groups: [
+      {
+        label: "Countertops",
+        key: "countertops",
+        options: [
+          { label: "Laminate", price: "$", item: "Countertop (laminate)", qualityTier: "economy" },
+          { label: "Granite", price: "$$", item: "Countertop (granite)", qualityTier: "mid_range" },
+          { label: "Quartz", price: "$$$", item: "Countertop (quartz)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Cabinets",
+        key: "cabinets",
+        options: [
+          { label: "Stock", price: "$", item: "Cabinets (stock)", qualityTier: "economy" },
+          { label: "Semi-Custom", price: "$$", item: "Cabinets (semi-custom)", qualityTier: "mid_range" },
+          { label: "Custom", price: "$$$", item: "Cabinets (custom)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Backsplash",
+        key: "backsplash",
+        options: [
+          { label: "Ceramic", price: "$", item: "Backsplash (ceramic)", qualityTier: "economy" },
+          { label: "Glass Tile", price: "$$", item: "Backsplash (glass tile)", qualityTier: "mid_range" },
+          { label: "Natural Stone", price: "$$$", item: "Backsplash (natural stone)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      countertops: { quantity: Math.max(25, Math.round(p.sqft * 0.02)), unit: "sqft" },
+      cabinets: { quantity: Math.max(15, Math.round(p.sqft * 0.015)), unit: "linear_ft" },
+      backsplash: { quantity: Math.max(20, Math.round(p.sqft * 0.015)), unit: "sqft" },
+    }),
+  },
+  bathroom: {
+    label: "Bathroom Remodel",
+    category: "bathroom",
+    groups: [
+      {
+        label: "Vanity",
+        key: "vanity",
+        options: [
+          { label: "Stock", price: "$", item: "Vanity (stock)", qualityTier: "economy" },
+          { label: "Semi-Custom", price: "$$", item: "Vanity (semi-custom)", qualityTier: "mid_range" },
+          { label: "Custom", price: "$$$", item: "Vanity (custom)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Toilet",
+        key: "toilet",
+        options: [
+          { label: "Standard", price: "$", item: "Toilet (standard)", qualityTier: "economy" },
+          { label: "Mid-Range", price: "$$", item: "Toilet (mid-range)", qualityTier: "mid_range" },
+          { label: "High-End", price: "$$$", item: "Toilet (high-end)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Tub / Shower",
+        key: "tubShower",
+        options: [
+          { label: "Fiberglass", price: "$", item: "Tub/Shower (fiberglass)", qualityTier: "economy" },
+          { label: "Acrylic", price: "$$", item: "Tub/Shower (acrylic)", qualityTier: "mid_range" },
+          { label: "Cast Iron", price: "$$$", item: "Tub/Shower (cast iron/freestanding)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Tile",
+        key: "tile",
+        options: [
+          { label: "Ceramic", price: "$", item: "Tile (ceramic)", qualityTier: "economy" },
+          { label: "Porcelain", price: "$$", item: "Tile (porcelain)", qualityTier: "mid_range" },
+          { label: "Marble", price: "$$$", item: "Tile (marble)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      vanity: { quantity: Math.max(1, p.bathrooms), unit: "each" },
+      toilet: { quantity: Math.max(1, p.bathrooms), unit: "each" },
+      tubShower: { quantity: Math.max(1, p.bathrooms), unit: "each" },
+      tile: { quantity: Math.max(50, Math.round(p.bathrooms * 80)), unit: "sqft" },
+    }),
+  },
+  flooring: {
+    label: "Flooring",
+    category: "flooring",
+    groups: [
+      {
+        label: "Flooring Type",
+        key: "flooringType",
+        options: [
+          { label: "Laminate", price: "$", item: "Laminate", qualityTier: "economy" },
+          { label: "Vinyl Plank (LVP)", price: "$", item: "Vinyl plank (LVP)", qualityTier: "economy" },
+          { label: "Engineered Hardwood", price: "$$", item: "Engineered hardwood", qualityTier: "mid_range" },
+          { label: "Solid Hardwood", price: "$$$", item: "Solid hardwood", qualityTier: "premium" },
+          { label: "Carpet (Builder)", price: "$", item: "Carpet (builder grade)", qualityTier: "economy" },
+          { label: "Carpet (Premium)", price: "$$", item: "Carpet (premium)", qualityTier: "mid_range" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      flooringType: { quantity: Math.max(200, Math.round(p.sqft * 0.7)), unit: "sqft" },
+    }),
+  },
+  painting: {
+    label: "Interior Painting",
+    category: "painting",
+    groups: [
+      {
+        label: "Paint Grade",
+        key: "paintGrade",
+        options: [
+          { label: "Builder Grade", price: "$", item: "Interior paint (builder grade)", qualityTier: "economy" },
+          { label: "Premium", price: "$$", item: "Interior paint (premium)", qualityTier: "mid_range" },
+          { label: "Designer", price: "$$$", item: "Interior paint (designer)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      paintGrade: { quantity: Math.max(500, Math.round(p.sqft * 3)), unit: "sqft" },
+    }),
+  },
+  windows: {
+    label: "Window Replacement",
+    category: "windows",
+    groups: [
+      {
+        label: "Window Type",
+        key: "windowType",
+        options: [
+          { label: "Vinyl Standard", price: "$", item: "Vinyl window (standard)", qualityTier: "economy" },
+          { label: "Double-Pane Vinyl", price: "$$", item: "Double-pane vinyl", qualityTier: "mid_range" },
+          { label: "Wood / Fiberglass", price: "$$$", item: "Wood/fiberglass window", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      windowType: { quantity: Math.max(5, Math.round(p.sqft / 200)), unit: "each" },
+    }),
+  },
+};
+
+export function computeSelectionHash(renovationType: string, selections: Record<string, string>): string {
+  const sorted = Object.entries(selections).sort(([a], [b]) => a.localeCompare(b));
+  const str = `${renovationType}:${sorted.map(([k, v]) => `${k}=${v}`).join(",")}`;
+  return createHash("sha256").update(str).digest("hex").slice(0, 16);
+}
+
+export interface ConfiguratorQuoteResult {
+  lineItems: Array<{
+    category: string;
+    description: string;
+    materialCost: number;
+    laborCost: number;
+    quantity: number;
+    unit: string;
+    qualityTier: string;
+  }>;
+  totalMaterialCost: number;
+  totalLaborCost: number;
+  grandTotal: number;
+  selectionHash: string;
+  renovationType: string;
+  selections: Record<string, string>;
+  regionalMultiplier: number;
+  metroArea: string;
+}
+
+export async function generateConfiguratorQuote(
+  renovationType: string,
+  selections: Record<string, string>,
+  property: PropertyInfo
+): Promise<ConfiguratorQuoteResult> {
+  const config = CONFIGURATOR_MAP[renovationType];
+  if (!config) {
+    throw new Error(`Unknown renovation type: ${renovationType}`);
+  }
+
+  const quantities = config.defaultQuantities(property);
+  const regional = await getRegionalMultiplier(property.zipCode);
+
+  const missingGroups: string[] = [];
+  const invalidSelections: string[] = [];
+  for (const group of config.groups) {
+    const selectedLabel = selections[group.key];
+    if (!selectedLabel) {
+      missingGroups.push(group.label);
+      continue;
+    }
+    const option = group.options.find(o => o.label === selectedLabel);
+    if (!option) {
+      invalidSelections.push(`${group.label}: "${selectedLabel}" is not a valid option`);
+    }
+  }
+  if (missingGroups.length > 0) {
+    throw new Error(`Missing selections for: ${missingGroups.join(", ")}`);
+  }
+  if (invalidSelections.length > 0) {
+    throw new Error(`Invalid selections: ${invalidSelections.join("; ")}`);
+  }
+
+  const unknownKeys = Object.keys(selections).filter(k => !config.groups.some(g => g.key === k));
+  if (unknownKeys.length > 0) {
+    throw new Error(`Unknown selection keys: ${unknownKeys.join(", ")}`);
+  }
+
+  const aiItems: Array<{ category: string; description: string; quantity: number; unit: string }> = [];
+
+  for (const group of config.groups) {
+    const selectedLabel = selections[group.key];
+    const option = group.options.find(o => o.label === selectedLabel)!;
+    const qty = quantities[group.key] || { quantity: 1, unit: "each" };
+
+    aiItems.push({
+      category: config.category,
+      description: option.item,
+      quantity: qty.quantity,
+      unit: qty.unit,
+    });
+  }
+
+  const avgTier = determineAverageTier(selections, config);
+
+  const lineItems = await priceLineItemsFromCostEngine(
+    aiItems,
+    avgTier,
+    regional.factor,
+    property.yearBuilt
+  );
+
+  const totalMaterialCost = lineItems.reduce((sum, li) => sum + li.materialCost * li.quantity, 0);
+  const totalLaborCost = lineItems.reduce((sum, li) => sum + li.laborCost * li.quantity, 0);
+
+  return {
+    lineItems,
+    totalMaterialCost: Math.round(totalMaterialCost),
+    totalLaborCost: Math.round(totalLaborCost),
+    grandTotal: Math.round(totalMaterialCost + totalLaborCost),
+    selectionHash: computeSelectionHash(renovationType, selections),
+    renovationType,
+    selections,
+    regionalMultiplier: regional.factor,
+    metroArea: regional.metroArea,
+  };
+}
+
+function determineAverageTier(selections: Record<string, string>, config: ConfiguratorRenovationType): string {
+  const tiers: string[] = [];
+  for (const group of config.groups) {
+    const selectedLabel = selections[group.key];
+    if (!selectedLabel) continue;
+    const option = group.options.find(o => o.label === selectedLabel);
+    if (option) tiers.push(option.qualityTier);
+  }
+  if (tiers.length === 0) return "mid_range";
+
+  const tierScores: Record<string, number> = { economy: 1, mid_range: 2, premium: 3 };
+  const avg = tiers.reduce((sum, t) => sum + (tierScores[t] || 2), 0) / tiers.length;
+  if (avg <= 1.5) return "economy";
+  if (avg >= 2.5) return "premium";
+  return "mid_range";
+}
+
+export function detectRenovationIntent(message: string): string | null {
+  const msg = message.toLowerCase().replace(/\b(the|a|an|my|our|this|that|master|guest|main|half)\b/g, " ").replace(/\s+/g, " ").trim();
+
+  const patterns: Array<{ type: string; keywords: string[] }> = [
+    { type: "kitchen", keywords: ["kitchen remodel", "remodel kitchen", "kitchen renovation", "renovate kitchen", "update kitchen", "redo kitchen", "new kitchen", "kitchen upgrade", "kitchen makeover", "kitchen cost", "cost kitchen"] },
+    { type: "bathroom", keywords: ["bathroom remodel", "remodel bathroom", "bathroom renovation", "renovate bathroom", "update bathroom", "redo bathroom", "new bathroom", "bathroom upgrade", "bath remodel", "bathroom makeover", "bathroom cost", "cost bathroom"] },
+    { type: "flooring", keywords: ["new floor", "replace floor", "flooring", "hardwood floor", "new carpet", "replace carpet", "vinyl floor", "laminate floor", "redo floor"] },
+    { type: "painting", keywords: ["paint ", "repaint", "new paint", "painting", "interior paint", "paint job", "fresh paint", "paint throughout"] },
+    { type: "windows", keywords: ["replace window", "new window", "window replacement", "upgrade window", "window upgrade"] },
+  ];
+
+  for (const pattern of patterns) {
+    if (pattern.keywords.some(kw => msg.includes(kw))) {
+      return pattern.type;
+    }
+  }
+
+  return null;
+}
+
+export function getConfiguratorOptions(renovationType: string) {
+  const config = CONFIGURATOR_MAP[renovationType];
+  if (!config) return null;
+
+  return {
+    renovationType,
+    label: config.label,
+    groups: config.groups.map(g => ({
+      label: g.label,
+      key: g.key,
+      options: g.options.map(o => ({
+        label: o.label,
+        price: o.price,
+      })),
+    })),
+  };
+}

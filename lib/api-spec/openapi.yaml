@@ -258,6 +258,74 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /conversations/{conversationId}/configurator-quote:
+    post:
+      operationId: generateConfiguratorQuote
+      tags: [conversations]
+      summary: Generate a deterministic quote from configurator selections
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfiguratorQuoteBody"
+      responses:
+        "200":
+          description: Configurator quote result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfiguratorQuoteResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /conversations/{conversationId}/configurator-options:
+    get:
+      operationId: getConfiguratorOptions
+      tags: [conversations]
+      summary: Get configurator options for a renovation type
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: renovationType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [kitchen, bathroom, flooring, painting, windows]
+      responses:
+        "200":
+          description: Configurator options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfiguratorOptions"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /conversations/{conversationId}:
     get:
       operationId: getConversation
@@ -891,6 +959,9 @@ components:
         imageUrl:
           type: ["string", "null"]
           description: AI-generated renovation visualization image (data URI or URL)
+        configuratorType:
+          type: ["string", "null"]
+          description: Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows)
         timestamp:
           type: string
           format: date-time
@@ -1359,3 +1430,122 @@ components:
         seatCount:
           type: integer
           minimum: 1
+
+    ConfiguratorQuoteBody:
+      type: object
+      properties:
+        renovationType:
+          type: string
+          enum: [kitchen, bathroom, flooring, painting, windows]
+        selections:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - renovationType
+        - selections
+
+    ConfiguratorQuoteLineItem:
+      type: object
+      properties:
+        category:
+          type: string
+        description:
+          type: string
+        materialCost:
+          type: number
+        laborCost:
+          type: number
+        quantity:
+          type: number
+        unit:
+          type: string
+        qualityTier:
+          type: string
+      required:
+        - category
+        - description
+        - materialCost
+        - laborCost
+        - quantity
+        - unit
+        - qualityTier
+
+    ConfiguratorQuoteResponse:
+      type: object
+      properties:
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConfiguratorQuoteLineItem"
+        totalMaterialCost:
+          type: number
+        totalLaborCost:
+          type: number
+        grandTotal:
+          type: number
+        selectionHash:
+          type: string
+        renovationType:
+          type: string
+        selections:
+          type: object
+          additionalProperties:
+            type: string
+        regionalMultiplier:
+          type: number
+        metroArea:
+          type: string
+      required:
+        - lineItems
+        - totalMaterialCost
+        - totalLaborCost
+        - grandTotal
+        - selectionHash
+        - renovationType
+        - selections
+        - regionalMultiplier
+        - metroArea
+
+    ConfiguratorOptionItem:
+      type: object
+      properties:
+        label:
+          type: string
+        price:
+          type: string
+      required:
+        - label
+        - price
+
+    ConfiguratorGroup:
+      type: object
+      properties:
+        label:
+          type: string
+        key:
+          type: string
+        options:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConfiguratorOptionItem"
+      required:
+        - label
+        - key
+        - options
+
+    ConfiguratorOptions:
+      type: object
+      properties:
+        renovationType:
+          type: string
+        label:
+          type: string
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConfiguratorGroup"
+      required:
+        - renovationType
+        - label
+        - groups

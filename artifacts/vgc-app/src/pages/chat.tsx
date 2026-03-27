@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useGetConversation, useSendMessage, useGenerateQuote, useVisualizeRenovation } from "@workspace/api-client-react";
+import { useGetConversation, useSendMessage, useGenerateQuote, useVisualizeRenovation, useGenerateConfiguratorQuote } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Loader2, Hammer, User, Building, Bed, Bath, Square, Calendar, ChevronLeft, ChevronRight, ImageIcon, Images, X, Sparkles, Upload, GripVertical } from "lucide-react";
+import { Send, Loader2, Hammer, User, Building, Bed, Bath, Square, Calendar, ChevronLeft, ChevronRight, ImageIcon, Images, X, Sparkles, Upload, GripVertical, Lock, Zap, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -377,6 +377,200 @@ function PhotoStrip({ photos, onPhotoClick }: { photos: string[]; onPhotoClick?:
   );
 }
 
+const CONFIGURATOR_MAP: Record<string, { label: string; groups: Array<{ label: string; key: string; options: Array<{ label: string; price: string }> }> }> = {
+  kitchen: {
+    label: "Kitchen Remodel",
+    groups: [
+      { label: "Countertops", key: "countertops", options: [{ label: "Laminate", price: "$" }, { label: "Granite", price: "$$" }, { label: "Quartz", price: "$$$" }] },
+      { label: "Cabinets", key: "cabinets", options: [{ label: "Stock", price: "$" }, { label: "Semi-Custom", price: "$$" }, { label: "Custom", price: "$$$" }] },
+      { label: "Backsplash", key: "backsplash", options: [{ label: "Ceramic", price: "$" }, { label: "Glass Tile", price: "$$" }, { label: "Natural Stone", price: "$$$" }] },
+    ],
+  },
+  bathroom: {
+    label: "Bathroom Remodel",
+    groups: [
+      { label: "Vanity", key: "vanity", options: [{ label: "Stock", price: "$" }, { label: "Semi-Custom", price: "$$" }, { label: "Custom", price: "$$$" }] },
+      { label: "Toilet", key: "toilet", options: [{ label: "Standard", price: "$" }, { label: "Mid-Range", price: "$$" }, { label: "High-End", price: "$$$" }] },
+      { label: "Tub / Shower", key: "tubShower", options: [{ label: "Fiberglass", price: "$" }, { label: "Acrylic", price: "$$" }, { label: "Cast Iron", price: "$$$" }] },
+      { label: "Tile", key: "tile", options: [{ label: "Ceramic", price: "$" }, { label: "Porcelain", price: "$$" }, { label: "Marble", price: "$$$" }] },
+    ],
+  },
+  flooring: {
+    label: "Flooring",
+    groups: [
+      { label: "Flooring Type", key: "flooringType", options: [{ label: "Laminate", price: "$" }, { label: "Vinyl Plank (LVP)", price: "$" }, { label: "Engineered Hardwood", price: "$$" }, { label: "Solid Hardwood", price: "$$$" }, { label: "Carpet (Builder)", price: "$" }, { label: "Carpet (Premium)", price: "$$" }] },
+    ],
+  },
+  painting: {
+    label: "Interior Painting",
+    groups: [
+      { label: "Paint Grade", key: "paintGrade", options: [{ label: "Builder Grade", price: "$" }, { label: "Premium", price: "$$" }, { label: "Designer", price: "$$$" }] },
+    ],
+  },
+  windows: {
+    label: "Window Replacement",
+    groups: [
+      { label: "Window Type", key: "windowType", options: [{ label: "Vinyl Standard", price: "$" }, { label: "Double-Pane Vinyl", price: "$$" }, { label: "Wood / Fiberglass", price: "$$$" }] },
+    ],
+  },
+};
+
+interface ConfiguratorQuoteResult {
+  lineItems: Array<{ category: string; description: string; materialCost: number; laborCost: number; quantity: number; unit: string; qualityTier: string }>;
+  totalMaterialCost: number;
+  totalLaborCost: number;
+  grandTotal: number;
+  selectionHash: string;
+  renovationType: string;
+  selections: Record<string, string>;
+  regionalMultiplier: number;
+  metroArea: string;
+}
+
+function ConfiguratorChips({ 
+  renovationType, 
+  conversationId, 
+  onBallpark 
+}: { 
+  renovationType: string; 
+  conversationId: number; 
+  onBallpark: () => void;
+}) {
+  const config = CONFIGURATOR_MAP[renovationType];
+  const [selections, setSelections] = useState<Record<string, string>>({});
+  const [quoteResult, setQuoteResult] = useState<ConfiguratorQuoteResult | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+
+  const [error, setError] = useState<string | null>(null);
+
+  const configuratorMutation = useGenerateConfiguratorQuote({
+    mutation: {
+      onSuccess: (data: ConfiguratorQuoteResult) => {
+        setQuoteResult(data);
+        setSubmitted(true);
+        setError(null);
+      },
+      onError: (err: { data?: { error?: string }; message?: string }) => {
+        setError(err?.data?.error || err?.message || "Failed to generate quote");
+      },
+    },
+  });
+
+  if (!config) return null;
+
+  const allSelected = config.groups.every(g => selections[g.key]);
+
+  const handleSubmit = () => {
+    if (!allSelected) return;
+    configuratorMutation.mutate({
+      conversationId,
+      data: { renovationType, selections },
+    });
+  };
+
+  if (submitted && quoteResult) {
+    return (
+      <Card className="mt-3 bg-card border-emerald-500/30 shadow-lg shadow-emerald-500/10 overflow-hidden w-full max-w-md">
+        <div className="bg-emerald-500/10 px-4 py-2 border-b border-emerald-500/20 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Lock className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Locked Quote</span>
+          </div>
+          <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400">{config.label}</Badge>
+        </div>
+        <CardContent className="p-4 space-y-3">
+          <div className="space-y-1.5">
+            {quoteResult.lineItems.map((item, i) => (
+              <div key={i} className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground truncate mr-2">{item.description}</span>
+                <span className="font-medium text-foreground shrink-0">
+                  ${Math.round((item.materialCost + item.laborCost) * item.quantity).toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-white/10 pt-3 flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              <span className="text-xs">Region: {quoteResult.metroArea} ({quoteResult.regionalMultiplier}x)</span>
+            </div>
+            <div className="text-right">
+              <div className="text-lg font-bold text-foreground">${quoteResult.grandTotal.toLocaleString()}</div>
+              <div className="text-xs text-muted-foreground">Materials + Labor</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-emerald-400/70">
+            <Check className="w-3 h-3" />
+            <span>Deterministic quote — same selections always produce the same price</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="mt-3 bg-card border-primary/30 shadow-lg shadow-primary/10 overflow-hidden w-full max-w-md">
+      <div className="bg-primary/10 px-4 py-2 border-b border-primary/20 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Zap className="w-3.5 h-3.5 text-primary" />
+          <span className="text-xs font-bold text-primary uppercase tracking-wider">Smart Scope</span>
+        </div>
+        <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">{config.label}</Badge>
+      </div>
+      <CardContent className="p-4 space-y-4">
+        <p className="text-sm text-muted-foreground">Choose your materials to get a locked, itemized quote:</p>
+        {config.groups.map(group => (
+          <div key={group.key} className="space-y-2">
+            <label className="text-xs font-semibold text-foreground uppercase tracking-wide">{group.label}</label>
+            <div className="flex flex-wrap gap-1.5">
+              {group.options.map(opt => {
+                const isSelected = selections[group.key] === opt.label;
+                return (
+                  <button
+                    key={opt.label}
+                    onClick={() => setSelections(prev => ({ ...prev, [group.key]: opt.label }))}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                      isSelected
+                        ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
+                        : "bg-white/5 text-muted-foreground border-white/10 hover:border-primary/50 hover:text-foreground"
+                    }`}
+                  >
+                    {opt.label} <span className="opacity-60 ml-1">{opt.price}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        {error && (
+          <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+            {error}
+          </div>
+        )}
+        <div className="flex gap-2 pt-1">
+          <Button
+            className="flex-1 bg-white text-black hover:bg-gray-200"
+            size="sm"
+            disabled={!allSelected || configuratorMutation.isPending}
+            onClick={handleSubmit}
+          >
+            {configuratorMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+            Get Locked Quote
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0 text-xs"
+            onClick={onBallpark}
+          >
+            <Zap className="w-3 h-3 mr-1" />
+            Ballpark
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ChatPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth(true);
   const [, params] = useRoute("/chat/:id");
@@ -628,10 +822,21 @@ export default function ChatPage() {
                       </div>
                     )}
                     
-                    {msg.quoteSuggestion && (
-                      <Card className="mt-3 bg-card border-primary/30 shadow-lg shadow-primary/10 overflow-hidden w-full max-w-sm">
-                        <div className="bg-primary/10 px-4 py-2 border-b border-primary/20 flex items-center justify-between">
-                          <span className="text-xs font-bold text-primary uppercase tracking-wider">Ready to Quote</span>
+                    {msg.configuratorType && typeof msg.configuratorType === 'string' && CONFIGURATOR_MAP[msg.configuratorType] && (
+                      <ConfiguratorChips
+                        renovationType={msg.configuratorType}
+                        conversationId={id}
+                        onBallpark={() => quoteMutation.mutate({ data: { conversationId: id, qualityTier: "mid_range" }})}
+                      />
+                    )}
+
+                    {msg.quoteSuggestion && !msg.configuratorType && (
+                      <Card className="mt-3 bg-card border-amber-500/30 shadow-lg shadow-amber-500/10 overflow-hidden w-full max-w-sm">
+                        <div className="bg-amber-500/10 px-4 py-2 border-b border-amber-500/20 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Zap className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Estimated Quote</span>
+                          </div>
                         </div>
                         <CardContent className="p-4 space-y-4">
                           <p className="text-sm text-muted-foreground line-clamp-3">

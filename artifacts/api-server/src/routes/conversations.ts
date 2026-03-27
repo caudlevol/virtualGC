@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
 import { db, conversationsTable, propertiesTable } from "@workspace/db";
 import { eq, and, or } from "drizzle-orm";
-import { CreateConversationBody, SendMessageBody, SendMessageParams, GetConversationParams, VisualizeRenovationBody } from "@workspace/api-zod";
+import { CreateConversationBody, SendMessageBody, SendMessageParams, GetConversationParams, VisualizeRenovationBody, GenerateConfiguratorQuoteBody } from "@workspace/api-zod";
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC } from "../lib/aiPipeline";
+import { detectRenovationIntent, generateConfiguratorQuote, getConfiguratorOptions } from "../lib/configuratorMap";
 import OpenAI from "openai";
 import FormData from "form-data";
 import { editImage } from "@workspace/integrations-gemini-ai";
@@ -203,10 +204,13 @@ router.post("/conversations/:conversationId/messages", requireAuth, async (req, 
     parsed.data.requestQuote || false
   );
 
+  const configuratorType = detectRenovationIntent(parsed.data.content);
+
   const assistantMessage = {
     role: "assistant" as const,
     content: aiResponse.content,
     quoteSuggestion: aiResponse.quoteSuggestion || null,
+    configuratorType: configuratorType || null,
     timestamp: new Date().toISOString(),
   };
 
@@ -217,6 +221,105 @@ router.post("/conversations/:conversationId/messages", requireAuth, async (req, 
     .where(eq(conversationsTable.id, conversationId));
 
   res.json(assistantMessage);
+});
+
+router.post("/conversations/:conversationId/configurator-quote", requireAuth, async (req, res): Promise<void> => {
+  const conversationId = Number(req.params.conversationId);
+  if (isNaN(conversationId)) {
+    res.status(400).json({ error: "Invalid conversation ID" });
+    return;
+  }
+
+  const parsed = GenerateConfiguratorQuoteBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const cfgOwnership = [eq(conversationsTable.userId, req.session.userId!)];
+  if (req.session.orgId) {
+    const orgProps = await db.select({ id: propertiesTable.id }).from(propertiesTable)
+      .where(eq(propertiesTable.orgId, req.session.orgId));
+    if (orgProps.length > 0) {
+      cfgOwnership.push(...orgProps.map(p => eq(conversationsTable.propertyId, p.id)));
+    }
+  }
+  const conversations = await db.select().from(conversationsTable).where(
+    and(eq(conversationsTable.id, conversationId), or(...cfgOwnership))
+  ).limit(1);
+  if (conversations.length === 0) {
+    res.status(404).json({ error: "Conversation not found" });
+    return;
+  }
+
+  const conversation = conversations[0];
+  const properties = await db.select().from(propertiesTable).where(eq(propertiesTable.id, conversation.propertyId)).limit(1);
+  if (properties.length === 0) {
+    res.status(404).json({ error: "Property not found" });
+    return;
+  }
+  const property = properties[0];
+
+  try {
+    const quote = await generateConfiguratorQuote(
+      parsed.data.renovationType,
+      parsed.data.selections as Record<string, string>,
+      {
+        sqft: property.sqft,
+        bedrooms: property.bedrooms,
+        bathrooms: property.bathrooms,
+        yearBuilt: property.yearBuilt,
+        zipCode: property.zipCode,
+      }
+    );
+    res.json(quote);
+  } catch (err: any) {
+    const msg = err.message || "";
+    if (msg.startsWith("Missing selections") || msg.startsWith("Invalid selections") || msg.startsWith("Unknown selection") || msg.startsWith("Unknown renovation")) {
+      res.status(400).json({ error: msg });
+    } else {
+      console.error("[configurator-quote] Internal error:", err);
+      res.status(500).json({ error: "Failed to generate configurator quote. Please try again." });
+    }
+  }
+});
+
+router.get("/conversations/:conversationId/configurator-options", requireAuth, async (req, res): Promise<void> => {
+  const conversationId = Number(req.params.conversationId);
+  if (isNaN(conversationId)) {
+    res.status(400).json({ error: "Invalid conversation ID" });
+    return;
+  }
+
+  const optOwnership = [eq(conversationsTable.userId, req.session.userId!)];
+  if (req.session.orgId) {
+    const orgProps = await db.select({ id: propertiesTable.id }).from(propertiesTable)
+      .where(eq(propertiesTable.orgId, req.session.orgId));
+    if (orgProps.length > 0) {
+      optOwnership.push(...orgProps.map(p => eq(conversationsTable.propertyId, p.id)));
+    }
+  }
+  const conversations = await db.select({ id: conversationsTable.id }).from(conversationsTable).where(
+    and(eq(conversationsTable.id, conversationId), or(...optOwnership))
+  ).limit(1);
+  if (conversations.length === 0) {
+    res.status(404).json({ error: "Conversation not found" });
+    return;
+  }
+
+  const renovationType = req.query.renovationType as string;
+  if (!renovationType) {
+    res.status(400).json({ error: "renovationType query parameter required" });
+    return;
+  }
+
+  const options = getConfiguratorOptions(renovationType);
+  if (!options) {
+    res.status(404).json({ error: `Unknown renovation type: ${renovationType}` });
+    return;
+  }
+
+  res.json(options);
 });
 
 router.get("/conversations/:conversationId", requireAuth, async (req, res): Promise<void> => {

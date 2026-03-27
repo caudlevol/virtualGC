@@ -18,5 +18,10 @@ export interface ConversationMessage {
    * @nullable
    */
   imageUrl?: string | null;
+  /**
+   * Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows)
+   * @nullable
+   */
+  configuratorType?: string | null;
   timestamp: Date;
 }
