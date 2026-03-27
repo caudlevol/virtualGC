@@ -36,6 +36,12 @@ const MATERIALS = [
   { category: "painting", item: "Interior paint (premium)", qualityTier: "mid_range", baseUnitCost: 1.0, unit: "sqft" },
   { category: "painting", item: "Interior paint (designer)", qualityTier: "premium", baseUnitCost: 2.0, unit: "sqft" },
   { category: "painting", item: "Exterior paint", qualityTier: "mid_range", baseUnitCost: 1.5, unit: "sqft" },
+  { category: "painting", item: "Exterior door paint (single door)", qualityTier: "mid_range", baseUnitCost: 150, unit: "each" },
+  { category: "painting", item: "Exterior door paint (premium)", qualityTier: "premium", baseUnitCost: 250, unit: "each" },
+  { category: "painting", item: "Accent wall paint", qualityTier: "mid_range", baseUnitCost: 0.85, unit: "sqft" },
+  { category: "painting", item: "Cabinet painting (per linear ft)", qualityTier: "mid_range", baseUnitCost: 45, unit: "linear_ft" },
+  { category: "painting", item: "Single room paint", qualityTier: "mid_range", baseUnitCost: 1.2, unit: "sqft" },
+  { category: "painting", item: "Touch-up / small area paint", qualityTier: "economy", baseUnitCost: 75, unit: "each" },
 
   { category: "roofing", item: "3-tab shingles", qualityTier: "economy", baseUnitCost: 1.5, unit: "sqft" },
   { category: "roofing", item: "Architectural shingles", qualityTier: "mid_range", baseUnitCost: 3.0, unit: "sqft" },

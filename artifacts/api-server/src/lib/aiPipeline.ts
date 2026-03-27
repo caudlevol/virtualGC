@@ -157,7 +157,23 @@ Property Details:
   ],
   "reasoning": "Brief explanation of the scope and recommendations"
 }
-Include ALL discussed renovation items with realistic per-unit material and labor costs (before regional adjustment). Use these units: sqft, linear_ft, each, hour, room. If there are many items, include all of them.`,
+Include ALL discussed renovation items with realistic per-unit material and labor costs (before regional adjustment). Use these units: sqft, linear_ft, each, hour, room. If there are many items, include all of them.
+
+CRITICAL — Scope-Specific Quantities:
+Quantity MUST reflect the ACTUAL scope discussed in the conversation, NOT the full property size. Follow these rules:
+- Single door (paint, replace, refinish): use unit "each" with quantity 1. A front door paint job = 1 each at ~$150-250. Never use sqft for a single door.
+- Single wall, accent wall, or small feature: use unit "each" with quantity 1, or sqft with the actual wall area (~80-120 sqft for one wall). Never the full house sqft.
+- One room painting: use ~400-600 sqft (the paintable wall area of a typical room), NOT the full property sqft.
+- Full interior painting: use approximately property_sqft × 0.75 as the paintable wall area.
+- Full exterior painting: use approximately property_sqft × 1.2 as the exterior surface area.
+- Kitchen or bathroom remodel: scope to that room only, not the whole house.
+- Single fixture (faucet, toilet, light): use unit "each" with quantity 1.
+
+Sanity check your totals:
+- A front door paint job should be $150-$400 total, never thousands.
+- A single room paint job should be $400-$1,200 total.
+- A single fixture replacement should be $200-$1,500 total.
+- If a line item total seems unreasonably high for what was discussed, reduce the quantity or switch to "each" unit.`,
     });
 
     try {
