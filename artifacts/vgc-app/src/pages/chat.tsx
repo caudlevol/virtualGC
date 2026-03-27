@@ -583,7 +583,7 @@ export default function ChatPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [photosExpanded, setPhotosExpanded] = useState(window.innerWidth >= 640);
+  const [photosExpanded, setPhotosExpanded] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 640 : false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
