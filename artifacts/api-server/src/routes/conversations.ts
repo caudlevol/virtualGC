@@ -4,7 +4,8 @@ import { eq, and, or } from "drizzle-orm";
 import { CreateConversationBody, SendMessageBody, SendMessageParams, GetConversationParams, VisualizeRenovationBody } from "@workspace/api-zod";
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC } from "../lib/aiPipeline";
-import OpenAI, { toFile } from "openai";
+import OpenAI from "openai";
+import { editImage } from "@workspace/integrations-gemini-ai";
 
 const openaiForViz = new OpenAI({ apiKey: process.env.OpenAI_API_Key });
 
@@ -370,11 +371,11 @@ QUALITY REQUIREMENTS:
 - Edges where new materials meet existing surfaces must blend seamlessly
 - Preserve the original image resolution and color depth`;
 
-    let imgBuffer: Buffer;
+    let imgBase64: string;
     let mimeType = "image/png";
 
     if (uploadedImageBase64) {
-      imgBuffer = Buffer.from(uploadedImageBase64, "base64");
+      imgBase64 = uploadedImageBase64;
       mimeType = uploadedImageMimeType || "image/png";
     } else {
       const imgResponse = await fetch(sourceImageUrl!, { signal: AbortSignal.timeout(15000) });
@@ -387,58 +388,14 @@ QUALITY REQUIREMENTS:
         res.status(400).json({ error: "Source image too large (max 10MB)." });
         return;
       }
-      imgBuffer = Buffer.from(arrayBuf);
+      imgBase64 = Buffer.from(arrayBuf).toString("base64");
       const rawContentType = imgResponse.headers.get("content-type") || "image/png";
       mimeType = rawContentType.split(";")[0].trim();
     }
 
-    const ext = mimeType === "image/jpeg" ? "jpg" : mimeType === "image/webp" ? "webp" : "png";
-    const imageFile = await toFile(imgBuffer, `source.${ext}`, { type: mimeType });
+    const geminiResult = await editImage(imgBase64, mimeType, editPrompt);
 
-    function pickOutputSize(buf: Buffer): "1024x1024" | "1536x1024" | "1024x1536" {
-      try {
-        let w = 0, h = 0;
-        if (buf[0] === 0xFF && buf[1] === 0xD8) {
-          let offset = 2;
-          while (offset < buf.length - 1) {
-            if (buf[offset] !== 0xFF) break;
-            const marker = buf[offset + 1];
-            if (marker === 0xC0 || marker === 0xC2) {
-              h = buf.readUInt16BE(offset + 5);
-              w = buf.readUInt16BE(offset + 7);
-              break;
-            }
-            const segLen = buf.readUInt16BE(offset + 2);
-            offset += 2 + segLen;
-          }
-        } else if (buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) {
-          w = buf.readUInt32BE(16);
-          h = buf.readUInt32BE(20);
-        }
-        if (w > 0 && h > 0) {
-          const ratio = w / h;
-          if (ratio > 1.2) return "1536x1024";
-          if (ratio < 0.8) return "1024x1536";
-        }
-      } catch {}
-      return "1024x1024";
-    }
-
-    const outputSize = pickOutputSize(imgBuffer);
-    const openaiResult = await openaiForViz.images.edit({
-      model: "gpt-image-1",
-      image: imageFile,
-      prompt: editPrompt,
-      size: outputSize,
-      response_format: "b64_json",
-    });
-
-    const b64Data = openaiResult.data?.[0]?.b64_json;
-    if (!b64Data) {
-      throw new Error("No image data returned from OpenAI");
-    }
-
-    const dataUri = `data:image/png;base64,${b64Data}`;
+    const dataUri = `data:${geminiResult.mimeType};base64,${geminiResult.b64_json}`;
 
     const uploadedPreviewUri = uploadedImageBase64 ? `data:${uploadedImageMimeType};base64,${uploadedImageBase64}` : undefined;
 
