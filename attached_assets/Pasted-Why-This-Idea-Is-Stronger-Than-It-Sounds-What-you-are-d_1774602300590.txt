@@ -1,0 +1,26 @@
+Why This Idea Is Stronger Than It Sounds
+What you are describing is not just a UX improvement. It is a quote locking mechanism disguised as a conversation. Here is what it actually does at a systems level:
+The core problem is that the AI currently interprets "remodel the kitchen" as a free-form request, and natural language is inherently ambiguous — the AI guesses what materials to include, and those guesses vary. Your idea flips the model: instead of the AI guessing, the user makes the choices, and those choices map directly to specific rows in your cost engine database. The same selections always produce the same price. Deterministic by design, not by accident.
+The second thing it does is reduce the cognitive load on the agent and client during a showing. Right now, to get an accurate quote, a user has to know how to prompt an AI well. Most agents and clients do not. Your guided flow removes that skill requirement entirely — the AI asks the questions, the user just taps answers, and the quote is locked. You have essentially built a structured intake form that feels like a conversation. That is a genuinely differentiated UX in this space.
+The third thing — and this is the one Replit did not mention — is that this becomes a premium feature lever. Free/basic tier users get the AI's best guess (fast, rough, variable). Pro tier users get the guided configurator (structured, locked, shareable). That is a natural upgrade trigger baked directly into the product experience.
+The Replit Agent Prompt
+Paste this in full:
+Feature: Guided Renovation Configurator — "Smart Scope" Mode
+The Problem: When a user says "remodel the kitchen," the AI generates a free-form scope that varies between sessions. This undermines trust when agents present quotes to clients. We need a way to lock quotes to specific material choices so the same selections always produce the same price.
+The Solution: Build a "Smart Scope" guided configurator that triggers automatically when a user requests a renovation estimate. Instead of immediately generating a quote, the AI responds with a structured selection flow using interactive UI chips. Once all selections are made, the quote is generated deterministically from the cost engine — no AI interpretation involved in the pricing step.
+Exact Behavior:
+When the AI detects a renovation intent (kitchen remodel, bathroom update, flooring replacement, etc.), it responds with a friendly message AND renders a set of choice chips for that renovation type. Example for "kitchen remodel":
+Countertops: Laminate ($) | Granite ($$) | Quartz ($$$)
+Cabinets: Refinish existing ($) | Stock replacement ($$) | Semi-custom ($$$) | Custom ($$$$)
+Flooring: Vinyl Plank ($) | Tile ($$) | Hardwood ($$$)
+Backsplash: Ceramic ($) | Glass Tile ($$) | Natural Stone ($$$)
+Appliances: Keep existing | Standard package | Premium package
+Each chip selection maps directly to a specific item + qualityTier in the materialCostsTable in the database. Use the existing seed data as the source of truth — do not invent new items. The mapping must be explicit and hardcoded in a CONFIGURATOR_MAP object (not AI-generated at runtime).
+Once the user has made all selections (or skips optional ones), the system calls priceLineItemsFromCostEngine() directly with the mapped items — bypassing the AI scope generation step entirely. This guarantees the same selections always produce the same quote.
+Add a "Quick Estimate" fallback button labeled "Just give me a ballpark" that skips the configurator and runs the existing AI-generated scope flow. This preserves the fast path for users who want speed over precision.
+The generated quote must include a "Locked" badge in the UI when it was produced via the configurator, and a "Estimated" badge when produced via the AI free-form path. This sets the right expectation for agents presenting to clients.
+Cache the configurator quote per conversationId + selectionHash (a hash of the exact selections made). If the same selections are submitted again in the same conversation, return the cached quote instantly without re-running the cost engine.
+Renovation Types to Support in Phase 1: Kitchen, Bathroom, Flooring, Painting (interior), Windows. Use the existing seed.ts material categories as the exact scope — do not add new categories yet.
+UI Notes: Chips should render inline in the chat interface, not as a separate modal or page. They should feel like a natural part of the conversation. On mobile, chips should stack cleanly in 2-column grid layout.
+Why This Prompt Is Tight
+Every instruction maps to something that already exists in your codebase — the materialCostsTable, the priceLineItemsFromCostEngine() function, the seed.ts categories. Replit Agent is not being asked to invent a new architecture. It is being asked to build a structured front-door to the cost engine you already have. That means less hallucination, faster build, and fewer surprises when it comes out the other side.
