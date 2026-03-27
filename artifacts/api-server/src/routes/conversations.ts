@@ -5,7 +5,7 @@ import { CreateConversationBody, SendMessageBody, SendMessageParams, GetConversa
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC } from "../lib/aiPipeline";
 import OpenAI from "openai";
-import { editImage } from "@workspace/integrations-gemini-ai";
+import FormData from "form-data";
 
 const openaiForViz = new OpenAI({ apiKey: process.env.OpenAI_API_Key });
 
@@ -353,30 +353,10 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
     }
     console.log(`[visualize] conversationId=${conversationId} promptSource=${promptSource} descriptionLength=${visualDescription.length} imageSource=${sourceImageUrl ? "listing" : "upload"}`);
 
-    const editPrompt = `You are a professional interior renovation visualization tool. Edit this photo to show the following specific renovations applied to the room.
-
-KEEP UNCHANGED:
-- The exact room layout, dimensions, walls, ceiling, and floor plan
-- The camera angle, perspective, and field of view
-- The natural lighting direction and window positions
-- Any structural elements (doors, windows, archways) not mentioned in changes
-
-APPLY THESE SPECIFIC CHANGES:
-${visualDescription}
-
-QUALITY REQUIREMENTS:
-- Photorealistic rendering — the result must look like an actual photograph, not a digital rendering
-- New materials must have correct reflections, shadows, and textures matching the room's lighting
-- Maintain consistent color temperature across existing and new elements
-- Edges where new materials meet existing surfaces must blend seamlessly
-- Preserve the original image resolution and color depth`;
-
-    let imgBase64: string;
-    let mimeType = "image/png";
+    let imgBuffer: Buffer;
 
     if (uploadedImageBase64) {
-      imgBase64 = uploadedImageBase64;
-      mimeType = uploadedImageMimeType || "image/png";
+      imgBuffer = Buffer.from(uploadedImageBase64, "base64");
     } else {
       const imgResponse = await fetch(sourceImageUrl!, { signal: AbortSignal.timeout(15000) });
       if (!imgResponse.ok) {
@@ -388,14 +368,68 @@ QUALITY REQUIREMENTS:
         res.status(400).json({ error: "Source image too large (max 10MB)." });
         return;
       }
-      imgBase64 = Buffer.from(arrayBuf).toString("base64");
-      const rawContentType = imgResponse.headers.get("content-type") || "image/png";
-      mimeType = rawContentType.split(";")[0].trim();
+      imgBuffer = Buffer.from(arrayBuf);
     }
 
-    const geminiResult = await editImage(imgBase64, mimeType, editPrompt);
+    const reimageApiKey = process.env.ReImage_API_Key;
+    if (!reimageApiKey) {
+      throw new Error("ReImage_API_Key is not configured");
+    }
 
-    const dataUri = `data:${geminiResult.mimeType};base64,${geminiResult.b64_json}`;
+    const reimageBase = "https://api.reimage.io/api/v1";
+
+    const form = new FormData();
+    form.append("image", imgBuffer, { filename: "room.jpg", contentType: "image/jpeg" });
+    form.append("prompt", visualDescription);
+    form.append("preset", "modern");
+
+    const submitResponse = await fetch(`${reimageBase}/interior-remodel`, {
+      method: "POST",
+      headers: { "Authorization": reimageApiKey, ...form.getHeaders() },
+      body: form.getBuffer(),
+    });
+
+    if (!submitResponse.ok) {
+      const errText = await submitResponse.text();
+      console.error("[visualize] ReImage submit failed:", submitResponse.status, errText);
+      throw new Error(`ReImage API submission failed: ${submitResponse.status}`);
+    }
+
+    const submitResult = await submitResponse.json() as { jobID: number };
+    const jobId = submitResult.jobID;
+    console.log(`[visualize] ReImage job submitted: ${jobId}`);
+
+    let jobStatus = "rendering";
+    const maxWait = 90_000;
+    const pollInterval = 3_000;
+    const startTime = Date.now();
+
+    while (jobStatus !== "complete" && (Date.now() - startTime) < maxWait) {
+      await new Promise(r => setTimeout(r, pollInterval));
+      const statusRes = await fetch(`${reimageBase}/job/${jobId}/status`, {
+        headers: { "Authorization": reimageApiKey },
+      });
+      if (!statusRes.ok) {
+        console.error("[visualize] ReImage poll failed:", statusRes.status);
+        continue;
+      }
+      const statusData = await statusRes.json() as { status: string };
+      jobStatus = statusData.status;
+    }
+
+    if (jobStatus !== "complete") {
+      throw new Error("Visualization timed out — please try again.");
+    }
+
+    const resultRes = await fetch(`${reimageBase}/job/${jobId}/results/image-0`, {
+      headers: { "Authorization": reimageApiKey },
+    });
+    if (!resultRes.ok) {
+      throw new Error("Failed to download visualization result.");
+    }
+    const resultBuffer = Buffer.from(await resultRes.arrayBuffer());
+    const resultB64 = resultBuffer.toString("base64");
+    const dataUri = `data:image/png;base64,${resultB64}`;
 
     const uploadedPreviewUri = uploadedImageBase64 ? `data:${uploadedImageMimeType};base64,${uploadedImageBase64}` : undefined;
 
