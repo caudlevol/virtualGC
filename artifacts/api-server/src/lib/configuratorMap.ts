@@ -294,23 +294,6 @@ export async function generateConfiguratorQuote(
   return result;
 }
 
-function determineAverageTier(selections: Record<string, string>, config: ConfiguratorRenovationType): string {
-  const tiers: string[] = [];
-  for (const group of config.groups) {
-    const selectedLabel = selections[group.key];
-    if (!selectedLabel) continue;
-    const option = group.options.find(o => o.label === selectedLabel);
-    if (option) tiers.push(option.qualityTier);
-  }
-  if (tiers.length === 0) return "mid_range";
-
-  const tierScores: Record<string, number> = { economy: 1, mid_range: 2, premium: 3 };
-  const avg = tiers.reduce((sum, t) => sum + (tierScores[t] || 2), 0) / tiers.length;
-  if (avg <= 1.5) return "economy";
-  if (avg >= 2.5) return "premium";
-  return "mid_range";
-}
-
 export function detectRenovationIntent(message: string): string | null {
   const msg = message.toLowerCase().replace(/\b(the|a|an|my|our|this|that|master|guest|main|half)\b/g, " ").replace(/\s+/g, " ").trim();
 
