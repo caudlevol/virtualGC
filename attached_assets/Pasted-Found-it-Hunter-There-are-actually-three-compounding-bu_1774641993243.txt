@@ -1,0 +1,29 @@
+Found it, Hunter. There are actually three compounding bugs causing this — and they all point to the same root failure. Here is the full breakdown and the exact Replit fix.
+Root Cause: Three Problems Stacked on Top of Each Other
+Problem 1 — The AI has no concept of "scope size."
+When you say "paint the front door," the AI generates a scope item like:
+Plain Text
+{ category: "painting", description: "Exterior paint", quantity: 9,700, unit: "sqft" }
+Why 9,700 sqft? Because the system prompt injects the full property square footage (property.sqft) into every conversation as context. The AI sees a 2,400 sqft house and defaults to painting the entire exterior surface area — walls, trim, everything — because nothing in the prompt tells it to scope the quantity to what was actually asked. "Front door" never gets translated to a small surface area. It just sees "painting" + "this house is 2,400 sqft" and runs the full calculation.
+Problem 2 — The cost engine multiplies per sqft with no ceiling.
+The seed data has Interior paint (premium) at $1.00/sqft and Exterior paint at $1.50/sqft. With a labor rate of $38/hour and a productivity factor of 1.2, a 9,700 sqft paint job at mid-range quality produces exactly the ~$14,500 you are seeing. The math is correct — the scope is completely wrong.
+Problem 3 — There is no "scope-specific quantity" instruction in the AI prompt.
+The SYSTEM_PROMPT in aiPipeline.ts tells the AI to generate a JSON scope with quantities, but it never says: "Use the actual surface area of what was discussed, not the full property square footage." So the AI always defaults to whole-house quantities for anything measured in sqft.
+The Replit Fix — Paste This Exactly
+Fix the painting (and all sqft-based) scope quantity problem. There are three specific changes needed:
+Fix 1 — Add scope-specific quantity instructions to the SYSTEM_PROMPT in aiPipeline.ts.
+In the JSON quote generation prompt (the one that says "Based on our conversation, please generate a detailed renovation scope"), add this instruction:
+"CRITICAL — quantity must reflect the ACTUAL scope discussed, not the full property size. Examples: If the user asked about painting a front door, quantity should be 20 sqft (a standard door), NOT the full house sqft. If the user asked about painting one room, use that room's wall area (typically 400–600 sqft for an average room). If the user asked about painting the full interior, use 0.75 × property sqft as the paintable wall area. If the user asked about a kitchen remodel, use the kitchen's estimated sqft (typically 150–250 sqft for an average kitchen), not the full property sqft. Always scope the quantity to what was specifically discussed."
+Fix 2 — Add a painting sub-type to the seed data in seed.ts.
+Add these specific line items to the painting category so the cost engine has the right unit costs for small-scope painting jobs:
+Plain Text
+{ category: "painting", item: "Exterior door paint (single door)", qualityTier: "mid_range", baseUnitCost: 150, unit: "each" }
+{ category: "painting", item: "Exterior door paint (premium)", qualityTier: "premium", baseUnitCost: 250, unit: "each" }
+{ category: "painting", item: "Accent wall paint", qualityTier: "mid_range", baseUnitCost: 0.85, unit: "sqft" }
+{ category: "painting", item: "Cabinet painting (per linear ft)", qualityTier: "mid_range", baseUnitCost: 45, unit: "linear_ft" }
+Fix 3 — Add scope-size guardrails to the AI quote generation prompt.
+In the same JSON generation prompt, add a hard cap instruction:
+"If the painting scope discussed was a single door, single wall, or single accent feature — use unit 'each' with quantity 1, not sqft. Only use sqft for full-room or full-house painting discussions. A front door paint job should never exceed $400 total. A single room paint job should never exceed $1,200 total. If your calculated total for a painting line item exceeds these thresholds for a small-scope ask, recalculate using 'each' unit instead."
+Do not change the cost engine architecture, the regional multiplier logic, or the Claude review layer. Only change: (1) the SYSTEM_PROMPT quantity instructions in aiPipeline.ts, and (2) the seed data in seed.ts.
+What This Fixes
+After this change, "paint the front door" will produce a quote of $150–$250 (single door, each unit) instead of $14,500. "Paint one room" will produce $600–$900. "Paint the full interior" will correctly use 0.75 × sqft and produce a realistic whole-house number. The fix is entirely in the AI's instructions and the seed data — no architectural changes needed.
