@@ -60,6 +60,49 @@ const MATERIALS = [
   { category: "drywall", item: "Drywall (standard)", qualityTier: "mid_range", baseUnitCost: 1.5, unit: "sqft" },
   { category: "insulation", item: "Batt insulation (R-13)", qualityTier: "economy", baseUnitCost: 0.5, unit: "sqft" },
   { category: "insulation", item: "Spray foam insulation", qualityTier: "premium", baseUnitCost: 2.5, unit: "sqft" },
+
+  { category: "staircase", item: "Stair treads (carpet runner)", qualityTier: "economy", baseUnitCost: 25, unit: "each" },
+  { category: "staircase", item: "Stair treads (oak)", qualityTier: "mid_range", baseUnitCost: 80, unit: "each" },
+  { category: "staircase", item: "Stair treads (custom hardwood)", qualityTier: "premium", baseUnitCost: 200, unit: "each" },
+  { category: "staircase", item: "Railing (wood painted)", qualityTier: "economy", baseUnitCost: 15, unit: "linear_ft" },
+  { category: "staircase", item: "Railing (wood stained)", qualityTier: "mid_range", baseUnitCost: 35, unit: "linear_ft" },
+  { category: "staircase", item: "Railing (iron/cable)", qualityTier: "premium", baseUnitCost: 90, unit: "linear_ft" },
+
+  { category: "deck", item: "Deck (pressure-treated lumber)", qualityTier: "economy", baseUnitCost: 8, unit: "sqft" },
+  { category: "deck", item: "Deck (composite)", qualityTier: "mid_range", baseUnitCost: 18, unit: "sqft" },
+  { category: "deck", item: "Deck (hardwood/PVC)", qualityTier: "premium", baseUnitCost: 35, unit: "sqft" },
+  { category: "deck", item: "Deck railing (wood)", qualityTier: "economy", baseUnitCost: 12, unit: "linear_ft" },
+  { category: "deck", item: "Deck railing (composite)", qualityTier: "mid_range", baseUnitCost: 30, unit: "linear_ft" },
+  { category: "deck", item: "Deck railing (cable/glass)", qualityTier: "premium", baseUnitCost: 75, unit: "linear_ft" },
+
+  { category: "garage", item: "Garage door (steel non-insulated)", qualityTier: "economy", baseUnitCost: 800, unit: "each" },
+  { category: "garage", item: "Garage door (steel insulated)", qualityTier: "mid_range", baseUnitCost: 1500, unit: "each" },
+  { category: "garage", item: "Garage door (wood/custom)", qualityTier: "premium", baseUnitCost: 4000, unit: "each" },
+  { category: "garage", item: "Garage floor (epoxy paint)", qualityTier: "economy", baseUnitCost: 3, unit: "sqft" },
+  { category: "garage", item: "Garage floor (epoxy flake)", qualityTier: "mid_range", baseUnitCost: 6, unit: "sqft" },
+  { category: "garage", item: "Garage floor (polyaspartic)", qualityTier: "premium", baseUnitCost: 10, unit: "sqft" },
+
+  { category: "basement", item: "Basement finish (basic)", qualityTier: "economy", baseUnitCost: 20, unit: "sqft" },
+  { category: "basement", item: "Basement finish (standard)", qualityTier: "mid_range", baseUnitCost: 45, unit: "sqft" },
+  { category: "basement", item: "Basement finish (full)", qualityTier: "premium", baseUnitCost: 85, unit: "sqft" },
+
+  { category: "exteriorPaint", item: "Exterior paint (standard)", qualityTier: "economy", baseUnitCost: 1.0, unit: "sqft" },
+  { category: "exteriorPaint", item: "Exterior paint (with repair)", qualityTier: "mid_range", baseUnitCost: 2.0, unit: "sqft" },
+  { category: "exteriorPaint", item: "Siding (vinyl/fiber cement)", qualityTier: "premium", baseUnitCost: 6.0, unit: "sqft" },
+
+  { category: "hvac", item: "HVAC system (standard split)", qualityTier: "economy", baseUnitCost: 2500, unit: "each" },
+  { category: "hvac", item: "HVAC system (high-efficiency)", qualityTier: "mid_range", baseUnitCost: 5000, unit: "each" },
+  { category: "hvac", item: "HVAC system (heat pump)", qualityTier: "premium", baseUnitCost: 8500, unit: "each" },
+  { category: "hvac", item: "Ductwork (patch/repair)", qualityTier: "economy", baseUnitCost: 4, unit: "linear_ft" },
+  { category: "hvac", item: "Ductwork (partial replace)", qualityTier: "mid_range", baseUnitCost: 8, unit: "linear_ft" },
+  { category: "hvac", item: "Ductwork (full replace)", qualityTier: "premium", baseUnitCost: 15, unit: "linear_ft" },
+
+  { category: "landscaping", item: "Landscaping (seed/mulch)", qualityTier: "economy", baseUnitCost: 0.5, unit: "sqft" },
+  { category: "landscaping", item: "Landscaping (sod/shrubs)", qualityTier: "mid_range", baseUnitCost: 2.0, unit: "sqft" },
+  { category: "landscaping", item: "Landscaping (full design)", qualityTier: "premium", baseUnitCost: 5.0, unit: "sqft" },
+  { category: "landscaping", item: "Hardscape (gravel)", qualityTier: "economy", baseUnitCost: 3, unit: "sqft" },
+  { category: "landscaping", item: "Hardscape (pavers)", qualityTier: "mid_range", baseUnitCost: 12, unit: "sqft" },
+  { category: "landscaping", item: "Hardscape (natural stone)", qualityTier: "premium", baseUnitCost: 25, unit: "sqft" },
 ];
 
 const LABOR_RATES = [
@@ -137,7 +180,15 @@ export async function seedCostEngine() {
       logger.info("Seeding material costs...");
       await db.insert(materialCostsTable).values(MATERIALS);
     } else {
-      logger.info("Material costs already seeded, skipping");
+      const existingItems = await db.select({ item: materialCostsTable.item, category: materialCostsTable.category }).from(materialCostsTable);
+      const existingSet = new Set(existingItems.map(r => `${r.category}::${r.item}`));
+      const missingMaterials = MATERIALS.filter(m => !existingSet.has(`${m.category}::${m.item}`));
+      if (missingMaterials.length > 0) {
+        logger.info(`Seeding ${missingMaterials.length} missing material items`);
+        await db.insert(materialCostsTable).values(missingMaterials);
+      } else {
+        logger.info("Material costs already seeded, skipping");
+      }
     }
 
     const existingLabor = await db.select({ id: laborRatesTable.id }).from(laborRatesTable).limit(1);

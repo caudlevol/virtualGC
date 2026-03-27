@@ -131,8 +131,8 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - **Logging**: Use `req.log` in route handlers, `logger` singleton for non-request code; never `console.log`
 - **Database push**: `pnpm --filter @workspace/db run push` (development), force with `push-force`
 - **Codegen**: `pnpm --filter @workspace/api-spec run codegen` (regenerates React hooks + Zod schemas)
-- **Cost engine seed**: Runs automatically on server start via `seedCostEngine()` — 49 materials, 12 labor rates, 50 regional multipliers for top US metros
-- **Smart Scope configurator**: When user sends a message with renovation intent (kitchen/bathroom/flooring/painting/windows), the AI response includes `configuratorType` field. Frontend renders interactive chip-based material selection UI. Selections produce deterministic "Locked" quotes via `POST /conversations/:id/configurator-quote`. Existing AI flow produces "Estimated" quotes. Config map in `artifacts/api-server/src/lib/configuratorMap.ts`.
+- **Cost engine seed**: Runs automatically on server start via `seedCostEngine()` — 85 base materials (17 categories), 12 labor rates, 50 regional multipliers for top US metros. Uses item-level backfill: new materials are inserted if missing by category+item key.
+- **Smart Scope configurator**: When user sends a message with renovation intent, the AI response includes `configuratorType` field. Frontend renders interactive chip-based material selection UI. Selections produce deterministic "Locked" quotes via `POST /conversations/:id/configurator-quote`. Existing AI flow produces "Estimated" quotes. Config map in `artifacts/api-server/src/lib/configuratorMap.ts`. Supports 13 renovation types: kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping.
 
 ## Packages
 

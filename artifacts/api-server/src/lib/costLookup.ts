@@ -37,6 +37,11 @@ const CATEGORY_TO_TRADE: Record<string, string> = {
   demolition: "demolition",
   tiling: "tiling",
   landscaping: "landscaping",
+  staircase: "carpentry",
+  deck: "carpentry",
+  garage: "general",
+  basement: "general",
+  exteriorPaint: "painting",
   general: "general",
 };
 
@@ -67,6 +72,16 @@ const DESCRIPTION_KEYWORDS: Array<{ keywords: string[]; itemSubstring: string }>
   { keywords: ["insulation", "batt", "spray foam", "blown-in"], itemSubstring: "insulation" },
   { keywords: ["interior paint", "wall paint", "painting interior"], itemSubstring: "interior paint" },
   { keywords: ["exterior paint", "outside paint", "painting exterior"], itemSubstring: "exterior paint" },
+  { keywords: ["stair tread", "stair", "tread"], itemSubstring: "stair" },
+  { keywords: ["railing", "banister", "baluster", "handrail"], itemSubstring: "railing" },
+  { keywords: ["deck", "decking", "composite deck", "pressure-treated"], itemSubstring: "deck" },
+  { keywords: ["garage door", "overhead door"], itemSubstring: "garage door" },
+  { keywords: ["garage floor", "epoxy", "polyaspartic"], itemSubstring: "garage floor" },
+  { keywords: ["basement finish", "basement"], itemSubstring: "basement" },
+  { keywords: ["siding", "fiber cement", "vinyl siding"], itemSubstring: "siding" },
+  { keywords: ["landscaping", "landscape", "sod", "mulch", "planting"], itemSubstring: "landscaping" },
+  { keywords: ["hardscape", "paver", "paving", "gravel path"], itemSubstring: "hardscape" },
+  { keywords: ["hvac system", "heat pump", "split system"], itemSubstring: "hvac" },
 ];
 
 const LABOR_HOURS_PER_UNIT: Record<string, Record<string, number>> = {
@@ -134,7 +149,7 @@ export async function priceLineItemsFromCostEngine(
   const ageFactor = getAgeMultiplier(yearBuilt);
 
   for (const item of aiItems) {
-    const category = item.category.toLowerCase();
+    const category = item.category;
     const tradeType = item.tradeType || CATEGORY_TO_TRADE[category] || "general";
 
     const allMaterials = await db.select().from(materialCostsTable)

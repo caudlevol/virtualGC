@@ -178,6 +178,200 @@ export const CONFIGURATOR_MAP: Record<string, ConfiguratorRenovationType> = {
       windowType: { quantity: Math.max(5, Math.round(p.sqft / 200)), unit: "each" },
     }),
   },
+  staircase: {
+    label: "Staircase Renovation",
+    category: "staircase",
+    groups: [
+      {
+        label: "Treads",
+        key: "treads",
+        options: [
+          { label: "Carpet Runner", price: "$", item: "Stair treads (carpet runner)", qualityTier: "economy" },
+          { label: "Oak Treads", price: "$$", item: "Stair treads (oak)", qualityTier: "mid_range" },
+          { label: "Custom Hardwood", price: "$$$", item: "Stair treads (custom hardwood)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Railing",
+        key: "railing",
+        options: [
+          { label: "Wood Painted", price: "$", item: "Railing (wood painted)", qualityTier: "economy" },
+          { label: "Wood Stained", price: "$$", item: "Railing (wood stained)", qualityTier: "mid_range" },
+          { label: "Iron / Cable", price: "$$$", item: "Railing (iron/cable)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: () => ({
+      treads: { quantity: 14, unit: "each" },
+      railing: { quantity: 20, unit: "linear_ft" },
+    }),
+  },
+  roof: {
+    label: "Roof Replacement",
+    category: "roofing",
+    groups: [
+      {
+        label: "Roofing Material",
+        key: "roofingMaterial",
+        options: [
+          { label: "3-Tab Shingles", price: "$", item: "3-tab shingles", qualityTier: "economy" },
+          { label: "Architectural Shingles", price: "$$", item: "Architectural shingles", qualityTier: "mid_range" },
+          { label: "Metal Roofing", price: "$$$", item: "Metal roofing", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      roofingMaterial: { quantity: Math.max(1000, Math.round(p.sqft * 1.15)), unit: "sqft" },
+    }),
+  },
+  hvac: {
+    label: "HVAC System",
+    category: "hvac",
+    groups: [
+      {
+        label: "System Type",
+        key: "systemType",
+        options: [
+          { label: "Standard Split", price: "$", item: "HVAC system (standard split)", qualityTier: "economy" },
+          { label: "High-Efficiency", price: "$$", item: "HVAC system (high-efficiency)", qualityTier: "mid_range" },
+          { label: "Heat Pump / Dual", price: "$$$", item: "HVAC system (heat pump)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Ductwork",
+        key: "ductwork",
+        options: [
+          { label: "Patch / Repair", price: "$", item: "Ductwork (patch/repair)", qualityTier: "economy" },
+          { label: "Partial Replace", price: "$$", item: "Ductwork (partial replace)", qualityTier: "mid_range" },
+          { label: "Full Replace", price: "$$$", item: "Ductwork (full replace)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      systemType: { quantity: 1, unit: "each" },
+      ductwork: { quantity: Math.max(50, Math.round(p.sqft * 0.05)), unit: "linear_ft" },
+    }),
+  },
+  deck: {
+    label: "Deck / Patio",
+    category: "deck",
+    groups: [
+      {
+        label: "Decking Material",
+        key: "deckingMaterial",
+        options: [
+          { label: "Pressure-Treated", price: "$", item: "Deck (pressure-treated lumber)", qualityTier: "economy" },
+          { label: "Composite", price: "$$", item: "Deck (composite)", qualityTier: "mid_range" },
+          { label: "Hardwood / PVC", price: "$$$", item: "Deck (hardwood/PVC)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Railing",
+        key: "deckRailing",
+        options: [
+          { label: "Wood", price: "$", item: "Deck railing (wood)", qualityTier: "economy" },
+          { label: "Composite", price: "$$", item: "Deck railing (composite)", qualityTier: "mid_range" },
+          { label: "Cable / Glass", price: "$$$", item: "Deck railing (cable/glass)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      deckingMaterial: { quantity: Math.max(150, Math.round(p.sqft * 0.15)), unit: "sqft" },
+      deckRailing: { quantity: Math.max(30, Math.round(p.sqft * 0.02)), unit: "linear_ft" },
+    }),
+  },
+  garage: {
+    label: "Garage Renovation",
+    category: "garage",
+    groups: [
+      {
+        label: "Garage Door",
+        key: "garageDoor",
+        options: [
+          { label: "Steel (Non-Insulated)", price: "$", item: "Garage door (steel non-insulated)", qualityTier: "economy" },
+          { label: "Steel (Insulated)", price: "$$", item: "Garage door (steel insulated)", qualityTier: "mid_range" },
+          { label: "Wood / Custom", price: "$$$", item: "Garage door (wood/custom)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Floor Coating",
+        key: "garageFloor",
+        options: [
+          { label: "Epoxy Paint", price: "$", item: "Garage floor (epoxy paint)", qualityTier: "economy" },
+          { label: "Epoxy Flake", price: "$$", item: "Garage floor (epoxy flake)", qualityTier: "mid_range" },
+          { label: "Polyaspartic", price: "$$$", item: "Garage floor (polyaspartic)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: () => ({
+      garageDoor: { quantity: 1, unit: "each" },
+      garageFloor: { quantity: 400, unit: "sqft" },
+    }),
+  },
+  basement: {
+    label: "Basement Finishing",
+    category: "basement",
+    groups: [
+      {
+        label: "Finishing Level",
+        key: "finishLevel",
+        options: [
+          { label: "Basic (Drywall + Paint)", price: "$", item: "Basement finish (basic)", qualityTier: "economy" },
+          { label: "Standard (+ Flooring + Lighting)", price: "$$", item: "Basement finish (standard)", qualityTier: "mid_range" },
+          { label: "Full (+ Bathroom + Wet Bar)", price: "$$$", item: "Basement finish (full)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      finishLevel: { quantity: Math.max(400, Math.round(p.sqft * 0.4)), unit: "sqft" },
+    }),
+  },
+  exteriorPaint: {
+    label: "Exterior Paint / Siding",
+    category: "exteriorPaint",
+    groups: [
+      {
+        label: "Exterior Type",
+        key: "exteriorType",
+        options: [
+          { label: "Paint Only", price: "$", item: "Exterior paint (standard)", qualityTier: "economy" },
+          { label: "Paint + Repair", price: "$$", item: "Exterior paint (with repair)", qualityTier: "mid_range" },
+          { label: "New Siding", price: "$$$", item: "Siding (vinyl/fiber cement)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      exteriorType: { quantity: Math.max(1000, Math.round(p.sqft * 1.2)), unit: "sqft" },
+    }),
+  },
+  landscaping: {
+    label: "Landscaping",
+    category: "landscaping",
+    groups: [
+      {
+        label: "Lawn & Plants",
+        key: "lawnPlants",
+        options: [
+          { label: "Seed + Mulch", price: "$", item: "Landscaping (seed/mulch)", qualityTier: "economy" },
+          { label: "Sod + Shrubs", price: "$$", item: "Landscaping (sod/shrubs)", qualityTier: "mid_range" },
+          { label: "Full Design", price: "$$$", item: "Landscaping (full design)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Hardscape",
+        key: "hardscape",
+        options: [
+          { label: "Gravel Paths", price: "$", item: "Hardscape (gravel)", qualityTier: "economy" },
+          { label: "Pavers", price: "$$", item: "Hardscape (pavers)", qualityTier: "mid_range" },
+          { label: "Natural Stone", price: "$$$", item: "Hardscape (natural stone)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      lawnPlants: { quantity: Math.max(500, Math.round(p.sqft * 0.3)), unit: "sqft" },
+      hardscape: { quantity: Math.max(100, Math.round(p.sqft * 0.05)), unit: "sqft" },
+    }),
+  },
 };
 
 export function computeSelectionHash(renovationType: string, selections: Record<string, string>): string {
@@ -319,6 +513,46 @@ const RENOVATION_PATTERNS: Array<{ type: string; keywords: string[]; strictKeywo
     type: "windows",
     keywords: ["replace window", "new window", "window replacement", "upgrade window", "window upgrade", "double pane", "energy efficient window"],
     strictKeywords: ["replace window", "new window", "window replacement", "upgrade window", "window upgrade"],
+  },
+  {
+    type: "staircase",
+    keywords: ["stair", "staircase", "stairway", "banister", "railing", "baluster", "newel", "tread", "stair reno", "stair remodel", "update stair", "modernize stair"],
+    strictKeywords: ["staircase remodel", "staircase renovation", "update staircase", "redo staircase", "new staircase", "stair renovation", "stair remodel", "modernize stair"],
+  },
+  {
+    type: "roof",
+    keywords: ["roof", "roofing", "re-roof", "reroof", "new roof", "shingle", "roof replacement", "roof repair", "roof leak"],
+    strictKeywords: ["new roof", "roof replacement", "replace roof", "re-roof", "reroof", "roofing project"],
+  },
+  {
+    type: "hvac",
+    keywords: ["hvac", "heating", "air conditioning", "furnace", "heat pump", "central air", "ac unit", "ductwork", "new ac", "replace furnace", "replace hvac"],
+    strictKeywords: ["new hvac", "replace hvac", "hvac system", "new furnace", "replace furnace", "new ac unit", "replace ac", "hvac upgrade"],
+  },
+  {
+    type: "deck",
+    keywords: ["deck", "patio", "new deck", "replace deck", "build deck", "deck remodel", "outdoor deck", "composite deck", "porch"],
+    strictKeywords: ["new deck", "build deck", "replace deck", "deck remodel", "deck renovation", "new patio", "patio renovation"],
+  },
+  {
+    type: "garage",
+    keywords: ["garage", "garage door", "garage floor", "garage renovation", "garage remodel", "new garage door", "epoxy floor", "garage conversion"],
+    strictKeywords: ["garage renovation", "garage remodel", "new garage door", "garage door replacement", "garage floor"],
+  },
+  {
+    type: "basement",
+    keywords: ["basement", "finish basement", "basement remodel", "basement renovation", "unfinished basement", "basement conversion", "basement finishing"],
+    strictKeywords: ["finish basement", "basement remodel", "basement renovation", "basement finishing", "basement conversion"],
+  },
+  {
+    type: "exteriorPaint",
+    keywords: ["exterior paint", "paint outside", "outside paint", "paint exterior", "siding", "new siding", "vinyl siding", "replace siding", "house paint", "exterior stain"],
+    strictKeywords: ["exterior paint", "paint exterior", "new siding", "replace siding", "siding replacement", "exterior painting"],
+  },
+  {
+    type: "landscaping",
+    keywords: ["landscaping", "landscape", "lawn", "yard", "garden", "hardscape", "paver", "sod", "new lawn", "curb appeal", "outdoor space", "planting"],
+    strictKeywords: ["landscaping project", "landscape renovation", "new landscaping", "landscape design", "hardscape project", "redo landscaping", "landscape remodel"],
   },
 ];
 

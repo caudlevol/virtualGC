@@ -417,6 +417,59 @@ const CONFIGURATOR_MAP: Record<string, { label: string; groups: Array<{ label: s
       { label: "Window Type", key: "windowType", options: [{ label: "Vinyl Standard", price: "$" }, { label: "Double-Pane Vinyl", price: "$$" }, { label: "Wood / Fiberglass", price: "$$$" }] },
     ],
   },
+  staircase: {
+    label: "Staircase Renovation",
+    groups: [
+      { label: "Treads", key: "treads", options: [{ label: "Carpet Runner", price: "$" }, { label: "Oak Treads", price: "$$" }, { label: "Custom Hardwood", price: "$$$" }] },
+      { label: "Railing", key: "railing", options: [{ label: "Wood Painted", price: "$" }, { label: "Wood Stained", price: "$$" }, { label: "Iron / Cable", price: "$$$" }] },
+    ],
+  },
+  roof: {
+    label: "Roof Replacement",
+    groups: [
+      { label: "Roofing Material", key: "roofingMaterial", options: [{ label: "3-Tab Shingles", price: "$" }, { label: "Architectural Shingles", price: "$$" }, { label: "Metal Roofing", price: "$$$" }] },
+    ],
+  },
+  hvac: {
+    label: "HVAC System",
+    groups: [
+      { label: "System Type", key: "systemType", options: [{ label: "Standard Split", price: "$" }, { label: "High-Efficiency", price: "$$" }, { label: "Heat Pump / Dual", price: "$$$" }] },
+      { label: "Ductwork", key: "ductwork", options: [{ label: "Patch / Repair", price: "$" }, { label: "Partial Replace", price: "$$" }, { label: "Full Replace", price: "$$$" }] },
+    ],
+  },
+  deck: {
+    label: "Deck / Patio",
+    groups: [
+      { label: "Decking Material", key: "deckingMaterial", options: [{ label: "Pressure-Treated", price: "$" }, { label: "Composite", price: "$$" }, { label: "Hardwood / PVC", price: "$$$" }] },
+      { label: "Railing", key: "deckRailing", options: [{ label: "Wood", price: "$" }, { label: "Composite", price: "$$" }, { label: "Cable / Glass", price: "$$$" }] },
+    ],
+  },
+  garage: {
+    label: "Garage Renovation",
+    groups: [
+      { label: "Garage Door", key: "garageDoor", options: [{ label: "Steel (Non-Insulated)", price: "$" }, { label: "Steel (Insulated)", price: "$$" }, { label: "Wood / Custom", price: "$$$" }] },
+      { label: "Floor Coating", key: "garageFloor", options: [{ label: "Epoxy Paint", price: "$" }, { label: "Epoxy Flake", price: "$$" }, { label: "Polyaspartic", price: "$$$" }] },
+    ],
+  },
+  basement: {
+    label: "Basement Finishing",
+    groups: [
+      { label: "Finishing Level", key: "finishLevel", options: [{ label: "Basic (Drywall + Paint)", price: "$" }, { label: "Standard (+ Flooring + Lighting)", price: "$$" }, { label: "Full (+ Bathroom + Wet Bar)", price: "$$$" }] },
+    ],
+  },
+  exteriorPaint: {
+    label: "Exterior Paint / Siding",
+    groups: [
+      { label: "Exterior Type", key: "exteriorType", options: [{ label: "Paint Only", price: "$" }, { label: "Paint + Repair", price: "$$" }, { label: "New Siding", price: "$$$" }] },
+    ],
+  },
+  landscaping: {
+    label: "Landscaping",
+    groups: [
+      { label: "Lawn & Plants", key: "lawnPlants", options: [{ label: "Seed + Mulch", price: "$" }, { label: "Sod + Shrubs", price: "$$" }, { label: "Full Design", price: "$$$" }] },
+      { label: "Hardscape", key: "hardscape", options: [{ label: "Gravel Paths", price: "$" }, { label: "Pavers", price: "$$" }, { label: "Natural Stone", price: "$$$" }] },
+    ],
+  },
 };
 
 interface ConfiguratorQuoteResult {
