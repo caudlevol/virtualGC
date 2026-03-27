@@ -23,4 +23,5 @@ export const GetConfiguratorOptionsRenovationType = {
   basement: "basement",
   exteriorPaint: "exteriorPaint",
   landscaping: "landscaping",
+  exteriorDoors: "exteriorDoors",
 } as const;

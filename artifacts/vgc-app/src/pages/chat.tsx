@@ -463,6 +463,14 @@ const CONFIGURATOR_MAP: Record<string, { label: string; groups: Array<{ label: s
       { label: "Exterior Type", key: "exteriorType", options: [{ label: "Paint Only", price: "$" }, { label: "Paint + Repair", price: "$$" }, { label: "New Siding", price: "$$$" }] },
     ],
   },
+  exteriorDoors: {
+    label: "Exterior Doors",
+    groups: [
+      { label: "Front Door", key: "frontDoor", options: [{ label: "Steel Entry", price: "$" }, { label: "Fiberglass", price: "$$" }, { label: "Solid Wood", price: "$$$" }] },
+      { label: "Rear / Patio Door", key: "rearDoor", options: [{ label: "Sliding Vinyl", price: "$" }, { label: "Sliding Fiberglass", price: "$$" }, { label: "French Door (Wood)", price: "$$$" }] },
+      { label: "Hardware", key: "doorHardware", options: [{ label: "Standard", price: "$" }, { label: "Smart Lock", price: "$$" }, { label: "Premium Smart", price: "$$$" }] },
+    ],
+  },
   landscaping: {
     label: "Landscaping",
     groups: [

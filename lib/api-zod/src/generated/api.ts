@@ -137,7 +137,7 @@ export const SendMessageResponse = zod.object({
     .string()
     .nullish()
     .describe(
-      "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping)",
+      "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping, exteriorDoors)",
     ),
   timestamp: zod.date(),
 });
@@ -188,7 +188,7 @@ export const VisualizeRenovationResponse = zod.object({
     .string()
     .nullish()
     .describe(
-      "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping)",
+      "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping, exteriorDoors)",
     ),
   timestamp: zod.date(),
 });
@@ -215,6 +215,7 @@ export const GenerateConfiguratorQuoteBody = zod.object({
     "basement",
     "exteriorPaint",
     "landscaping",
+    "exteriorDoors",
   ]),
   selections: zod.record(zod.string(), zod.string()),
 });
@@ -263,6 +264,7 @@ export const GetConfiguratorOptionsQueryParams = zod.object({
     "basement",
     "exteriorPaint",
     "landscaping",
+    "exteriorDoors",
   ]),
 });
 
@@ -325,7 +327,7 @@ export const GetConversationResponse = zod.object({
         .string()
         .nullish()
         .describe(
-          "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping)",
+          "Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping, exteriorDoors)",
         ),
       timestamp: zod.date(),
     }),

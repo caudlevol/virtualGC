@@ -159,7 +159,7 @@ export interface ConversationMessage {
    */
   imageUrl?: string | null;
   /**
-   * Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping)
+   * Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping, exteriorDoors)
    * @nullable
    */
   configuratorType?: string | null;
@@ -472,6 +472,7 @@ export const ConfiguratorQuoteBodyRenovationType = {
   basement: "basement",
   exteriorPaint: "exteriorPaint",
   landscaping: "landscaping",
+  exteriorDoors: "exteriorDoors",
 } as const;
 
 export type ConfiguratorQuoteBodySelections = { [key: string]: string };
@@ -543,6 +544,7 @@ export const GetConfiguratorOptionsRenovationType = {
   basement: "basement",
   exteriorPaint: "exteriorPaint",
   landscaping: "landscaping",
+  exteriorDoors: "exteriorDoors",
 } as const;
 
 export type ListQuotesParams = {

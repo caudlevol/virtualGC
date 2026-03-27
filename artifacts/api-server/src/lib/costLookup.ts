@@ -42,6 +42,7 @@ const CATEGORY_TO_TRADE: Record<string, string> = {
   garage: "general",
   basement: "general",
   exteriorPaint: "painting",
+  exteriorDoors: "carpentry",
   general: "general",
 };
 
@@ -82,6 +83,9 @@ const DESCRIPTION_KEYWORDS: Array<{ keywords: string[]; itemSubstring: string }>
   { keywords: ["landscaping", "landscape", "sod", "mulch", "planting"], itemSubstring: "landscaping" },
   { keywords: ["hardscape", "paver", "paving", "gravel path"], itemSubstring: "hardscape" },
   { keywords: ["hvac system", "heat pump", "split system"], itemSubstring: "hvac" },
+  { keywords: ["front door", "entry door", "exterior door"], itemSubstring: "front door" },
+  { keywords: ["patio door", "sliding door", "french door", "rear door", "back door"], itemSubstring: "patio door" },
+  { keywords: ["door hardware", "smart lock", "deadbolt", "door lock"], itemSubstring: "door hardware" },
 ];
 
 const LABOR_HOURS_PER_UNIT: Record<string, Record<string, number>> = {

@@ -344,6 +344,44 @@ export const CONFIGURATOR_MAP: Record<string, ConfiguratorRenovationType> = {
       exteriorType: { quantity: Math.max(1000, Math.round(p.sqft * 1.2)), unit: "sqft" },
     }),
   },
+  exteriorDoors: {
+    label: "Exterior Doors",
+    category: "exteriorDoors",
+    groups: [
+      {
+        label: "Front Door",
+        key: "frontDoor",
+        options: [
+          { label: "Steel Entry", price: "$", item: "Front door (steel entry)", qualityTier: "economy" },
+          { label: "Fiberglass", price: "$$", item: "Front door (fiberglass)", qualityTier: "mid_range" },
+          { label: "Solid Wood", price: "$$$", item: "Front door (solid wood)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Rear / Patio Door",
+        key: "rearDoor",
+        options: [
+          { label: "Sliding Vinyl", price: "$", item: "Patio door (sliding vinyl)", qualityTier: "economy" },
+          { label: "Sliding Fiberglass", price: "$$", item: "Patio door (sliding fiberglass)", qualityTier: "mid_range" },
+          { label: "French Door (Wood)", price: "$$$", item: "Patio door (french wood)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Hardware",
+        key: "doorHardware",
+        options: [
+          { label: "Standard", price: "$", item: "Door hardware (standard)", qualityTier: "economy" },
+          { label: "Smart Lock", price: "$$", item: "Door hardware (smart lock)", qualityTier: "mid_range" },
+          { label: "Premium Smart", price: "$$$", item: "Door hardware (premium smart)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: () => ({
+      frontDoor: { quantity: 1, unit: "each" },
+      rearDoor: { quantity: 1, unit: "each" },
+      doorHardware: { quantity: 2, unit: "each" },
+    }),
+  },
   landscaping: {
     label: "Landscaping",
     category: "landscaping",
@@ -548,6 +586,11 @@ const RENOVATION_PATTERNS: Array<{ type: string; keywords: string[]; strictKeywo
     type: "basement",
     keywords: ["basement", "finish basement", "basement remodel", "basement renovation", "unfinished basement", "basement conversion", "basement finishing"],
     strictKeywords: ["finish basement", "basement remodel", "basement renovation", "basement finishing", "basement conversion"],
+  },
+  {
+    type: "exteriorDoors",
+    keywords: ["front door", "entry door", "exterior door", "new door", "replace door", "door replacement", "rear door", "patio door", "french door", "sliding door", "back door", "upgrade door"],
+    strictKeywords: ["new front door", "replace front door", "front door replacement", "new entry door", "exterior door replacement", "new patio door", "replace patio door", "door upgrade"],
   },
   {
     type: "landscaping",

@@ -103,6 +103,16 @@ const MATERIALS = [
   { category: "landscaping", item: "Hardscape (gravel)", qualityTier: "economy", baseUnitCost: 3, unit: "sqft" },
   { category: "landscaping", item: "Hardscape (pavers)", qualityTier: "mid_range", baseUnitCost: 12, unit: "sqft" },
   { category: "landscaping", item: "Hardscape (natural stone)", qualityTier: "premium", baseUnitCost: 25, unit: "sqft" },
+
+  { category: "exteriorDoors", item: "Front door (steel entry)", qualityTier: "economy", baseUnitCost: 400, unit: "each" },
+  { category: "exteriorDoors", item: "Front door (fiberglass)", qualityTier: "mid_range", baseUnitCost: 1200, unit: "each" },
+  { category: "exteriorDoors", item: "Front door (solid wood)", qualityTier: "premium", baseUnitCost: 3000, unit: "each" },
+  { category: "exteriorDoors", item: "Patio door (sliding vinyl)", qualityTier: "economy", baseUnitCost: 600, unit: "each" },
+  { category: "exteriorDoors", item: "Patio door (sliding fiberglass)", qualityTier: "mid_range", baseUnitCost: 1500, unit: "each" },
+  { category: "exteriorDoors", item: "Patio door (french wood)", qualityTier: "premium", baseUnitCost: 4000, unit: "each" },
+  { category: "exteriorDoors", item: "Door hardware (standard)", qualityTier: "economy", baseUnitCost: 50, unit: "each" },
+  { category: "exteriorDoors", item: "Door hardware (smart lock)", qualityTier: "mid_range", baseUnitCost: 250, unit: "each" },
+  { category: "exteriorDoors", item: "Door hardware (premium smart)", qualityTier: "premium", baseUnitCost: 500, unit: "each" },
 ];
 
 const LABOR_RATES = [

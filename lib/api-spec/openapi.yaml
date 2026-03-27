@@ -311,7 +311,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping]
+            enum: [kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping, exteriorDoors]
       responses:
         "200":
           description: Configurator options
@@ -961,7 +961,7 @@ components:
           description: AI-generated renovation visualization image (data URI or URL)
         configuratorType:
           type: ["string", "null"]
-          description: Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping)
+          description: Detected renovation type for Smart Scope configurator (kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping, exteriorDoors)
         timestamp:
           type: string
           format: date-time
@@ -1436,7 +1436,7 @@ components:
       properties:
         renovationType:
           type: string
-          enum: [kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping]
+          enum: [kitchen, bathroom, flooring, painting, windows, staircase, roof, hvac, deck, garage, basement, exteriorPaint, landscaping, exteriorDoors]
         selections:
           type: object
           additionalProperties:
