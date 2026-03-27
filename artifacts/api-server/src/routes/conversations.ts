@@ -34,7 +34,8 @@ Rules:
 - Mention hardware, lighting, and accent details when discussed
 - If multiple rooms are discussed, focus on the most recently discussed room
 - Output as a numbered list of specific changes, no preamble
-- If no specific renovations are discussed, output "General modern renovation update with contemporary finishes"`,
+- If no specific renovations are discussed, output "General modern renovation update with contemporary finishes"
+- CRITICAL: At the end, add a line starting with "DO NOT CHANGE:" listing elements that must stay the same — background rooms visible through doorways, furniture in adjacent spaces, architectural features not being renovated (fireplaces, archways, columns, etc.)`,
       },
       {
         role: "user",
@@ -508,9 +509,14 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
         const reimageBase = "https://api.reimage.io/api/v1";
         const endpoint = isExterior ? "exterior-remodel" : "interior-remodel";
 
+        const preservationPrompt = `IMPORTANT: Only modify the specific items listed below. Keep ALL other elements exactly as they are — background rooms visible through doorways, furniture in adjacent spaces, fireplaces, architectural features, ceiling details, and any areas not explicitly mentioned.
+
+CHANGES TO APPLY:
+${visualDescription}`;
+
         const form = new FormData();
         form.append("image", imgBuffer, { filename: "room.jpg", contentType: "image/jpeg" });
-        form.append("prompt", visualDescription);
+        form.append("prompt", preservationPrompt);
         if (!isExterior) {
           form.append("room_type", roomType);
         }
@@ -582,6 +588,8 @@ KEEP UNCHANGED:
 - The camera angle, perspective, and field of view
 - The natural lighting direction and window positions
 - Any structural elements (doors, windows, archways) not mentioned in changes
+- Background rooms visible through doorways or openings — do NOT alter furniture, fixtures, or decor in adjacent spaces
+- Fireplaces, mantels, columns, and architectural features not explicitly listed in the changes below
 
 APPLY THESE SPECIFIC CHANGES:
 ${visualDescription}

@@ -294,18 +294,38 @@ export async function generateConfiguratorQuote(
   return result;
 }
 
+const RENOVATION_PATTERNS: Array<{ type: string; keywords: string[]; strictKeywords: string[] }> = [
+  {
+    type: "kitchen",
+    keywords: ["kitchen remodel", "remodel kitchen", "kitchen renovation", "renovate kitchen", "update kitchen", "redo kitchen", "new kitchen", "kitchen upgrade", "kitchen makeover", "kitchen cost", "cost kitchen", "kitchen counter", "kitchen cabinet", "upgrade countertop", "new countertop", "new cabinet"],
+    strictKeywords: ["kitchen remodel", "remodel kitchen", "kitchen renovation", "renovate kitchen", "update kitchen", "redo kitchen", "kitchen upgrade", "kitchen makeover"],
+  },
+  {
+    type: "bathroom",
+    keywords: ["bathroom remodel", "remodel bathroom", "bathroom renovation", "renovate bathroom", "update bathroom", "redo bathroom", "new bathroom", "bathroom upgrade", "bath remodel", "bathroom makeover", "bathroom cost", "cost bathroom", "new vanity", "shower remodel", "tub replacement", "new toilet"],
+    strictKeywords: ["bathroom remodel", "remodel bathroom", "bathroom renovation", "renovate bathroom", "update bathroom", "redo bathroom", "bathroom upgrade", "bath remodel", "bathroom makeover"],
+  },
+  {
+    type: "flooring",
+    keywords: ["new floor", "replace floor", "flooring", "hardwood floor", "new carpet", "replace carpet", "vinyl floor", "laminate floor", "redo floor", "lvp", "vinyl plank", "engineered hardwood"],
+    strictKeywords: ["new floor", "replace floor", "flooring", "hardwood floor", "new carpet", "replace carpet", "redo floor"],
+  },
+  {
+    type: "painting",
+    keywords: ["paint ", "repaint", "new paint", "painting", "interior paint", "paint job", "fresh paint", "paint throughout", "fresh coat"],
+    strictKeywords: ["interior paint", "paint job", "paint throughout", "repaint entire", "repaint all", "full repaint", "whole house paint"],
+  },
+  {
+    type: "windows",
+    keywords: ["replace window", "new window", "window replacement", "upgrade window", "window upgrade", "double pane", "energy efficient window"],
+    strictKeywords: ["replace window", "new window", "window replacement", "upgrade window", "window upgrade"],
+  },
+];
+
 export function detectRenovationIntent(message: string): string | null {
   const msg = message.toLowerCase().replace(/\b(the|a|an|my|our|this|that|master|guest|main|half)\b/g, " ").replace(/\s+/g, " ").trim();
 
-  const patterns: Array<{ type: string; keywords: string[] }> = [
-    { type: "kitchen", keywords: ["kitchen remodel", "remodel kitchen", "kitchen renovation", "renovate kitchen", "update kitchen", "redo kitchen", "new kitchen", "kitchen upgrade", "kitchen makeover", "kitchen cost", "cost kitchen", "kitchen counter", "kitchen cabinet", "upgrade countertop", "new countertop", "new cabinet"] },
-    { type: "bathroom", keywords: ["bathroom remodel", "remodel bathroom", "bathroom renovation", "renovate bathroom", "update bathroom", "redo bathroom", "new bathroom", "bathroom upgrade", "bath remodel", "bathroom makeover", "bathroom cost", "cost bathroom", "new vanity", "shower remodel", "tub replacement", "new toilet"] },
-    { type: "flooring", keywords: ["new floor", "replace floor", "flooring", "hardwood floor", "new carpet", "replace carpet", "vinyl floor", "laminate floor", "redo floor", "lvp", "vinyl plank", "engineered hardwood"] },
-    { type: "painting", keywords: ["paint ", "repaint", "new paint", "painting", "interior paint", "paint job", "fresh paint", "paint throughout", "fresh coat"] },
-    { type: "windows", keywords: ["replace window", "new window", "window replacement", "upgrade window", "window upgrade", "double pane", "energy efficient window"] },
-  ];
-
-  for (const pattern of patterns) {
+  for (const pattern of RENOVATION_PATTERNS) {
     if (pattern.keywords.some(kw => msg.includes(kw))) {
       return pattern.type;
     }
@@ -314,8 +334,23 @@ export function detectRenovationIntent(message: string): string | null {
   return null;
 }
 
+function detectRenovationIntentStrict(message: string): string | null {
+  const msg = message.toLowerCase().replace(/\b(the|a|an|my|our|this|that|master|guest|main|half)\b/g, " ").replace(/\s+/g, " ").trim();
+
+  for (const pattern of RENOVATION_PATTERNS) {
+    if (pattern.strictKeywords.some(kw => msg.includes(kw))) {
+      return pattern.type;
+    }
+  }
+
+  return null;
+}
+
 export function detectRenovationIntentFromBoth(userMessage: string, aiResponse: string): string | null {
-  return detectRenovationIntent(userMessage) || detectRenovationIntent(aiResponse);
+  const userIntent = detectRenovationIntent(userMessage);
+  if (userIntent) return userIntent;
+
+  return detectRenovationIntentStrict(aiResponse);
 }
 
 export function getConfiguratorOptions(renovationType: string) {
