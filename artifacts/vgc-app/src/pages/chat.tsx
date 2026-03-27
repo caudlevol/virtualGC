@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
-function BeforeAfterSlider({ beforeSrc, afterSrc, onClickAfter }: { beforeSrc: string; afterSrc: string; onClickAfter?: () => void }) {
+function BeforeAfterSlider({ beforeSrc, afterSrc, onClickAfter, fullscreen }: { beforeSrc: string; afterSrc: string; onClickAfter?: () => void; fullscreen?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
@@ -40,10 +40,16 @@ function BeforeAfterSlider({ beforeSrc, afterSrc, onClickAfter }: { beforeSrc: s
     setIsDragging(false);
   }, []);
 
+  const containerClass = fullscreen
+    ? "relative w-full aspect-[16/10] max-h-[80vh] rounded-xl overflow-hidden cursor-col-resize select-none touch-none"
+    : "relative w-full aspect-[4/3] rounded-xl overflow-hidden border border-white/10 shadow-lg cursor-col-resize select-none touch-none";
+
+  const labelSize = fullscreen ? "px-3 py-1 text-sm" : "px-2 py-0.5 text-xs";
+
   return (
     <div
       ref={containerRef}
-      className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border border-white/10 shadow-lg cursor-col-resize select-none touch-none"
+      className={containerClass}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -58,8 +64,8 @@ function BeforeAfterSlider({ beforeSrc, afterSrc, onClickAfter }: { beforeSrc: s
           <GripVertical className="w-4 h-4 text-gray-700" />
         </div>
       </div>
-      <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/60 text-white text-xs font-medium pointer-events-none">Before</div>
-      <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/60 text-white text-xs font-medium pointer-events-none">After</div>
+      <div className={`absolute top-2 left-2 rounded bg-black/60 text-white font-medium pointer-events-none ${labelSize}`}>Before</div>
+      <div className={`absolute top-2 right-2 rounded bg-black/60 text-white font-medium pointer-events-none ${labelSize}`}>After</div>
     </div>
   );
 }
@@ -90,18 +96,21 @@ function formatMessage(text: string) {
   });
 }
 
-function PhotoLightbox({ photos, initialIndex, onClose }: { photos: string[]; initialIndex: number; onClose: () => void }) {
+function PhotoLightbox({ photos, initialIndex, onClose, beforeSrc }: { photos: string[]; initialIndex: number; onClose: () => void; beforeSrc?: string }) {
   const [index, setIndex] = useState(initialIndex);
+  const isBeforeAfter = !!beforeSrc;
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft") setIndex(i => (i - 1 + photos.length) % photos.length);
-      if (e.key === "ArrowRight") setIndex(i => (i + 1) % photos.length);
+      if (!isBeforeAfter) {
+        if (e.key === "ArrowLeft") setIndex(i => (i - 1 + photos.length) % photos.length);
+        if (e.key === "ArrowRight") setIndex(i => (i + 1) % photos.length);
+      }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [photos.length, onClose]);
+  }, [photos.length, onClose, isBeforeAfter]);
 
   return (
     <motion.div
@@ -119,33 +128,51 @@ function PhotoLightbox({ photos, initialIndex, onClose }: { photos: string[]; in
       </button>
 
       <div className="relative w-full h-full flex items-center justify-center p-8" onClick={e => e.stopPropagation()}>
-        {photos.length > 1 && (
-          <button
-            onClick={() => setIndex(i => (i - 1 + photos.length) % photos.length)}
-            className="absolute left-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors z-10"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
+        {isBeforeAfter ? (
+          <div className="w-full max-w-4xl">
+            <BeforeAfterSlider
+              beforeSrc={beforeSrc!}
+              afterSrc={photos[0]}
+              fullscreen
+            />
+            <div className="mt-2 text-center">
+              <span className="bg-black/70 text-white text-sm px-4 py-2 rounded-full inline-flex items-center gap-2">
+                <GripVertical className="w-4 h-4" />
+                Drag to compare before &amp; after
+              </span>
+            </div>
+          </div>
+        ) : (
+          <>
+            {photos.length > 1 && (
+              <button
+                onClick={() => setIndex(i => (i - 1 + photos.length) % photos.length)}
+                className="absolute left-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors z-10"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+
+            <img
+              src={photos[index]}
+              alt={`Photo ${index + 1}`}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+
+            {photos.length > 1 && (
+              <button
+                onClick={() => setIndex(i => (i + 1) % photos.length)}
+                className="absolute right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors z-10"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
+
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-sm px-4 py-2 rounded-full">
+              {index + 1} / {photos.length}
+            </div>
+          </>
         )}
-
-        <img
-          src={photos[index]}
-          alt={`Photo ${index + 1}`}
-          className="max-w-full max-h-full object-contain rounded-lg"
-        />
-
-        {photos.length > 1 && (
-          <button
-            onClick={() => setIndex(i => (i + 1) % photos.length)}
-            className="absolute right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors z-10"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        )}
-
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white text-sm px-4 py-2 rounded-full">
-          {index + 1} / {photos.length}
-        </div>
       </div>
     </motion.div>
   );
@@ -362,6 +389,7 @@ export default function ChatPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
+  const [lightboxBeforeSrc, setLightboxBeforeSrc] = useState<string | undefined>(undefined);
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
 
   const [input, setInput] = useState("");
@@ -400,9 +428,10 @@ export default function ChatPage() {
     }
   }, [conv?.messages, sendMutation.isPending, visualizeMutation.isPending]);
 
-  const openLightbox = (photos: string[], index: number) => {
+  const openLightbox = (photos: string[], index: number, beforeSrc?: string) => {
     setLightboxPhotos(photos);
     setLightboxIndex(index);
+    setLightboxBeforeSrc(beforeSrc);
     setLightboxOpen(true);
   };
 
@@ -575,7 +604,7 @@ export default function ChatPage() {
                             <BeforeAfterSlider
                               beforeSrc={msg.sourceImageUrl}
                               afterSrc={msg.imageUrl}
-                              onClickAfter={() => openLightbox([msg.imageUrl!], 0)}
+                              onClickAfter={() => openLightbox([msg.imageUrl!], 0, msg.sourceImageUrl)}
                             />
                             <div className="bg-secondary/80 rounded-b-xl px-3 py-1.5 flex items-center gap-1.5">
                               <Sparkles className="w-3 h-3 text-primary" />
@@ -717,7 +746,8 @@ export default function ChatPage() {
           <PhotoLightbox
             photos={lightboxPhotos}
             initialIndex={lightboxIndex}
-            onClose={() => setLightboxOpen(false)}
+            onClose={() => { setLightboxOpen(false); setLightboxBeforeSrc(undefined); }}
+            beforeSrc={lightboxBeforeSrc}
           />
         )}
       </AnimatePresence>
