@@ -48,3 +48,9 @@ id = "UcT5Z_UHaEHiQhYP0InNF"
 uri = "file://exports/app-store-icons/vgc-icon-76x76.png"
 type = "image"
 title = "iPad Icon - 76x76"
+
+[[outputs]]
+id = "2YHbdHe2hxmnIzeIxe19t"
+uri = "file://exports/app-store-icons/vgc-logo-1024x1024.jpg"
+type = "image"
+title = "VGC Logo - 1024x1024 JPEG (downloadable)"
