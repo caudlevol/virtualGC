@@ -6,3 +6,45 @@ id = "vSwUcny8UAPCeade45Bse"
 uri = "file://attached_assets/Virtual_GC_Complete_Strategy_Brief.pdf"
 type = "pdf"
 title = "Virtual GC - Complete Strategy & Technical Brief"
+
+[[outputs]]
+id = "8cVrsnuJrA6oeoONG0tmh"
+uri = "file://exports/app-store-icons/vgc-icon-1024x1024.png"
+type = "image"
+title = "App Store Icon - 1024x1024 (Apple App Store required)"
+
+[[outputs]]
+id = "fBVttrz0eZtJF0CN9OBck"
+uri = "file://exports/app-store-icons/vgc-icon-512x512.png"
+type = "image"
+title = "Play Store Icon - 512x512 (Google Play required)"
+
+[[outputs]]
+id = "4MCnrZei5mz6wKHalNB7k"
+uri = "file://exports/app-store-icons/vgc-icon-180x180.png"
+type = "image"
+title = "iPhone App Icon - 180x180 (@3x)"
+
+[[outputs]]
+id = "2H7nqN60Q8zOeVwKtLzgL"
+uri = "file://exports/app-store-icons/vgc-icon-167x167.png"
+type = "image"
+title = "iPad Pro App Icon - 167x167"
+
+[[outputs]]
+id = "a_tg-mhqDYCAP50dr1mPk"
+uri = "file://exports/app-store-icons/vgc-icon-152x152.png"
+type = "image"
+title = "iPad App Icon - 152x152"
+
+[[outputs]]
+id = "z2mqoQyRRhImknYPx2f76"
+uri = "file://exports/app-store-icons/vgc-icon-120x120.png"
+type = "image"
+title = "iPhone Spotlight/App Icon - 120x120 (@2x)"
+
+[[outputs]]
+id = "UcT5Z_UHaEHiQhYP0InNF"
+uri = "file://exports/app-store-icons/vgc-icon-76x76.png"
+type = "image"
+title = "iPad Icon - 76x76"
