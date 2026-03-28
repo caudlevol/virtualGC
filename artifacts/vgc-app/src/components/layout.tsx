@@ -36,7 +36,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <aside className="hidden md:flex flex-col w-64 border-r border-white/5 bg-background/50 backdrop-blur-xl fixed inset-y-0 left-0 z-40 print:hidden">
         <div className="p-5 border-b border-white/5">
           <Link href="/dashboard" className="flex items-center gap-2 group">
-            <img src="/logo.png" alt="Showstimate" className="w-[100px] h-auto object-contain" />
+            <img src="/logo.png" alt="Showstimate" className="h-[40px] w-auto object-contain" />
+            <span className="font-display font-bold text-lg tracking-tight">Showstimate</span>
           </Link>
         </div>
 

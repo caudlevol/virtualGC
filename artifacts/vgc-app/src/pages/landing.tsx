@@ -27,7 +27,8 @@ export default function LandingPage() {
 
       <header className="container mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Showstimate" className="w-[100px] h-auto object-contain" />
+          <img src="/logo.png" alt="Showstimate" className="h-[40px] w-auto object-contain" />
+          <span className="font-display font-bold text-lg sm:text-xl tracking-tight">Showstimate</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <Link href="/demo" className="text-sm font-medium text-muted-foreground hover:text-foreground hidden sm:block">Try Demo</Link>
