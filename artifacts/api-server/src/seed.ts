@@ -1,4 +1,6 @@
-import { db, materialCostsTable, laborRatesTable, regionalMultipliersTable } from "@workspace/db";
+import { db, materialCostsTable, laborRatesTable, regionalMultipliersTable, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcrypt";
 import { logger } from "./lib/logger";
 
 const MATERIALS = [
@@ -224,6 +226,24 @@ export async function seedCostEngine() {
     }
 
     logger.info("Cost engine seed check complete");
+
+    const ADMIN_EMAIL = "hunter@opsintelligencegroup.com";
+    const ADMIN_PASSWORD = "AdminVGC2024!";
+    const existing = await db.select({ id: usersTable.id, role: usersTable.role }).from(usersTable).where(eq(usersTable.email, ADMIN_EMAIL)).limit(1);
+    const hash = await bcrypt.hash(ADMIN_PASSWORD, 12);
+    if (existing.length === 0) {
+      await db.insert(usersTable).values({
+        email: ADMIN_EMAIL,
+        passwordHash: hash,
+        name: "Hunter (Admin)",
+        role: "super_admin",
+        subscriptionTier: "enterprise",
+      });
+      logger.info("Admin account created");
+    } else {
+      await db.update(usersTable).set({ passwordHash: hash, role: "super_admin", subscriptionTier: "enterprise" }).where(eq(usersTable.email, ADMIN_EMAIL));
+      logger.info("Admin account synced");
+    }
   } catch (err) {
     logger.error({ err }, "Seed failed");
     throw err;
