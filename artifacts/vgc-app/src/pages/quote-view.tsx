@@ -4,7 +4,8 @@ import { useGetQuote, useToggleShareQuote, useDeleteQuote, useGenerateQuote } fr
 import { AppLayout } from "@/components/layout";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
-import { Loader2, Share2, CheckCircle, AlertTriangle, Building, MapPin, Printer, Trash2, Info } from "lucide-react";
+import { Loader2, Share2, CheckCircle, AlertTriangle, Building, MapPin, Printer, Trash2, Info, Download } from "lucide-react";
+import { generateQuotePdf } from "@/lib/pdfGenerator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -128,6 +129,9 @@ export default function QuoteView() {
             )}
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <Button variant="outline" size="sm" onClick={() => generateQuotePdf(quote as Parameters<typeof generateQuotePdf>[0])} className="bg-transparent touch-target">
+              <Download className="w-4 h-4 mr-1.5" /> PDF
+            </Button>
             <Button variant="outline" size="sm" onClick={() => window.print()} className="bg-transparent touch-target">
               <Printer className="w-4 h-4 mr-1.5" /> Print
             </Button>
