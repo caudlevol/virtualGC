@@ -35,7 +35,21 @@ Rules:
 - If multiple rooms are discussed, focus on the most recently discussed room
 - Output as a numbered list of specific changes, no preamble
 - If no specific renovations are discussed, output "General modern renovation update with contemporary finishes"
-- CRITICAL: At the end, add a line starting with "DO NOT CHANGE:" listing elements that must stay the same — background rooms visible through doorways, furniture in adjacent spaces, architectural features not being renovated (fireplaces, archways, columns, etc.)`,
+
+CRITICAL — PRESERVATION LIST:
+After the numbered list of changes, you MUST add two sections:
+
+"ONLY MODIFY:" — List every specific item/area that should be changed (e.g. "fireplace surround and mantel"). Nothing outside this list may be touched.
+
+"DO NOT CHANGE (preserve exactly as-is):" — Explicitly list EVERY other visible element in the room that must remain identical:
+  • All furniture, seating, tables, and decor items not mentioned in the changes
+  • All lighting fixtures (ceiling fans, chandeliers, lamps, recessed lights) not mentioned
+  • All windows, doors, and structural openings — do NOT add, remove, or reposition any
+  • All architectural features not being renovated (fireplaces, archways, columns, built-ins, moldings)
+  • All flooring, rugs, and wall treatments not mentioned
+  • All appliances and cabinetry not mentioned
+  • Background rooms visible through doorways or openings
+  • Wall art, mirrors, shelving, and decorative objects not mentioned`,
       },
       {
         role: "user",
@@ -509,9 +523,14 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
         const reimageBase = "https://api.reimage.io/api/v1";
         const endpoint = isExterior ? "exterior-remodel" : "interior-remodel";
 
-        const preservationPrompt = `IMPORTANT: Only modify the specific items listed below. Keep ALL other elements exactly as they are — background rooms visible through doorways, furniture in adjacent spaces, fireplaces, architectural features, ceiling details, and any areas not explicitly mentioned.
+        const preservationPrompt = `STRICT RULES — violating any of these is a failure:
+- ONLY modify the specific items listed below. Everything else MUST remain pixel-perfect identical to the original photo.
+- DO NOT add any new objects not in the original (no new ceiling fans, rugs, wall art, furniture, light fixtures, doors, or windows).
+- DO NOT remove any existing objects from the photo.
+- Keep ALL furniture, decor, lighting fixtures, windows, doors, appliances, and architectural features exactly as they are unless explicitly listed below.
+- Keep background rooms visible through doorways completely untouched.
 
-CHANGES TO APPLY:
+CHANGES TO APPLY (and ONLY these changes):
 ${visualDescription}`;
 
         const form = new FormData();
@@ -581,17 +600,28 @@ ${visualDescription}`;
 
     if (!dataUri) {
       console.log("[visualize] Using Gemini fallback");
-      const editPrompt = `You are a professional interior renovation visualization tool. Edit this photo to show the following specific renovations applied to the room.
+      const editPrompt = `You are a professional interior renovation visualization tool. Edit this photo to show ONLY the specific renovations listed below. Everything else in the image MUST remain pixel-perfect identical to the original.
 
-KEEP UNCHANGED:
+KEEP UNCHANGED (strict — violating any of these is a failure):
 - The exact room layout, dimensions, walls, ceiling, and floor plan
 - The camera angle, perspective, and field of view
 - The natural lighting direction and window positions
-- Any structural elements (doors, windows, archways) not mentioned in changes
-- Background rooms visible through doorways or openings — do NOT alter furniture, fixtures, or decor in adjacent spaces
-- Fireplaces, mantels, columns, and architectural features not explicitly listed in the changes below
+- ALL existing furniture, seating, tables, and decor items not explicitly mentioned in the changes below
+- ALL existing lighting fixtures (ceiling fans, chandeliers, lamps, recessed lights) not explicitly mentioned in the changes below
+- ALL existing windows, doors, and structural openings — do NOT add, remove, or reposition any
+- ALL existing appliances and cabinetry not explicitly mentioned in the changes below
+- Background rooms visible through doorways or openings — do NOT alter anything in adjacent spaces
+- Fireplaces, mantels, columns, archways, built-ins, and architectural features not explicitly listed in the changes below
+- ALL flooring, rugs, wall art, mirrors, and decorative objects not explicitly mentioned below
 
-APPLY THESE SPECIFIC CHANGES:
+NEGATIVE CONSTRAINTS (absolute rules):
+- DO NOT add any new objects that are not in the original photo (no new ceiling fans, rugs, wall art, furniture, light fixtures, doors, or windows)
+- DO NOT remove any existing objects from the photo
+- If the change targets a specific item (e.g. a fireplace), restrict your edits ONLY to that item and its immediate surrounding pixels — the rest of the image must be a 1:1 pixel-perfect match with the original
+- DO NOT change the color of walls, ceilings, or floors unless explicitly requested
+- DO NOT upgrade, modernize, or restyle anything not listed in the changes below
+
+APPLY THESE SPECIFIC CHANGES (and ONLY these changes):
 ${visualDescription}
 
 QUALITY REQUIREMENTS:
