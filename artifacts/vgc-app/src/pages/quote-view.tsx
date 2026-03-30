@@ -130,7 +130,7 @@ export default function QuoteView() {
           </div>
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <Button variant="outline" size="sm" onClick={() => generateQuotePdf(quote as Parameters<typeof generateQuotePdf>[0])} className="bg-transparent touch-target">
-              <Download className="w-4 h-4 mr-1.5" /> PDF
+              <Download className="w-4 h-4 mr-1.5" /> <span className="hidden sm:inline">Download </span>PDF
             </Button>
             <Button variant="outline" size="sm" onClick={() => window.print()} className="bg-transparent touch-target">
               <Printer className="w-4 h-4 mr-1.5" /> Print
