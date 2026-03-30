@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useSearch } from "wouter";
 import { z } from "zod";
@@ -6,7 +6,7 @@ import { zodFormResolver } from "@/lib/form-resolver";
 import { useDemoEstimate, useCaptureLead } from "@workspace/api-client-react";
 import { formatCurrency } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Hammer, Loader2, Zap, CheckCircle, AlertTriangle } from "lucide-react";
+import { Loader2, Zap, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,8 +68,8 @@ export default function DemoPage() {
     <div className="min-h-screen bg-background">
       <header className="container mx-auto px-6 h-20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <Hammer className="w-5 h-5 text-primary" />
-          <span className="font-display font-bold text-xl">Virtual<span className="text-primary">GC</span></span>
+          <img src="/logo.png" alt="Showstimate" className="h-[40px] w-auto object-contain" />
+          <span className="font-display font-bold text-xl tracking-tight">Showstimate</span>
         </Link>
         <Link href="/register">
           <Button variant="outline" className="border-white/10">Sign Up</Button>

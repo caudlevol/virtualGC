@@ -5,7 +5,7 @@ import { z } from "zod";
 import { zodFormResolver } from "@/lib/form-resolver";
 import { useLogin, useRegister, useGetSession } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
-import { Building, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,10 +71,8 @@ export default function AuthPage({ defaultTab = "login" }: { defaultTab?: "login
       
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4">
         <Link href="/" className="flex items-center justify-center gap-2 group mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
-            <Building className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-display font-bold text-2xl tracking-tight">Virtual<span className="text-primary">GC</span></span>
+          <img src="/logo.png" alt="Showstimate" className="h-[40px] w-auto object-contain" />
+          <span className="font-display font-bold text-2xl tracking-tight">Showstimate</span>
         </Link>
 
         <motion.div
