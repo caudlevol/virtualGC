@@ -1,0 +1,41 @@
+I have reviewed the repository and found the exact causes for both issues. Here is the breakdown and the exact Replit prompts you can use to fix them immediately.
+Issue 1: AI Changing Unrelated Room Elements
+The Problem:
+When you ask an AI image model to "modernize the fireplace," it doesn't just look at the fireplace; it looks at the whole image and tries to make the entire image look "modern." If it thinks a modern room should have a ceiling fan or a different window, it will hallucinate them into the picture. Your current editPrompt in conversations.ts tells it to keep the layout unchanged, but image models need much more aggressive negative constraints to stop them from hallucinating new objects.
+The Fix:
+You need to update both the extraction prompt (so it explicitly tells the image model what not to touch) and the image generation prompt (to enforce strict masking of unrelated items).
+Paste this exact prompt into Replit to fix it:
+Update the image visualization prompts in artifacts/api-server/src/routes/conversations.ts to prevent the AI from changing unrelated items in the room.
+1. Update the extractVisualDescription system prompt:
+Add this rule to the existing rules:
+"- CRITICAL: Explicitly state that all other furniture, fixtures, windows, doors, and architectural elements MUST remain exactly as they are. If the user only asks to update the fireplace, add a strong instruction: 'ONLY modify the fireplace. DO NOT add, remove, or change any fans, windows, doors, or other furniture.'"
+2. Update the editPrompt variable:
+Under the KEEP UNCHANGED: section, add these exact bullet points:
+"- ALL existing furniture, decor, and lighting fixtures not explicitly mentioned in the changes"
+"- ALL existing windows, doors, and structural openings (DO NOT add new doors or windows)"
+"- DO NOT hallucinate or add any new objects (like ceiling fans, rugs, or wall art) that were not specifically requested"
+Add a new section called NEGATIVE CONSTRAINTS:
+"- If the prompt is about a specific item (e.g., a fireplace), you MUST restrict your edits ONLY to that item and its immediate surrounding pixels. The rest of the image must be a 1:1 pixel-perfect match with the original."
+Issue 2: Generating a PDF Quote / Connecting to Contractors
+The Problem:
+Right now, the quote is just rendered on the screen. To make this a true utility for real estate agents (your ICP), they need a professional, branded PDF they can hand to their buyers or take to a contractor as a Scope of Work (SOW).
+The Fix:
+We can have Replit build a "Download PDF Estimate" button on the quote page. It will take the JSON quote data, add the Showstimate logo, property details, and itemized costs, and generate a clean, professional PDF document right in the browser.
+Paste this exact prompt into Replit to build the PDF feature:
+Add a "Download PDF Estimate" feature to the Quote/Estimate page.
+1. Install dependencies:
+Install jspdf and jspdf-autotable in the React frontend to handle PDF generation.
+2. Create a PDF Generation Utility:
+Create a new utility file (e.g., lib/pdfGenerator.ts or similar in the frontend) that takes the quote data (property address, line items, categories, total cost, and the Showstimate logo) and formats it into a professional, clean PDF.
+Include a header with the Showstimate logo and "Renovation Estimate".
+Include a "Property Details" section.
+Use jspdf-autotable to create a clean table of the line items grouped by category (Material vs. Labor).
+Include the Total Estimated Cost clearly at the bottom.
+Add a disclaimer at the bottom: "This is an AI-generated estimate based on regional averages. Actual contractor pricing may vary. Use this as a Scope of Work to gather localized bids."
+3. Update the UI:
+On the Quote display component, add a primary button labeled "Download PDF Estimate" next to the share/save buttons. When clicked, it should trigger the PDF generation and download the file as Showstimate_Estimate_[Address].pdf.
+Ensure the styling of the PDF matches our brand identity (calm, premium, modern SaaS) using our brand colors where possible.
+Next Steps
+Once you run these two prompts in Replit:
+The image generator will become hyper-focused. If you say "paint the cabinets blue," it will leave the fridge, the floor, and the windows completely alone.
+Your agents will have a tangible, branded PDF asset they can immediately email to clients or hand to a local GC to say, "Here is the exact scope of work we want, please bid against these line items."
