@@ -615,6 +615,7 @@ KEEP UNCHANGED (strict — violating any of these is a failure):
 - ALL flooring, rugs, wall art, mirrors, and decorative objects not explicitly mentioned below
 
 NEGATIVE CONSTRAINTS (absolute rules):
+- DO NOT hallucinate any unrequested objects or changes — if it is not listed below, it must not change
 - DO NOT add any new objects that are not in the original photo (no new ceiling fans, rugs, wall art, furniture, light fixtures, doors, or windows)
 - DO NOT remove any existing objects from the photo
 - If the change targets a specific item (e.g. a fireplace), restrict your edits ONLY to that item and its immediate surrounding pixels — the rest of the image must be a 1:1 pixel-perfect match with the original
