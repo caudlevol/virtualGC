@@ -1,23 +1,8 @@
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
-
-function ogAbsoluteUrls(): Plugin {
-  return {
-    name: "og-absolute-urls",
-    transformIndexHtml(html) {
-      const domain = process.env.REPLIT_DEPLOYMENT_URL || process.env.REPLIT_DEV_DOMAIN;
-      if (!domain) return html;
-      const origin = domain.startsWith("http") ? domain : `https://${domain}`;
-      return html.replace(
-        /(<meta\s+(?:property|name)="(?:og:image|twitter:image)"\s+content=")\/([^"]*")/g,
-        `$1${origin}/$2`
-      );
-    },
-  };
-}
 
 const port = Number(process.env.PORT) || 5173;
 const basePath = process.env.BASE_PATH || "/";
@@ -28,7 +13,6 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
-    ogAbsoluteUrls(),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
