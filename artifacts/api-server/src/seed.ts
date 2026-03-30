@@ -244,6 +244,24 @@ export async function seedCostEngine() {
       await db.update(usersTable).set({ passwordHash: hash, role: "super_admin", subscriptionTier: "enterprise" }).where(eq(usersTable.email, ADMIN_EMAIL));
       logger.info("Admin account synced");
     }
+
+    const DEMO_EMAIL = "demo@showstimate.com";
+    const DEMO_PASSWORD = "TestDemo2024!";
+    const existingDemo = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, DEMO_EMAIL)).limit(1);
+    const demoHash = await bcrypt.hash(DEMO_PASSWORD, 12);
+    if (existingDemo.length === 0) {
+      await db.insert(usersTable).values({
+        email: DEMO_EMAIL,
+        passwordHash: demoHash,
+        name: "Demo Tester",
+        role: "super_admin",
+        subscriptionTier: "enterprise",
+      });
+      logger.info("Demo test account created");
+    } else {
+      await db.update(usersTable).set({ passwordHash: demoHash, role: "super_admin", subscriptionTier: "enterprise" }).where(eq(usersTable.email, DEMO_EMAIL));
+      logger.info("Demo test account synced");
+    }
   } catch (err) {
     logger.error({ err }, "Seed failed");
     throw err;
