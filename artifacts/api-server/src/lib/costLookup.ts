@@ -116,10 +116,10 @@ function getAgeMultiplier(yearBuilt: number | null | undefined): number {
 }
 
 function findBestMaterialMatch(
-  allMaterials: Array<{ item: string; baseUnitCost: number; qualityTier: string }>,
+  allMaterials: Array<{ item: string; baseUnitCost: number; qualityTier: string; laborHoursPerUnit: number | null }>,
   description: string,
   qualityTier: string
-): { baseUnitCost: number } | null {
+): { baseUnitCost: number; laborHoursPerUnit: number } | null {
   const descLower = description.toLowerCase();
 
   let matchedSubstring: string | null = null;
@@ -134,18 +134,18 @@ function findBestMaterialMatch(
     const tierMatch = allMaterials.find(
       m => m.item.toLowerCase().includes(matchedSubstring!) && m.qualityTier === qualityTier
     );
-    if (tierMatch) return { baseUnitCost: tierMatch.baseUnitCost };
+    if (tierMatch) return { baseUnitCost: tierMatch.baseUnitCost, laborHoursPerUnit: tierMatch.laborHoursPerUnit ?? 1.0 };
 
     const anyMatch = allMaterials.find(
       m => m.item.toLowerCase().includes(matchedSubstring!)
     );
-    if (anyMatch) return { baseUnitCost: anyMatch.baseUnitCost };
+    if (anyMatch) return { baseUnitCost: anyMatch.baseUnitCost, laborHoursPerUnit: anyMatch.laborHoursPerUnit ?? 1.0 };
   }
 
   const tierFallback = allMaterials.find(m => m.qualityTier === qualityTier);
-  if (tierFallback) return { baseUnitCost: tierFallback.baseUnitCost };
+  if (tierFallback) return { baseUnitCost: tierFallback.baseUnitCost, laborHoursPerUnit: tierFallback.laborHoursPerUnit ?? 1.0 };
 
-  return allMaterials.length > 0 ? { baseUnitCost: allMaterials[0].baseUnitCost } : null;
+  return allMaterials.length > 0 ? { baseUnitCost: allMaterials[0].baseUnitCost, laborHoursPerUnit: allMaterials[0].laborHoursPerUnit ?? 1.0 } : null;
 }
 
 export async function priceLineItemsFromCostEngine(
@@ -170,9 +170,9 @@ export async function priceLineItemsFromCostEngine(
 
     const blsLaborRate = await getLaborRate(tradeType);
 
-    const unit = item.unit.toLowerCase();
-    const tradeHours = LABOR_HOURS_PER_UNIT[tradeType] || LABOR_HOURS_PER_UNIT.general;
-    const hoursPerUnit = tradeHours[unit] || tradeHours.each || 2.0;
+    const hoursPerUnit = bestMatch
+      ? bestMatch.laborHoursPerUnit
+      : ((LABOR_HOURS_PER_UNIT[tradeType] || LABOR_HOURS_PER_UNIT.general)[item.unit.toLowerCase()] ?? 1.0);
     const laborCostPerUnit = blsLaborRate * hoursPerUnit;
 
     pricedItems.push({

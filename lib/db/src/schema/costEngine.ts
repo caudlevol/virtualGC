@@ -9,6 +9,7 @@ export const materialCostsTable = pgTable("material_costs", {
   qualityTier: text("quality_tier").notNull().default("mid_range"),
   baseUnitCost: real("base_unit_cost").notNull(),
   unit: text("unit").notNull().default("each"),
+  laborHoursPerUnit: real("labor_hours_per_unit").default(1.0),
 });
 
 export const insertMaterialCostSchema = createInsertSchema(materialCostsTable).omit({ id: true });

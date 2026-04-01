@@ -1,0 +1,104 @@
+Fix 3 — The Labor Calculation (Removing the Arbitrary Division)
+What is actually broken:
+In costLookup.ts, labor is calculated as:
+TypeScript
+const laborCostPerUnit = (blsLaborRate * productivityFactor) / 4;
+Dividing by 4 assumes every unit of work takes exactly 15 minutes. Installing a toilet takes 2 hours. Painting one square foot takes 3 minutes. These are wildly different, and any real GC or experienced agent will immediately know the numbers are wrong.
+The fix — add real production rates:
+Replit Prompt 3 — Fix the Labor Cost Calculation Logic
+Step 1 — Schema (lib/db/src/schema/costEngine.ts):
+Add a new column to the material_costs table:
+TypeScript
+laborHoursPerUnit: real("labor_hours_per_unit").default(1.0)
+Run the Drizzle migration after adding this column.
+Step 2 — Seed Data (artifacts/api-server/src/seed.ts):
+Update the MATERIALS array. Add laborHoursPerUnit to every item using these realistic contractor production rates:
+Material
+Unit
+laborHoursPerUnit
+Cabinets (any tier)
+linear_ft
+1.5
+Countertop (any tier)
+sqft
+0.5
+Backsplash (any tier)
+sqft
+0.75
+Vanity (any tier)
+each
+3.0
+Toilet (any tier)
+each
+2.0
+Tub/Shower (any tier)
+each
+6.0
+Tile (any tier)
+sqft
+0.75
+Flooring laminate/LVP
+sqft
+0.1
+Flooring engineered hardwood
+sqft
+0.15
+Flooring solid hardwood
+sqft
+0.2
+Carpet
+sqft
+0.07
+Interior paint
+sqft
+0.05
+Exterior paint
+sqft
+0.07
+Roofing (any tier)
+sqft
+0.12
+Outlet/switch
+each
+0.75
+Panel upgrade
+each
+8.0
+Recessed lighting
+each
+1.5
+Pipe replacement
+linear_ft
+0.25
+Water heater (tank)
+each
+4.0
+Water heater (tankless)
+each
+6.0
+Central AC unit
+each
+16.0
+Furnace replacement
+each
+12.0
+Ductwork
+linear_ft
+0.5
+Window (any tier)
+each
+3.0
+Drywall
+sqft
+0.15
+Insulation batt
+sqft
+0.05
+Spray foam
+sqft
+0.1
+Step 3 — Calculation (artifacts/api-server/src/lib/costLookup.ts):
+Change the labor calculation from (blsLaborRate * productivityFactor) / 4 to:
+TypeScript
+const laborCostPerUnit = blsLaborRate * productivityFactor * matchedMaterial.laborHoursPerUnit;
+Remove the arbitrary division by 4 entirely.
