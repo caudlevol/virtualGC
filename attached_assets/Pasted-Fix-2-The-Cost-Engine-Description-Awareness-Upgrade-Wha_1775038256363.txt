@@ -1,0 +1,32 @@
+Fix 2 — The Cost Engine Description-Awareness Upgrade
+What is actually broken:
+In costLookup.ts, the material lookup is:
+TypeScript
+const materials = await db.select().from(materialCostsTable)
+  .where(and(
+    eq(materialCostsTable.category, category),
+    eq(materialCostsTable.qualityTier, qualityTier)
+  ))
+  .limit(1);
+It grabs the first row it finds. If the AI says "Quartz countertops — 30 sqft" and the first row in the database for category: "kitchen", qualityTier: "premium" happens to be "Custom Cabinets", the countertops get priced as cabinets. This is the single biggest accuracy killer in the entire app.
+The fix — keyword matching:
+Replit Prompt 2 — Make the Cost Engine Description-Aware
+In artifacts/api-server/src/lib/costLookup.ts, rewrite priceLineItemsFromCostEngine:
+Remove the .limit(1) from the material query. Instead, fetch ALL materials for the given category and qualityTier.
+Add a keyword matching function directly in this file:
+TypeScript
+function findBestMaterialMatch(description: string, materials: MaterialCost[]): MaterialCost | null {
+  const descLower = description.toLowerCase();
+  const keywords = ["quartz", "granite", "laminate", "marble", "porcelain", "ceramic",
+    "hardwood", "lvp", "vinyl", "carpet", "fiberglass", "cast iron", "tankless",
+    "architectural", "metal", "spray foam", "recessed", "panel"];
+  for (const keyword of keywords) {
+    if (descLower.includes(keyword)) {
+      const match = materials.find(m => m.item.toLowerCase().includes(keyword));
+      if (match) return match;
+    }
+  }
+  return null;
+}
+Use this function to find the best match. If a match is found, use its baseUnitCost. If no match is found, fall back to the average baseUnitCost of all materials in that category/tier — NOT just the first row.
+Also update the AI JSON generation prompt in aiPipeline.ts to instruct the AI: "In the description field, always include the specific material keyword (e.g., 'quartz', 'laminate', 'hardwood', 'LVP', 'porcelain') so the cost engine can accurately price it."

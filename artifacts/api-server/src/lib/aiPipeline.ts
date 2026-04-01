@@ -159,6 +159,9 @@ Property Details:
 }
 Include ALL discussed renovation items with realistic per-unit material and labor costs (before regional adjustment). Use these units: sqft, linear_ft, each, hour, room. If there are many items, include all of them.
 
+IMPORTANT — Material Keywords in Descriptions:
+In the description field, you MUST include specific material keywords such as 'quartz', 'granite', 'laminate', 'marble', 'porcelain', 'ceramic', 'hardwood', 'engineered hardwood', 'LVP', 'vinyl', 'carpet', 'fiberglass', 'cast iron', 'tankless', 'architectural', 'metal', 'spray foam', 'recessed', 'panel', 'PEX', 'composite', 'epoxy' so the cost engine can accurately match and price each item.
+
 CRITICAL — Scope-Specific Quantities:
 Quantity MUST reflect the ACTUAL scope discussed in the conversation, NOT the full property size. Follow these rules:
 - Single door (paint, replace, refinish): use unit "each" with quantity 1. A front door paint job = 1 each at ~$150-250. Never use sqft for a single door.

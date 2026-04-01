@@ -142,10 +142,20 @@ function findBestMaterialMatch(
     if (anyMatch) return { baseUnitCost: anyMatch.baseUnitCost, laborHoursPerUnit: anyMatch.laborHoursPerUnit ?? 1.0 };
   }
 
-  const tierFallback = allMaterials.find(m => m.qualityTier === qualityTier);
-  if (tierFallback) return { baseUnitCost: tierFallback.baseUnitCost, laborHoursPerUnit: tierFallback.laborHoursPerUnit ?? 1.0 };
+  const tierMatches = allMaterials.filter(m => m.qualityTier === qualityTier);
+  if (tierMatches.length > 0) {
+    const avgCost = tierMatches.reduce((sum, m) => sum + m.baseUnitCost, 0) / tierMatches.length;
+    const avgHours = tierMatches.reduce((sum, m) => sum + (m.laborHoursPerUnit ?? 1.0), 0) / tierMatches.length;
+    return { baseUnitCost: avgCost, laborHoursPerUnit: avgHours };
+  }
 
-  return allMaterials.length > 0 ? { baseUnitCost: allMaterials[0].baseUnitCost, laborHoursPerUnit: allMaterials[0].laborHoursPerUnit ?? 1.0 } : null;
+  if (allMaterials.length > 0) {
+    const avgCost = allMaterials.reduce((sum, m) => sum + m.baseUnitCost, 0) / allMaterials.length;
+    const avgHours = allMaterials.reduce((sum, m) => sum + (m.laborHoursPerUnit ?? 1.0), 0) / allMaterials.length;
+    return { baseUnitCost: avgCost, laborHoursPerUnit: avgHours };
+  }
+
+  return null;
 }
 
 export async function priceLineItemsFromCostEngine(
