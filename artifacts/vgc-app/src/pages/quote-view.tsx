@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useGetQuote, useToggleShareQuote, useDeleteQuote, useGenerateQuote } from "@workspace/api-client-react";
+import { useGetQuote, useToggleShareQuote, useDeleteQuote, useRepriceQuote } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/layout";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
@@ -43,14 +43,14 @@ export default function QuoteView() {
     }
   });
 
-  const regenerateMutation = useGenerateQuote({
+  const repriceMutation = useRepriceQuote({
     mutation: {
-      onSuccess: (data: { id: number }) => {
-        setLocation(`/quotes/${data.id}`);
-        toast({ title: "Quote regenerated with new quality tier" });
+      onSuccess: () => {
+        refetch();
+        toast({ title: "Quote repriced" });
       },
       onError: (err: { data?: { error?: string }; message?: string }) => {
-        toast({ title: "Regeneration failed", description: err?.data?.error || err?.message || "Unknown error", variant: "destructive" });
+        toast({ title: "Reprice failed", description: err?.data?.error || err?.message || "Unknown error", variant: "destructive" });
       }
     }
   });
@@ -102,8 +102,8 @@ export default function QuoteView() {
   };
 
   const handleTierChange = (tier: QualityTier) => {
-    if (tier === quote.qualityTier || !quote.conversationId) return;
-    regenerateMutation.mutate({ data: { conversationId: quote.conversationId, qualityTier: tier, title: quote.title } });
+    if (tier === quote.qualityTier) return;
+    repriceMutation.mutate({ quoteId: id, data: { qualityTier: tier } });
   };
 
   const currentTier = quote.qualityTier as QualityTier;
@@ -155,7 +155,7 @@ export default function QuoteView() {
             <button
               key={tier}
               onClick={() => handleTierChange(tier)}
-              disabled={regenerateMutation.isPending || currentTier === tier}
+              disabled={repriceMutation.isPending || currentTier === tier}
               className={`flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 rounded-md text-sm font-medium transition-all touch-target ${
                 currentTier === tier
                   ? "bg-primary text-primary-foreground shadow-lg"
@@ -165,7 +165,7 @@ export default function QuoteView() {
               {tierLabels[tier]}
             </button>
           ))}
-          {regenerateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-primary ml-2 shrink-0" />}
+          {repriceMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-primary ml-2 shrink-0" />}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">

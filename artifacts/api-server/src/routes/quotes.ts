@@ -9,6 +9,8 @@ import {
   DeleteQuoteParams,
   GetSharedQuoteParams,
   ToggleShareQuoteParams,
+  RepriceQuoteBody,
+  RepriceQuoteParams,
 } from "@workspace/api-zod";
 import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC, claudeReviewQuote } from "../lib/aiPipeline";
@@ -221,6 +223,120 @@ router.post("/quotes/generate", requireAuth, requireTier("free"), async (req, re
     },
     createdAt: quote.createdAt.toISOString(),
     updatedAt: quote.updatedAt.toISOString(),
+  });
+});
+
+router.post("/quotes/:quoteId/reprice", requireAuth, async (req, res): Promise<void> => {
+  const paramsParsed = RepriceQuoteParams.safeParse({ quoteId: Number(req.params.quoteId) });
+  if (!paramsParsed.success) {
+    res.status(400).json({ error: "Invalid quote ID" });
+    return;
+  }
+  const bodyParsed = RepriceQuoteBody.safeParse(req.body);
+  if (!bodyParsed.success) {
+    res.status(400).json({ error: bodyParsed.error.message });
+    return;
+  }
+
+  const quoteId = paramsParsed.data.quoteId;
+  const { qualityTier } = bodyParsed.data;
+
+  const quoteOwnership = [eq(quotesTable.userId, req.session.userId!)];
+  if (req.session.orgId) {
+    quoteOwnership.push(eq(quotesTable.orgId, req.session.orgId));
+  }
+  const quotes = await db.select().from(quotesTable).where(
+    and(eq(quotesTable.id, quoteId), or(...quoteOwnership))
+  ).limit(1);
+  if (quotes.length === 0) {
+    res.status(404).json({ error: "Quote not found" });
+    return;
+  }
+
+  const existingQuote = quotes[0];
+  const existingLineItems = await db.select().from(quoteLineItemsTable)
+    .where(eq(quoteLineItemsTable.quoteId, quoteId));
+
+  if (existingLineItems.length === 0) {
+    res.status(400).json({ error: "No line items to reprice" });
+    return;
+  }
+
+  const properties = await db.select().from(propertiesTable)
+    .where(eq(propertiesTable.id, existingQuote.propertyId)).limit(1);
+  const property = properties[0];
+
+  const repriced = await priceLineItemsFromCostEngine(
+    existingLineItems.map(li => ({
+      category: li.category,
+      description: li.description,
+      quantity: li.quantity,
+      unit: li.unit,
+    })),
+    qualityTier,
+    existingQuote.regionalMultiplier ?? 1.0,
+    property?.yearBuilt
+  );
+
+  for (let i = 0; i < existingLineItems.length; i++) {
+    const rp = repriced[i];
+    await db.update(quoteLineItemsTable)
+      .set({
+        materialCost: rp.materialCost,
+        laborCost: rp.laborCost,
+        qualityTier: rp.qualityTier,
+      })
+      .where(eq(quoteLineItemsTable.id, existingLineItems[i].id));
+  }
+
+  const totalEstimate = repriced.reduce((sum, item) => {
+    return sum + (item.materialCost + item.laborCost) * item.quantity;
+  }, 0);
+
+  await db.update(quotesTable)
+    .set({
+      totalEstimate: Math.round(totalEstimate * 100) / 100,
+      qualityTier,
+      updatedAt: new Date(),
+    })
+    .where(eq(quotesTable.id, quoteId));
+
+  const updatedLineItems = await db.select().from(quoteLineItemsTable)
+    .where(eq(quoteLineItemsTable.quoteId, quoteId));
+
+  res.json({
+    id: existingQuote.id,
+    conversationId: existingQuote.conversationId,
+    title: existingQuote.title,
+    status: existingQuote.status,
+    totalEstimate: Math.round(totalEstimate * 100) / 100,
+    qualityTier,
+    aiModelUsed: existingQuote.aiModelUsed,
+    aiReasoning: existingQuote.aiReasoning,
+    regionalMultiplier: existingQuote.regionalMultiplier,
+    shareUuid: existingQuote.shareUuid,
+    sharedUrlEnabled: existingQuote.sharedUrlEnabled,
+    property: property ? {
+      id: property.id,
+      address: property.address,
+      zipCode: property.zipCode,
+      sqft: property.sqft,
+      bedrooms: property.bedrooms,
+      bathrooms: property.bathrooms,
+      yearBuilt: property.yearBuilt,
+      lotSize: property.lotSize,
+      listingPhotos: property.listingPhotos || [],
+      priceHistory: property.priceHistory,
+      dataSource: property.dataSource,
+      createdAt: property.createdAt.toISOString(),
+    } : null,
+    lineItems: updatedLineItems.map(li => ({
+      ...li,
+      subtotal: (li.materialCost + li.laborCost) * li.quantity,
+    })),
+    claudeReview: existingQuote.claudeReview,
+    createdAt: existingQuote.createdAt.toISOString(),
+    updatedAt: new Date().toISOString(),
   });
 });
 

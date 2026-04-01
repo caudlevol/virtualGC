@@ -400,6 +400,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /quotes/{quoteId}/reprice:
+    post:
+      operationId: repriceQuote
+      tags: [quotes]
+      summary: Reprice an existing quote with a different quality tier
+      parameters:
+        - name: quoteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepriceQuoteBody"
+      responses:
+        "200":
+          description: Quote repriced successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quote"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Quote not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /quotes/{quoteId}:
     get:
       operationId: getQuote
@@ -1009,6 +1046,15 @@ components:
           type: string
       required:
         - conversationId
+
+    RepriceQuoteBody:
+      type: object
+      properties:
+        qualityTier:
+          type: string
+          enum: [economy, mid_range, premium]
+      required:
+        - qualityTier
 
     QuoteLineItem:
       type: object

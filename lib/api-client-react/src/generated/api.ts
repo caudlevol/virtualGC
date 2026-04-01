@@ -54,6 +54,7 @@ import type {
   QuoteList,
   RegionalMultiplier,
   RegisterBody,
+  RepriceQuoteBody,
   SendMessageBody,
   ShareStatus,
   SharedQuote,
@@ -1388,6 +1389,93 @@ export const useGenerateQuote = <
   TContext
 > => {
   return useMutation(getGenerateQuoteMutationOptions(options));
+};
+
+/**
+ * @summary Reprice an existing quote with a different quality tier
+ */
+export const getRepriceQuoteUrl = (quoteId: number) => {
+  return `/api/quotes/${quoteId}/reprice`;
+};
+
+export const repriceQuote = async (
+  quoteId: number,
+  repriceQuoteBody: RepriceQuoteBody,
+  options?: RequestInit,
+): Promise<Quote> => {
+  return customFetch<Quote>(getRepriceQuoteUrl(quoteId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(repriceQuoteBody),
+  });
+};
+
+export const getRepriceQuoteMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof repriceQuote>>,
+    TError,
+    { quoteId: number; data: BodyType<RepriceQuoteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof repriceQuote>>,
+  TError,
+  { quoteId: number; data: BodyType<RepriceQuoteBody> },
+  TContext
+> => {
+  const mutationKey = ["repriceQuote"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof repriceQuote>>,
+    { quoteId: number; data: BodyType<RepriceQuoteBody> }
+  > = (props) => {
+    const { quoteId, data } = props ?? {};
+
+    return repriceQuote(quoteId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RepriceQuoteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof repriceQuote>>
+>;
+export type RepriceQuoteMutationBody = BodyType<RepriceQuoteBody>;
+export type RepriceQuoteMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Reprice an existing quote with a different quality tier
+ */
+export const useRepriceQuote = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof repriceQuote>>,
+    TError,
+    { quoteId: number; data: BodyType<RepriceQuoteBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof repriceQuote>>,
+  TError,
+  { quoteId: number; data: BodyType<RepriceQuoteBody> },
+  TContext
+> => {
+  return useMutation(getRepriceQuoteMutationOptions(options));
 };
 
 /**

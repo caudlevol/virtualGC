@@ -73,6 +73,8 @@ export * from "./quoteStatus";
 export * from "./quoteSummary";
 export * from "./regionalMultiplier";
 export * from "./registerBody";
+export * from "./repriceQuoteBody";
+export * from "./repriceQuoteBodyQualityTier";
 export * from "./sendMessageBody";
 export * from "./sharedQuote";
 export * from "./shareStatus";

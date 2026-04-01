@@ -378,6 +378,64 @@ export const GenerateQuoteBody = zod.object({
 });
 
 /**
+ * @summary Reprice an existing quote with a different quality tier
+ */
+export const RepriceQuoteParams = zod.object({
+  quoteId: zod.coerce.number(),
+});
+
+export const RepriceQuoteBody = zod.object({
+  qualityTier: zod.enum(["economy", "mid_range", "premium"]),
+});
+
+export const RepriceQuoteResponse = zod.object({
+  id: zod.number(),
+  shareUuid: zod.string().uuid(),
+  title: zod.string(),
+  status: zod.enum(["draft", "final"]),
+  totalEstimate: zod.number(),
+  qualityTier: zod.enum(["economy", "mid_range", "premium"]),
+  aiModelUsed: zod.string(),
+  aiReasoning: zod.string().optional(),
+  regionalMultiplier: zod.number().optional(),
+  sharedUrlEnabled: zod.boolean(),
+  conversationId: zod.number().optional(),
+  property: zod
+    .object({
+      id: zod.number(),
+      zillowUrl: zod.string().nullish(),
+      address: zod.string(),
+      zipCode: zod.string(),
+      sqft: zod.number(),
+      bedrooms: zod.number(),
+      bathrooms: zod.number(),
+      yearBuilt: zod.number().nullish(),
+      lotSize: zod.number().nullish(),
+      listingPhotos: zod.array(zod.string()).optional(),
+      priceHistory: zod.object({}).passthrough().nullish(),
+      dataSource: zod.enum(["apify", "rentcast", "manual"]),
+      createdAt: zod.date(),
+    })
+    .optional(),
+  lineItems: zod.array(
+    zod.object({
+      id: zod.number(),
+      category: zod.string(),
+      description: zod.string(),
+      materialCost: zod.number(),
+      laborCost: zod.number(),
+      quantity: zod.number(),
+      unit: zod.string(),
+      qualityTier: zod.enum(["economy", "mid_range", "premium"]),
+      subtotal: zod.number(),
+    }),
+  ),
+  claudeReview: zod.object({}).passthrough().nullish(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
  * @summary Get quote details
  */
 export const GetQuoteParams = zod.object({

@@ -190,6 +190,19 @@ export interface GenerateQuoteBody {
   title?: string;
 }
 
+export type RepriceQuoteBodyQualityTier =
+  (typeof RepriceQuoteBodyQualityTier)[keyof typeof RepriceQuoteBodyQualityTier];
+
+export const RepriceQuoteBodyQualityTier = {
+  economy: "economy",
+  mid_range: "mid_range",
+  premium: "premium",
+} as const;
+
+export interface RepriceQuoteBody {
+  qualityTier: RepriceQuoteBodyQualityTier;
+}
+
 export type QuoteLineItemQualityTier =
   (typeof QuoteLineItemQualityTier)[keyof typeof QuoteLineItemQualityTier];
 
