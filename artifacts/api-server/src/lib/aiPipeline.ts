@@ -173,9 +173,9 @@ Quantity MUST reflect the ACTUAL scope discussed in the conversation, NOT the fu
 - Full interior painting: use approximately property_sqft × 0.75 as the paintable wall area.
 - Full exterior painting: use approximately property_sqft × 1.2 as the exterior surface area.
 - Kitchen or bathroom remodel: scope to that room only, not the whole house.
+- Kitchen cabinets: use 20-35 linear_ft for a typical kitchen cabinet run.
 - Single fixture (faucet, toilet, light): use unit "each" with quantity 1.
-
-QUANTITY RULES — the quantity field MUST reflect the actual scope discussed, not the full property square footage. A single door = quantity 1, unit "each". One room paint = 400-600 sqft. Full interior = property sqft × 0.75. Kitchen = 20-35 linear_ft for cabinets. Single fixture = quantity 1, unit "each". If a line item total seems unreasonably high for what was discussed, reduce the quantity.
+- If a line item total seems unreasonably high for what was discussed, reduce the quantity.
 
 Sanity check your totals:
 - A front door paint job should be $150-$400 total, never thousands.
