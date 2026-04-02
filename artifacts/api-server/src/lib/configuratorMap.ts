@@ -452,21 +452,18 @@ export async function generateConfiguratorQuote(
   const quantities = config.defaultQuantities(property);
   const regional = await getRegionalMultiplier(property.zipCode);
 
-  const missingGroups: string[] = [];
   const invalidSelections: string[] = [];
   for (const group of config.groups) {
     const selectedLabel = selections[group.key];
-    if (!selectedLabel) {
-      missingGroups.push(group.label);
-      continue;
-    }
+    if (!selectedLabel) continue;
     const option = group.options.find(o => o.label === selectedLabel);
     if (!option) {
       invalidSelections.push(`${group.label}: "${selectedLabel}" is not a valid option`);
     }
   }
-  if (missingGroups.length > 0) {
-    throw new Error(`Missing selections for: ${missingGroups.join(", ")}`);
+  const providedKeys = Object.keys(selections).filter(k => config.groups.some(g => g.key === k));
+  if (providedKeys.length === 0) {
+    throw new Error("At least one option group must be selected");
   }
   if (invalidSelections.length > 0) {
     throw new Error(`Invalid selections: ${invalidSelections.join("; ")}`);
@@ -488,6 +485,7 @@ export async function generateConfiguratorQuote(
 
   for (const group of config.groups) {
     const selectedLabel = selections[group.key];
+    if (!selectedLabel) continue;
     const option = group.options.find(o => o.label === selectedLabel)!;
     const qty = quantities[group.key] || { quantity: 1, unit: "each" };
 

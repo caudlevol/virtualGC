@@ -4,7 +4,7 @@ import { useGetConversation, useSendMessage, useGenerateQuote, useVisualizeRenov
 import { useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Loader2, Hammer, User, Building, Bed, Bath, Square, Calendar, ChevronLeft, ChevronRight, ImageIcon, Images, X, Sparkles, Upload, GripVertical, Lock, Zap, Check } from "lucide-react";
+import { Send, Loader2, Hammer, User, Building, Bed, Bath, Square, Calendar, ChevronLeft, ChevronRight, ImageIcon, Images, X, Sparkles, Upload, GripVertical, Lock, Zap, Check, Trash2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -503,6 +503,7 @@ function ConfiguratorChips({
 }) {
   const config = CONFIGURATOR_MAP[renovationType];
   const [selections, setSelections] = useState<Record<string, string>>({});
+  const [dismissedGroups, setDismissedGroups] = useState<Set<string>>(new Set());
   const [quoteResult, setQuoteResult] = useState<ConfiguratorQuoteResult | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -523,13 +524,17 @@ function ConfiguratorChips({
 
   if (!config) return null;
 
-  const allSelected = config.groups.every(g => selections[g.key]);
+  const activeGroups = config.groups.filter(g => !dismissedGroups.has(g.key));
+  const allSelected = activeGroups.length > 0 && activeGroups.every(g => selections[g.key]);
 
   const handleSubmit = () => {
     if (!allSelected) return;
+    const activeSelections = Object.fromEntries(
+      Object.entries(selections).filter(([key]) => !dismissedGroups.has(key))
+    );
     configuratorMutation.mutate({
       conversationId,
-      data: { renovationType, selections },
+      data: { renovationType, selections: activeSelections },
     });
   };
 
@@ -583,32 +588,65 @@ function ConfiguratorChips({
       </div>
       <CardContent className="p-4 space-y-4">
         <p className="text-sm text-muted-foreground">Choose your materials to get a locked, itemized quote:</p>
-        {config.groups.map(group => (
-          <div key={group.key} className="space-y-2">
-            <label className="text-xs font-semibold text-foreground uppercase tracking-wide">{group.label}</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-              {group.options.map(opt => {
-                const isSelected = selections[group.key] === opt.label;
-                return (
-                  <button
-                    key={opt.label}
-                    onClick={() => setSelections(prev => ({ ...prev, [group.key]: opt.label }))}
-                    className={`px-3 py-2.5 sm:py-1.5 rounded-full text-xs font-medium transition-all border ${
-                      isSelected
-                        ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
-                        : "bg-white/5 text-muted-foreground border-white/10 hover:border-primary/50 hover:text-foreground"
-                    }`}
-                  >
-                    {opt.label} <span className="opacity-60 ml-1">{opt.price}</span>
-                  </button>
-                );
-              })}
+        {config.groups.map(group => {
+          if (dismissedGroups.has(group.key)) return null;
+          return (
+            <div key={group.key} className="space-y-2 relative group/dismiss">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-foreground uppercase tracking-wide">{group.label}</label>
+                <button
+                  onClick={() => {
+                    setDismissedGroups(prev => {
+                      const next = new Set(prev);
+                      next.add(group.key);
+                      return next;
+                    });
+                    setSelections(prev => {
+                      const next = { ...prev };
+                      delete next[group.key];
+                      return next;
+                    });
+                  }}
+                  className="text-muted-foreground opacity-40 hover:opacity-100 hover:text-red-400 transition-all p-1 rounded"
+                  title="Remove this option"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                {group.options.map(opt => {
+                  const isSelected = selections[group.key] === opt.label;
+                  return (
+                    <button
+                      key={opt.label}
+                      onClick={() => setSelections(prev => ({ ...prev, [group.key]: opt.label }))}
+                      className={`px-3 py-2.5 sm:py-1.5 rounded-full text-xs font-medium transition-all border ${
+                        isSelected
+                          ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
+                          : "bg-white/5 text-muted-foreground border-white/10 hover:border-primary/50 hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label} <span className="opacity-60 ml-1">{opt.price}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {error && (
           <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
             {error}
+          </div>
+        )}
+        {dismissedGroups.size > 0 && (
+          <div className="flex justify-end pt-1">
+            <button
+              onClick={() => setDismissedGroups(new Set())}
+              className="text-[10px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+            >
+              <RotateCcw className="w-3 h-3" /> Restore removed options
+            </button>
           </div>
         )}
         <div className="flex gap-2 pt-1">

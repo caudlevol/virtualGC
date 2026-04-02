@@ -11,9 +11,14 @@ import { editImage } from "@workspace/integrations-gemini-ai";
 
 const openaiForViz = new OpenAI({ apiKey: process.env.OpenAI_API_Key });
 
+interface VisualExtractionResult {
+  changeDescription: string;
+  anchorElements: string;
+}
+
 async function extractVisualDescription(
   messages: Array<{ role: string; content: string }>
-): Promise<string> {
+): Promise<VisualExtractionResult> {
   const recentMessages = messages.slice(-10);
   const conversationText = recentMessages
     .map(m => `${m.role}: ${m.content}`)
@@ -22,43 +27,46 @@ async function extractVisualDescription(
   const response = await openaiForViz.chat.completions.create({
     model: "gpt-4o",
     temperature: 0,
+    response_format: { type: "json_object" },
     messages: [
       {
         role: "system",
-        content: `You are a renovation visual description extractor. Given a conversation between a user and a renovation advisor, extract ONLY the specific visual changes discussed. Output a concise list of visual renovation instructions.
+        content: `You extract renovation edits for an AI image editor. The image editor will perform a SURGICAL edit on exactly one area of a photo — everything else must stay pixel-perfect.
+
+Output a JSON object with exactly two fields:
+
+{
+  "target": "A concise description of ONLY the specific items/area to change and what they should look like. Be visually specific: materials, colors, textures, finishes, styles. Example: 'Replace the red brick fireplace surround with stacked gray stone veneer and a reclaimed wood mantel.' Keep this to 1-3 sentences focused on the change.",
+  "anchors": "A comma-separated list of SPECIFIC visible objects in the room that must NOT be touched. Describe each item concretely so the image editor can identify it. Example: 'brushed nickel ceiling fan with 5 dark wood blades, glossy cherry hardwood flooring, white crown molding, dark wood kitchen cabinets visible through doorway, white painted baseboards, recessed wall sconces on either side of fireplace, electrical outlet plates on right wall'. List at least 8-12 items. Name every light fixture, fan, furniture piece, floor type, trim, and background element you can infer from the conversation."
+}
 
 Rules:
-- Focus on VISUAL details only: materials, colors, textures, fixtures, finishes, styles
-- Be extremely specific: "polished Absolute Black granite countertops" not "new countertops"
-- Include spatial details: "extend upper cabinets to ceiling height" not "update cabinets"
-- Mention hardware, lighting, and accent details when discussed
+- The "target" must be narrow and specific — only what is being changed
+- The "anchors" must list every OTHER visible element — especially ceiling fans, light fixtures, furniture, flooring, trim, and background rooms
+- If the conversation mentions the room has a ceiling fan, it MUST appear in anchors
 - If multiple rooms are discussed, focus on the most recently discussed room
-- Output as a numbered list of specific changes, no preamble
-- If no specific renovations are discussed, output "General modern renovation update with contemporary finishes"
-
-CRITICAL — PRESERVATION LIST:
-After the numbered list of changes, you MUST add two sections:
-
-"ONLY MODIFY:" — List every specific item/area that should be changed (e.g. "fireplace surround and mantel"). Nothing outside this list may be touched.
-
-"DO NOT CHANGE (preserve exactly as-is):" — Explicitly list EVERY other visible element in the room that must remain identical:
-  • All furniture, seating, tables, and decor items not mentioned in the changes
-  • All lighting fixtures (ceiling fans, chandeliers, lamps, recessed lights) not mentioned
-  • All windows, doors, and structural openings — do NOT add, remove, or reposition any
-  • All architectural features not being renovated (fireplaces, archways, columns, built-ins, moldings)
-  • All flooring, rugs, and wall treatments not mentioned
-  • All appliances and cabinetry not mentioned
-  • Background rooms visible through doorways or openings
-  • Wall art, mirrors, shelving, and decorative objects not mentioned`,
+- Never include items from the target in the anchors list`,
       },
       {
         role: "user",
-        content: `Extract the specific visual renovation changes from this conversation:\n\n${conversationText}`,
+        content: `Extract the surgical edit target and anchor elements from this conversation:\n\n${conversationText}`,
       },
     ],
   });
 
-  return response.choices[0]?.message?.content || "General modern renovation update with contemporary finishes";
+  const raw = response.choices[0]?.message?.content || "{}";
+  try {
+    const parsed = JSON.parse(raw) as { target?: string; anchors?: string };
+    return {
+      changeDescription: parsed.target || "General modern renovation update with contemporary finishes",
+      anchorElements: parsed.anchors || "",
+    };
+  } catch {
+    return {
+      changeDescription: raw,
+      anchorElements: "",
+    };
+  }
 }
 
 const router: IRouter = Router();
@@ -460,22 +468,26 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
   }
 
   try {
-    let visualDescription = parsed.data.prompt;
+    let changeDescription: string;
+    let anchorElements = "";
     let promptSource: string;
-    if (visualDescription) {
+    if (parsed.data.prompt) {
+      changeDescription = parsed.data.prompt;
       promptSource = "user-provided";
     } else {
       try {
-        visualDescription = await extractVisualDescription(existingMessages);
+        const extraction = await extractVisualDescription(existingMessages);
+        changeDescription = extraction.changeDescription;
+        anchorElements = extraction.anchorElements;
         promptSource = "gpt4o-extracted";
       } catch (extractErr) {
         console.error("Visual description extraction failed, using fallback:", extractErr);
         const recentContext = existingMessages.slice(-6).map(m => `${m.role}: ${m.content}`).join("\n");
-        visualDescription = `Apply the renovations discussed in this conversation:\n${recentContext}`;
+        changeDescription = `Apply the renovations discussed in this conversation:\n${recentContext}`;
         promptSource = "raw-context-fallback";
       }
     }
-    console.log(`[visualize] conversationId=${conversationId} promptSource=${promptSource} descriptionLength=${visualDescription.length} imageSource=${sourceImageUrl ? "listing" : "upload"}`);
+    console.log(`[visualize] conversationId=${conversationId} promptSource=${promptSource} descriptionLength=${changeDescription.length} anchors=${anchorElements.length > 0 ? "yes" : "none"} imageSource=${sourceImageUrl ? "listing" : "upload"}`);
 
     let imgBuffer: Buffer;
     let mimeType = "image/jpeg";
@@ -512,10 +524,14 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
       return "livingRoom";
     }
 
-    const roomType = detectRoomType(visualDescription);
+    const roomType = detectRoomType(changeDescription);
     const isExterior = roomType === "exterior";
 
     let dataUri: string | null = null;
+
+    const anchorSection = anchorElements
+      ? `\nPIXEL-LOCK these items (they must remain identical to the original): ${anchorElements}`
+      : "";
 
     const reimageApiKey = process.env.ReImage_API_Key;
     if (reimageApiKey) {
@@ -523,15 +539,12 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
         const reimageBase = "https://api.reimage.io/api/v1";
         const endpoint = isExterior ? "exterior-remodel" : "interior-remodel";
 
-        const preservationPrompt = `STRICT RULES — violating any of these is a failure:
-- ONLY modify the specific items listed below. Everything else MUST remain pixel-perfect identical to the original photo.
-- DO NOT add any new objects not in the original (no new ceiling fans, rugs, wall art, furniture, light fixtures, doors, or windows).
-- DO NOT remove any existing objects from the photo.
-- Keep ALL furniture, decor, lighting fixtures, windows, doors, appliances, and architectural features exactly as they are unless explicitly listed below.
-- Keep background rooms visible through doorways completely untouched.
+        const preservationPrompt = `SURGICAL EDIT — modify ONLY the target item described below. Everything else in the photo must remain pixel-perfect identical to the original.
 
-CHANGES TO APPLY (and ONLY these changes):
-${visualDescription}`;
+TARGET CHANGE: ${changeDescription}
+${anchorSection}
+
+DO NOT remove, add, or alter anything else. Do not remove any existing ceiling fans, light fixtures, furniture, flooring, trim, or background elements.`;
 
         const form = new FormData();
         form.append("image", imgBuffer, { filename: "room.jpg", contentType: "image/jpeg" });
@@ -600,37 +613,19 @@ ${visualDescription}`;
 
     if (!dataUri) {
       console.log("[visualize] Using Gemini fallback");
-      const editPrompt = `You are a professional interior renovation visualization tool. Edit this photo to show ONLY the specific renovations listed below. Everything else in the image MUST remain pixel-perfect identical to the original.
+      const editPrompt = `SURGICAL PHOTO EDIT — You are editing exactly ONE element in this room photo. Restrict all changes to the target item and its immediate surrounding pixels. The rest of the image must be a 1:1 pixel-perfect copy of the original.
 
-KEEP UNCHANGED (strict — violating any of these is a failure):
-- The exact room layout, dimensions, walls, ceiling, and floor plan
-- The camera angle, perspective, and field of view
-- The natural lighting direction and window positions
-- ALL existing furniture, seating, tables, and decor items not explicitly mentioned in the changes below
-- ALL existing lighting fixtures (ceiling fans, chandeliers, lamps, recessed lights) not explicitly mentioned in the changes below
-- ALL existing windows, doors, and structural openings — do NOT add, remove, or reposition any
-- ALL existing appliances and cabinetry not explicitly mentioned in the changes below
-- Background rooms visible through doorways or openings — do NOT alter anything in adjacent spaces
-- Fireplaces, mantels, columns, archways, built-ins, and architectural features not explicitly listed in the changes below
-- ALL flooring, rugs, wall art, mirrors, and decorative objects not explicitly mentioned below
+TARGET CHANGE: ${changeDescription}
+${anchorSection}
 
-NEGATIVE CONSTRAINTS (absolute rules):
-- DO NOT hallucinate any unrequested objects or changes — if it is not listed below, it must not change
-- DO NOT add any new objects that are not in the original photo (no new ceiling fans, rugs, wall art, furniture, light fixtures, doors, or windows)
-- DO NOT remove any existing objects from the photo
-- If the change targets a specific item (e.g. a fireplace), restrict your edits ONLY to that item and its immediate surrounding pixels — the rest of the image must be a 1:1 pixel-perfect match with the original
-- DO NOT change the color of walls, ceilings, or floors unless explicitly requested
-- DO NOT upgrade, modernize, or restyle anything not listed in the changes below
-
-APPLY THESE SPECIFIC CHANGES (and ONLY these changes):
-${visualDescription}
-
-QUALITY REQUIREMENTS:
-- Photorealistic rendering — the result must look like an actual photograph, not a digital rendering
-- New materials must have correct reflections, shadows, and textures matching the room's lighting
-- Maintain consistent color temperature across existing and new elements
-- Edges where new materials meet existing surfaces must blend seamlessly
-- Preserve the original image resolution and color depth`;
+RULES:
+1. Edit ONLY the target item described above. Every other pixel must match the original exactly.
+2. Do NOT remove any existing objects — especially ceiling fans, light fixtures, furniture, or decor.
+3. Do NOT add any new objects that are not in the original photo.
+4. Do NOT change walls, ceilings, floors, or trim unless the target explicitly requires it.
+5. Keep the same camera angle, perspective, lighting direction, and color temperature.
+6. The result must be photorealistic — correct reflections, shadows, and textures matching the room's existing lighting.
+7. Edges where new materials meet existing surfaces must blend seamlessly.`;
 
       const geminiResult = await editImage(imgBuffer.toString("base64"), mimeType, editPrompt);
       dataUri = `data:${geminiResult.mimeType};base64,${geminiResult.b64_json}`;
