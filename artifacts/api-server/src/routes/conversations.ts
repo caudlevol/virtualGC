@@ -232,7 +232,19 @@ router.post("/conversations/:conversationId/messages", requireAuth, async (req, 
     parsed.data.requestQuote || false
   );
 
-  const configuratorType = detectRenovationIntentFromBoth(parsed.data.content, aiResponse.content);
+  let configuratorType = detectRenovationIntentFromBoth(parsed.data.content, aiResponse.content);
+
+  if (!configuratorType) {
+    const aiMentionsSmartScope = /smart scope|lock in|locked quote|itemized quote|pick your|select your materials/i.test(aiResponse.content);
+    if (aiMentionsSmartScope) {
+      const recentConfigType = [...existingMessages]
+        .reverse()
+        .find((m: any) => m.configuratorType)?.configuratorType;
+      if (recentConfigType) {
+        configuratorType = recentConfigType;
+      }
+    }
+  }
 
   const assistantMessage = {
     role: "assistant" as const,

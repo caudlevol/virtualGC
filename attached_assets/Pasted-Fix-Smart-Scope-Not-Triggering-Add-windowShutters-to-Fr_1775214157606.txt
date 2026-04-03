@@ -1,0 +1,70 @@
+Fix Smart Scope Not Triggering — Add windowShutters to Frontend Map and Fix Intent Persistence
+You are a senior TypeScript/React developer. Make the following changes to fix two bugs: (1) windowShutters is missing from the frontend configurator map, and (2) Smart Scope stops appearing after the user gives a follow-up confirmation like "lets go midrange."
+CHANGE 1 — Add windowShutters to the frontend CONFIGURATOR_MAP in artifacts/vgc-app/src/pages/chat.tsx
+Find the CONFIGURATOR_MAP constant (around line 384). Find the closing }; of the landscaping entry (around line 480). Add this new entry immediately before that closing };:
+TypeScript
+  windowShutters: {
+    label: "Window Shutters",
+    groups: [
+      { label: "Shutter Material", key: "shutterMaterial", options: [{ label: "Vinyl (Basic)", price: "$" }, { label: "Composite", price: "$$" }, { label: "Real Wood", price: "$$$" }] },
+      { label: "Shutter Style", key: "shutterStyle", options: [{ label: "Louvered", price: "$" }, { label: "Board & Batten", price: "$$" }, { label: "Raised Panel", price: "$$$" }] },
+    ],
+  },
+CHANGE 2 — Fix intent persistence so Smart Scope stays visible on follow-up messages
+The core issue is that configuratorType is only detected on the message where the renovation is first mentioned. When the user sends a follow-up like "lets go midrange" or "yes please," the detection returns null and Smart Scope disappears.
+Fix this with a two-part change:
+Part A — Backend (artifacts/api-server/src/routes/conversations.ts):
+Find line 234:
+TypeScript
+const configuratorType = detectRenovationIntentFromBoth(parsed.data.content, aiResponse.content);
+Replace it with this logic that falls back to the most recent configuratorType from conversation history if detection returns null:
+TypeScript
+let configuratorType = detectRenovationIntentFromBoth(parsed.data.content, aiResponse.content);
+
+// If no new intent detected, check if the AI response mentions Smart Scope or locking in a quote
+// and carry forward the most recent configuratorType from conversation history
+if (!configuratorType) {
+  const aiMentionsSmartScope = /smart scope|lock in|locked quote|itemized quote|pick your|select your materials/i.test(aiResponse.content);
+  if (aiMentionsSmartScope) {
+    // Find the most recent configuratorType from existing messages
+    const recentConfigType = [...existingMessages]
+      .reverse()
+      .find((m: any) => m.configuratorType)?.configuratorType;
+    if (recentConfigType) {
+      configuratorType = recentConfigType;
+    }
+  }
+}
+Part B — Frontend (artifacts/vgc-app/src/pages/chat.tsx):
+Find line 937:
+TypeScript
+{msg.configuratorType && typeof msg.configuratorType === 'string' && CONFIGURATOR_MAP[msg.configuratorType] && (
+Replace the entire configurator rendering block (lines 937–943) with this version that also checks if the NEXT message in the conversation has a configuratorType that should be shown here:
+TSX
+{(() => {
+  // Show configurator if this message has a configuratorType
+  // OR if a previous message set the type and the AI just mentioned Smart Scope
+  const activeType = msg.configuratorType;
+  if (activeType && typeof activeType === 'string' && CONFIGURATOR_MAP[activeType]) {
+    return (
+      <ConfiguratorChips
+        renovationType={activeType}
+        conversationId={id}
+        onBallpark={() => quoteMutation.mutate({ data: { conversationId: id, qualityTier: "mid_range" }})}
+      />
+    );
+  }
+  return null;
+})()}
+CHANGE 3 — Add windowShutters to the AI system prompt's Smart Scope supported types list
+In artifacts/api-server/src/lib/aiPipeline.ts, find this line in the SYSTEM_PROMPT:
+Plain Text
+Smart Scope is available for: kitchen remodels, bathroom remodels, flooring, interior painting, window replacement, staircase renovation, roof replacement, HVAC systems, deck/patio, garage renovation, basement finishing, exterior paint/siding, landscaping, exterior doors, and window shutters.
+If "window shutters" is not already in that list, add it. If the SYSTEM_PROMPT does not contain that exact list yet, find the Smart Scope section and add "window shutters" to the list of supported renovation types.
+VERIFICATION CHECKLIST
+After making these changes, verify:
+ Asking about window shutters now shows the Smart Scope configurator with "Shutter Material" and "Shutter Style" groups
+ When the user says "lets go midrange" or "yes please" after the AI mentions Smart Scope, the configurator still appears on that follow-up message
+ The frontend CONFIGURATOR_MAP now contains a windowShutters key
+ The app compiles with no TypeScript errors
+The key insight here is that the system was designed to detect intent on a single message, but real conversations don't work that way. A user confirms intent across multiple turns. The fix makes the backend carry the configuratorType forward whenever the AI mentions Smart Scope, so it never silently disappears mid-conversation.

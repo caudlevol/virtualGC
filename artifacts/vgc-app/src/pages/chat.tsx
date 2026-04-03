@@ -478,6 +478,13 @@ const CONFIGURATOR_MAP: Record<string, { label: string; groups: Array<{ label: s
       { label: "Hardscape", key: "hardscape", options: [{ label: "Gravel Paths", price: "$" }, { label: "Pavers", price: "$$" }, { label: "Natural Stone", price: "$$$" }] },
     ],
   },
+  windowShutters: {
+    label: "Window Shutters",
+    groups: [
+      { label: "Shutter Material", key: "shutterMaterial", options: [{ label: "Vinyl (Basic)", price: "$" }, { label: "Composite", price: "$$" }, { label: "Real Wood", price: "$$$" }] },
+      { label: "Shutter Style", key: "shutterStyle", options: [{ label: "Louvered", price: "$" }, { label: "Board & Batten", price: "$$" }, { label: "Raised Panel", price: "$$$" }] },
+    ],
+  },
 };
 
 interface ConfiguratorQuoteResult {
@@ -934,13 +941,19 @@ export default function ChatPage() {
                       </div>
                     )}
                     
-                    {msg.configuratorType && typeof msg.configuratorType === 'string' && CONFIGURATOR_MAP[msg.configuratorType] && (
-                      <ConfiguratorChips
-                        renovationType={msg.configuratorType}
-                        conversationId={id}
-                        onBallpark={() => quoteMutation.mutate({ data: { conversationId: id, qualityTier: "mid_range" }})}
-                      />
-                    )}
+                    {(() => {
+                      const activeType = msg.configuratorType;
+                      if (activeType && typeof activeType === 'string' && CONFIGURATOR_MAP[activeType]) {
+                        return (
+                          <ConfiguratorChips
+                            renovationType={activeType}
+                            conversationId={id}
+                            onBallpark={() => quoteMutation.mutate({ data: { conversationId: id, qualityTier: "mid_range" }})}
+                          />
+                        );
+                      }
+                      return null;
+                    })()}
 
                     {msg.quoteSuggestion && !msg.configuratorType && (
                       <Card className="mt-3 bg-card border-amber-500/30 shadow-lg shadow-amber-500/10 overflow-hidden w-full max-w-sm">
