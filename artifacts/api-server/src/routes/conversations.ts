@@ -36,16 +36,17 @@ async function extractVisualDescription(
 Output a JSON object with exactly two fields:
 
 {
-  "target": "A concise description of ONLY the specific items/area to change and what they should look like. Be visually specific: materials, colors, textures, finishes, styles. Example: 'Replace the red brick fireplace surround with stacked gray stone veneer and a reclaimed wood mantel.' Keep this to 1-3 sentences focused on the change.",
-  "anchors": "A comma-separated list of SPECIFIC visible objects in the room that must NOT be touched. Describe each item concretely so the image editor can identify it. Example: 'brushed nickel ceiling fan with 5 dark wood blades, glossy cherry hardwood flooring, white crown molding, dark wood kitchen cabinets visible through doorway, white painted baseboards, recessed wall sconces on either side of fireplace, electrical outlet plates on right wall'. List at least 8-12 items. Name every light fixture, fan, furniture piece, floor type, trim, and background element you can infer from the conversation."
+  "target": "A precise, visually complete description of the change. You MUST include: (1) what the item looks like RIGHT NOW in its current state (color, material, style), AND (2) exactly what it should look like AFTER the change (new color, new material, new style, new finish). Be extremely specific about colors — never say 'modern' without specifying the actual color. Example: 'Replace the current ugly green painted steel front door with a matte black fiberglass door with a clean, modern slab design and brushed nickel handle.'",
+  "anchors": "A comma-separated list of SPECIFIC visible objects that must NOT be touched. Describe each item concretely. Example: 'white painted brick exterior, black aluminum gutters, tan/beige vinyl siding on upper gable, two double-hung windows with white frames flanking the door, black shutters on flanking windows, concrete front stoop with two steps, black coach-style porch light to the right of the door, mature oak tree in left foreground, green lawn'. List at least 8-12 items. Name every light fixture, fan, furniture piece, floor type, trim, and background element you can infer from the conversation."
 }
 
 Rules:
-- The "target" must be narrow and specific — only what is being changed
-- The "anchors" must list every OTHER visible element — especially ceiling fans, light fixtures, furniture, flooring, trim, and background rooms
-- If the conversation mentions the room has a ceiling fan, it MUST appear in anchors
-- If multiple rooms are discussed, focus on the most recently discussed room
-- Never include items from the target in the anchors list`,
+- The "target" MUST describe both the CURRENT state and the DESIRED new state — especially the color. If the user said "black door," the target must say "replace the [current color] door with a matte black door."
+- If the conversation mentions a specific color or finish for the target item, that color MUST appear in the target description.
+- If no color was specified by the user, infer a tasteful, modern default and state it explicitly (e.g., "matte black" for a front door, "warm gray" for shutters).
+- The "anchors" must list every OTHER visible element that must not change.
+- Never include items from the target in the anchors list.
+- If multiple items are being changed (e.g., door AND shutters), list all of them in the target and exclude them from anchors.`,
       },
       {
         role: "user",
