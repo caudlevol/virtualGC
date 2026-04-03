@@ -442,6 +442,346 @@ export const CONFIGURATOR_MAP: Record<string, ConfiguratorRenovationType> = {
       hardscape: { quantity: Math.max(100, Math.round(p.sqft * 0.05)), unit: "sqft" },
     }),
   },
+  interiorTrim: {
+    label: "Interior Trim & Molding",
+    category: "interiorTrim",
+    groups: [
+      {
+        label: "Trim Type",
+        key: "trimType",
+        options: [
+          { label: "Baseboards Only", price: "$", item: "Baseboards (standard)", qualityTier: "economy" },
+          { label: "Crown & Baseboards", price: "$$", item: "Crown molding and baseboards", qualityTier: "mid_range" },
+          { label: "Full Millwork/Wainscoting", price: "$$$", item: "Wainscoting and millwork (custom)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      trimType: { quantity: Math.max(200, Math.round(p.sqft * 0.8)), unit: "linear_ft" },
+    }),
+  },
+  interiorDoors: {
+    label: "Interior Doors",
+    category: "interiorDoors",
+    groups: [
+      {
+        label: "Door Style",
+        key: "interiorDoorStyle",
+        options: [
+          { label: "Hollow Core (Basic)", price: "$", item: "Interior door (hollow core)", qualityTier: "economy" },
+          { label: "Solid Core", price: "$$", item: "Interior door (solid core)", qualityTier: "mid_range" },
+          { label: "Custom/Barn Doors", price: "$$$", item: "Interior door (custom/barn)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      interiorDoorStyle: { quantity: Math.max(5, Math.round(p.sqft / 300)), unit: "each" },
+    }),
+  },
+  siding: {
+    label: "Siding & Gutters",
+    category: "siding",
+    groups: [
+      {
+        label: "Siding Material",
+        key: "sidingMaterial",
+        options: [
+          { label: "Vinyl Siding", price: "$", item: "Vinyl siding", qualityTier: "economy" },
+          { label: "Engineered Wood", price: "$$", item: "Engineered wood siding", qualityTier: "mid_range" },
+          { label: "Fiber Cement", price: "$$$", item: "Fiber cement siding (Hardie)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Gutters",
+        key: "gutters",
+        options: [
+          { label: "Aluminum Seamless", price: "$", item: "Gutters (aluminum seamless)", qualityTier: "economy" },
+          { label: "Copper/Custom", price: "$$$", item: "Gutters (copper/custom)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      sidingMaterial: { quantity: Math.max(1500, Math.round(p.sqft * 1.5)), unit: "sqft" },
+      gutters: { quantity: Math.max(100, Math.round(p.sqft * 0.1)), unit: "linear_ft" },
+    }),
+  },
+  deckPorch: {
+    label: "Decks, Porches & Sunrooms",
+    category: "deckPorch",
+    groups: [
+      {
+        label: "Structure Type",
+        key: "outdoorStructure",
+        options: [
+          { label: "Wood Deck", price: "$", item: "Wood deck (pressure-treated)", qualityTier: "economy" },
+          { label: "Composite Deck", price: "$$", item: "Composite deck", qualityTier: "mid_range" },
+          { label: "Sunroom/Screened Porch", price: "$$$", item: "Sunroom or screened porch", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      outdoorStructure: { quantity: Math.max(150, Math.round(p.sqft * 0.15)), unit: "sqft" },
+    }),
+  },
+  plumbingSystems: {
+    label: "Plumbing & Water Systems",
+    category: "plumbingSystems",
+    groups: [
+      {
+        label: "Water Heater",
+        key: "waterHeater",
+        options: [
+          { label: "Standard Tank", price: "$", item: "Water heater (standard tank)", qualityTier: "economy" },
+          { label: "Tankless", price: "$$", item: "Water heater (tankless)", qualityTier: "mid_range" },
+        ],
+      },
+      {
+        label: "Water Treatment",
+        key: "waterTreatment",
+        options: [
+          { label: "Basic Softener", price: "$", item: "Water softener (basic)", qualityTier: "economy" },
+          { label: "Whole Home Filtration", price: "$$$", item: "Whole home water filtration", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: () => ({
+      waterHeater: { quantity: 1, unit: "each" },
+      waterTreatment: { quantity: 1, unit: "each" },
+    }),
+  },
+  electricalSolar: {
+    label: "Electrical, Solar & EV",
+    category: "electricalSolar",
+    groups: [
+      {
+        label: "Electrical Upgrades",
+        key: "electricalUpgrade",
+        options: [
+          { label: "EV Charger Install", price: "$", item: "EV charger installation", qualityTier: "economy" },
+          { label: "Panel Upgrade (200A)", price: "$$", item: "Electrical panel upgrade (200A)", qualityTier: "mid_range" },
+          { label: "Whole Home Rewire", price: "$$$", item: "Whole home electrical rewire", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Solar/Power",
+        key: "solarPower",
+        options: [
+          { label: "Portable Generator Hookup", price: "$", item: "Generator hookup/transfer switch", qualityTier: "economy" },
+          { label: "Solar Panel System", price: "$$$", item: "Solar panel system", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: () => ({
+      electricalUpgrade: { quantity: 1, unit: "each" },
+      solarPower: { quantity: 1, unit: "each" },
+    }),
+  },
+  lighting: {
+    label: "Lighting & Smart Home",
+    category: "lighting",
+    groups: [
+      {
+        label: "Fixture Type",
+        key: "fixtureType",
+        options: [
+          { label: "Standard Fixtures", price: "$", item: "Light fixture (standard)", qualityTier: "economy" },
+          { label: "Recessed Cans", price: "$$", item: "Recessed lighting (can lights)", qualityTier: "mid_range" },
+          { label: "Designer/Chandeliers", price: "$$$", item: "Designer chandelier/pendant", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Smart Home",
+        key: "smartHome",
+        options: [
+          { label: "Security System", price: "$", item: "Smart home security system", qualityTier: "economy" },
+          { label: "Full Automation System", price: "$$", item: "Full smart home automation", qualityTier: "mid_range" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      fixtureType: { quantity: Math.max(5, Math.round(p.sqft / 200)), unit: "each" },
+      smartHome: { quantity: 1, unit: "each" },
+    }),
+  },
+  specialtyRooms: {
+    label: "Specialty Rooms (Office/Gym/Laundry)",
+    category: "specialtyRooms",
+    groups: [
+      {
+        label: "Room Type",
+        key: "specialtyRoomType",
+        options: [
+          { label: "Laundry/Mudroom", price: "$", item: "Laundry room or mudroom remodel", qualityTier: "economy" },
+          { label: "Home Office/Gym", price: "$$", item: "Home office or gym build-out", qualityTier: "mid_range" },
+          { label: "Theater/Wine Cellar", price: "$$$", item: "Home theater or wine cellar", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Finish Level",
+        key: "specialtyFinish",
+        options: [
+          { label: "Basic Update", price: "$", item: "Basic room update (paint/flooring)", qualityTier: "economy" },
+          { label: "Custom Built-ins", price: "$$", item: "Custom built-in cabinetry", qualityTier: "mid_range" },
+        ],
+      },
+    ],
+    defaultQuantities: () => ({
+      specialtyRoomType: { quantity: 1, unit: "each" },
+      specialtyFinish: { quantity: 1, unit: "each" },
+    }),
+  },
+  basementAttic: {
+    label: "Basement & Attic Finishing",
+    category: "basementAttic",
+    groups: [
+      {
+        label: "Space Type",
+        key: "bonusSpaceType",
+        options: [
+          { label: "Attic Conversion", price: "$$", item: "Attic conversion to living space", qualityTier: "mid_range" },
+          { label: "Basement Finishing", price: "$$$", item: "Basement full finishing", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Inclusions",
+        key: "bonusSpaceExtras",
+        options: [
+          { label: "Open Concept Only", price: "$", item: "Open concept finish (drywall/paint)", qualityTier: "economy" },
+          { label: "Add Bathroom/Wet Bar", price: "$$$", item: "Bathroom or wet bar addition", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      bonusSpaceType: { quantity: Math.max(400, Math.round(p.sqft * 0.4)), unit: "sqft" },
+      bonusSpaceExtras: { quantity: 1, unit: "each" },
+    }),
+  },
+  closets: {
+    label: "Custom Closets & Storage",
+    category: "closets",
+    groups: [
+      {
+        label: "System Type",
+        key: "closetSystem",
+        options: [
+          { label: "Wire Shelving", price: "$", item: "Closet system (wire shelving)", qualityTier: "economy" },
+          { label: "Laminate Built-ins", price: "$$", item: "Closet system (laminate built-in)", qualityTier: "mid_range" },
+          { label: "Custom Wood", price: "$$$", item: "Closet system (custom wood)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Scope",
+        key: "closetScope",
+        options: [
+          { label: "Single Reach-in", price: "$", item: "Reach-in closet organization", qualityTier: "economy" },
+          { label: "Primary Walk-in", price: "$$", item: "Walk-in closet organization", qualityTier: "mid_range" },
+        ],
+      },
+    ],
+    defaultQuantities: () => ({
+      closetSystem: { quantity: 1, unit: "each" },
+      closetScope: { quantity: 1, unit: "each" },
+    }),
+  },
+  fencing: {
+    label: "Fencing & Gates",
+    category: "fencing",
+    groups: [
+      {
+        label: "Fence Material",
+        key: "fenceMaterial",
+        options: [
+          { label: "Chain Link", price: "$", item: "Chain link fence", qualityTier: "economy" },
+          { label: "Treated Wood", price: "$$", item: "Wood fence (pressure-treated)", qualityTier: "mid_range" },
+          { label: "Vinyl/Composite", price: "$$$", item: "Vinyl or composite fence", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Fence Style",
+        key: "fenceStyle",
+        options: [
+          { label: "4-Foot Picket", price: "$", item: "Picket fence (4-foot)", qualityTier: "economy" },
+          { label: "6-Foot Privacy", price: "$$", item: "Privacy fence (6-foot)", qualityTier: "mid_range" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      fenceMaterial: { quantity: Math.max(100, Math.round(p.sqft * 0.1)), unit: "linear_ft" },
+      fenceStyle: { quantity: 1, unit: "each" },
+    }),
+  },
+  outdoorLiving: {
+    label: "Outdoor Living & Pools",
+    category: "outdoorLiving",
+    groups: [
+      {
+        label: "Feature Type",
+        key: "outdoorFeature",
+        options: [
+          { label: "Fire Pit or Pergola", price: "$", item: "Fire pit or pergola installation", qualityTier: "economy" },
+          { label: "Outdoor Kitchen/BBQ", price: "$$", item: "Outdoor kitchen or BBQ island", qualityTier: "mid_range" },
+          { label: "In-Ground Pool", price: "$$$", item: "In-ground swimming pool", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: () => ({
+      outdoorFeature: { quantity: 1, unit: "each" },
+    }),
+  },
+  driveway: {
+    label: "Driveway & Walkways",
+    category: "driveway",
+    groups: [
+      {
+        label: "Material",
+        key: "drivewayMaterial",
+        options: [
+          { label: "Gravel/Crushed Stone", price: "$", item: "Driveway (gravel/crushed stone)", qualityTier: "economy" },
+          { label: "Asphalt", price: "$$", item: "Driveway (asphalt)", qualityTier: "mid_range" },
+          { label: "Concrete or Pavers", price: "$$$", item: "Driveway (concrete or pavers)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Scope",
+        key: "drivewayScope",
+        options: [
+          { label: "Walkway Only", price: "$", item: "Walkway installation", qualityTier: "economy" },
+          { label: "Single Car Driveway", price: "$$", item: "Single car driveway", qualityTier: "mid_range" },
+          { label: "Double Car or Extension", price: "$$$", item: "Double car driveway or extension", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: () => ({
+      drivewayMaterial: { quantity: 600, unit: "sqft" },
+      drivewayScope: { quantity: 1, unit: "each" },
+    }),
+  },
+  accessibility: {
+    label: "Accessibility & Aging-in-Place",
+    category: "accessibility",
+    groups: [
+      {
+        label: "Modification Type",
+        key: "accessibilityType",
+        options: [
+          { label: "Grab Bars & Handrails", price: "$", item: "Grab bars and safety handrails", qualityTier: "economy" },
+          { label: "Wheelchair Ramp", price: "$$", item: "Wheelchair ramp installation", qualityTier: "mid_range" },
+          { label: "Stair Lift/Elevator", price: "$$$", item: "Stair lift or residential elevator", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Bathroom Updates",
+        key: "accessibleBath",
+        options: [
+          { label: "Walk-in Tub/Roll-in Shower", price: "$$$", item: "Walk-in tub or roll-in shower", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: () => ({
+      accessibilityType: { quantity: 1, unit: "each" },
+      accessibleBath: { quantity: 1, unit: "each" },
+    }),
+  },
 };
 
 export function computeSelectionHash(renovationType: string, selections: Record<string, string>): string {
@@ -631,6 +971,76 @@ const RENOVATION_PATTERNS: Array<{ type: string; keywords: string[]; strictKeywo
     type: "landscaping",
     keywords: ["landscaping", "landscape", "lawn", "yard", "garden", "hardscape", "paver", "sod", "new lawn", "curb appeal", "outdoor space", "planting"],
     strictKeywords: ["landscaping project", "landscape renovation", "new landscaping", "landscape design", "hardscape project", "redo landscaping", "landscape remodel"],
+  },
+  {
+    type: "interiorTrim",
+    keywords: ["trim", "molding", "moulding", "crown molding", "baseboard", "wainscoting", "board and batten", "millwork", "shiplap"],
+    strictKeywords: ["crown molding", "new baseboards", "wainscoting", "board and batten", "install trim", "replace trim", "new molding"],
+  },
+  {
+    type: "interiorDoors",
+    keywords: ["interior door", "bedroom door", "bathroom door", "closet door", "barn door", "pocket door", "french door interior"],
+    strictKeywords: ["replace interior door", "new interior door", "interior door replacement", "install barn door", "new bedroom door"],
+  },
+  {
+    type: "siding",
+    keywords: ["siding", "vinyl siding", "fiber cement", "hardie", "stone veneer", "gutter", "downspout", "exterior cladding", "fascia", "soffit"],
+    strictKeywords: ["new siding", "replace siding", "siding replacement", "vinyl siding", "fiber cement siding", "new gutters", "gutter replacement"],
+  },
+  {
+    type: "deckPorch",
+    keywords: ["porch", "sunroom", "screened porch", "three season room", "four season room", "patio cover", "covered patio"],
+    strictKeywords: ["new porch", "screened porch", "build sunroom", "sunroom addition", "porch enclosure", "add sunroom"],
+  },
+  {
+    type: "plumbingSystems",
+    keywords: ["water heater", "tankless", "water softener", "filtration", "plumbing system", "repipe", "re-pipe", "hot water"],
+    strictKeywords: ["new water heater", "replace water heater", "tankless water heater", "water softener", "whole home filtration", "repipe house"],
+  },
+  {
+    type: "electricalSolar",
+    keywords: ["electrical panel", "breaker box", "rewire", "solar panel", "solar system", "ev charger", "electric vehicle", "generator"],
+    strictKeywords: ["electrical panel upgrade", "install solar", "solar panel", "ev charger", "whole home rewire", "generator install"],
+  },
+  {
+    type: "lighting",
+    keywords: ["light fixture", "chandelier", "recessed light", "ceiling fan", "pendant light", "smart home", "security system", "home automation"],
+    strictKeywords: ["new light fixture", "install recessed", "replace chandelier", "smart home system", "security system install", "new ceiling fan"],
+  },
+  {
+    type: "specialtyRooms",
+    keywords: ["home office", "study room", "gym room", "workout room", "laundry room", "mudroom", "drop zone", "wine cellar", "home theater"],
+    strictKeywords: ["build home office", "home office remodel", "laundry room remodel", "mudroom build", "home gym", "home theater", "wine cellar"],
+  },
+  {
+    type: "basementAttic",
+    keywords: ["attic conversion", "convert attic", "bonus room", "attic bedroom", "attic finishing"],
+    strictKeywords: ["attic conversion", "convert attic", "finish attic", "attic bedroom", "attic remodel"],
+  },
+  {
+    type: "closets",
+    keywords: ["closet", "wardrobe", "pantry organiz", "storage system", "built in", "custom closet", "walk-in closet", "closet organiz"],
+    strictKeywords: ["custom closet", "closet remodel", "closet organization", "new closet system", "walk-in closet", "closet build"],
+  },
+  {
+    type: "fencing",
+    keywords: ["fence", "fencing", "privacy fence", "chain link", "picket fence", "gate", "wood fence", "vinyl fence"],
+    strictKeywords: ["new fence", "install fence", "replace fence", "fence replacement", "privacy fence", "fencing project"],
+  },
+  {
+    type: "outdoorLiving",
+    keywords: ["pool", "swimming pool", "outdoor kitchen", "fire pit", "pergola", "gazebo", "outdoor fireplace", "bbq island", "hot tub"],
+    strictKeywords: ["install pool", "new pool", "outdoor kitchen", "build fire pit", "new pergola", "build gazebo", "hot tub install"],
+  },
+  {
+    type: "driveway",
+    keywords: ["driveway", "walkway", "concrete driveway", "asphalt driveway", "paving", "sidewalk", "pathway"],
+    strictKeywords: ["new driveway", "replace driveway", "driveway replacement", "pave driveway", "new walkway", "concrete driveway"],
+  },
+  {
+    type: "accessibility",
+    keywords: ["accessibility", "aging in place", "grab bar", "wheelchair ramp", "stair lift", "elevator", "walk-in tub", "roll-in shower", "ada", "handicap"],
+    strictKeywords: ["aging in place", "accessibility modification", "install grab bar", "wheelchair ramp", "stair lift", "walk-in tub"],
   },
 ];
 

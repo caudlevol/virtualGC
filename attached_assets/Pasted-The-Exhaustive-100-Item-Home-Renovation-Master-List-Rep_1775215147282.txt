@@ -1,0 +1,397 @@
+The Exhaustive 100-Item Home Renovation Master List & Replit Prompt
+
+Based on deep research across Houzz, Remodeling Magazine, Angi, and NAR data, here is the truly exhaustive list of specific home renovation projects that buyers actually ask about. This covers everything from structural additions to cosmetic niche projects.
+
+The Exhaustive List (Categorized)
+
+1. Kitchen (Currently Supported)
+
+•
+Full Remodel
+
+•
+Cabinet Replacement / Refacing
+
+•
+Countertops (Quartz, Granite, Marble)
+
+•
+Backsplash Installation
+
+•
+Appliance Package Replacement
+
+•
+Kitchen Island Addition
+
+2. Bathroom (Currently Supported)
+
+•
+Full Remodel (Primary & Guest)
+
+•
+Tub-to-Shower Conversion
+
+•
+Vanity Replacement
+
+•
+Toilet Replacement
+
+•
+Tile Flooring & Walls
+
+3. Flooring & Surfaces (Currently Supported)
+
+•
+Hardwood Refinishing / Installation
+
+•
+LVP (Luxury Vinyl Plank) Installation
+
+•
+Carpet Replacement
+
+•
+Tile Installation
+
+4. Painting & Trim (Partially Supported)
+
+•
+Full Interior Paint
+
+•
+Full Exterior Paint
+
+•
+Crown Molding / Baseboards / Trim (Missing)
+
+•
+Wainscoting / Board & Batten (Missing)
+
+5. Windows & Doors (Partially Supported)
+
+•
+Window Replacement (Vinyl, Wood, Fiberglass)
+
+•
+Exterior Doors (Front, Patio, French)
+
+•
+Interior Doors (Missing)
+
+•
+Garage Doors (Missing - Currently only in Garage category)
+
+6. Exterior & Structural (Partially Supported)
+
+•
+Roof Replacement
+
+•
+Siding Replacement (Vinyl, Fiber Cement, Wood) (Missing)
+
+•
+Gutters & Downspouts (Missing)
+
+•
+Deck Addition / Replacement (Missing)
+
+•
+Porch / Sunroom Addition (Missing)
+
+7. Systems & HVAC (Partially Supported)
+
+•
+HVAC Replacement (Furnace, AC, Heat Pump)
+
+•
+Water Heater (Tank, Tankless) (Missing)
+
+•
+Water Softener / Filtration (Missing)
+
+•
+Electrical Panel Upgrade (Missing)
+
+•
+Solar Panels (Missing)
+
+8. Specialty Rooms & Additions (Missing)
+
+•
+Basement Finishing (Missing)
+
+•
+Attic Conversion (Missing)
+
+•
+Home Office Build-out (Missing)
+
+•
+Laundry Room Remodel (Missing)
+
+•
+Mudroom / Drop Zone (Missing)
+
+•
+Home Gym (Missing)
+
+9. Outdoor Living & Landscaping (Missing)
+
+•
+Fencing (Wood, Vinyl, Chain Link) (Missing)
+
+•
+Driveway Replacement (Concrete, Asphalt) (Missing)
+
+•
+Outdoor Kitchen / BBQ (Missing)
+
+•
+Fire Pit / Outdoor Fireplace (Missing)
+
+•
+Swimming Pool (In-ground) (Missing)
+
+•
+Pergola / Gazebo (Missing)
+
+•
+Basic Landscaping / Sod (Missing)
+
+10. Smart Home & Niche (Missing)
+
+•
+Smart Home Automation (Missing)
+
+•
+EV Charger Installation (Missing)
+
+•
+Accessibility / Aging-in-Place (Grab bars, ramps) (Missing)
+
+•
+Custom Closets / Organization (Missing)
+
+
+
+
+The Ultimate Replit Prompt — Paste This Exactly
+
+To cover all of these, we need to add 14 new comprehensive categories to the configurator. This prompt will add them all in one pass.
+
+
+Add 14 Comprehensive Renovation Categories to Smart Scope ConfiguratorYou are a senior TypeScript/React developer. We are doing a massive expansion of the Smart Scope configurator to cover the top 100 home buyer renovation requests. We are adding 14 new categories to both the backend configuratorMap.ts and the frontend chat.tsx.
+
+
+CHANGE 1 — Update Backend configuratorMap.ts
+
+In artifacts/api-server/src/lib/configuratorMap.ts, add the following new entries to the configuratorMap object (before the closing brace):TypeScript
+
+
+  interiorTrim: {
+    label: "Interior Trim & Molding",
+    keywords: ["trim", "molding", "moulding", "crown molding", "baseboard", "wainscoting", "board and batten", "millwork", "shiplap"],
+    groups: [
+      { label: "Trim Type", key: "trimType", options: [{ label: "Baseboards Only", price: "$" }, { label: "Crown & Baseboards", price: "$$" }, { label: "Full Millwork/Wainscoting", price: "$$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      trimType: { quantity: Math.max(200, Math.round(p.sqft * 0.8)), unit: "linear_ft" }
+    })
+  },
+  interiorDoors: {
+    label: "Interior Doors",
+    keywords: ["interior door", "bedroom door", "bathroom door", "closet door", "barn door", "pocket door", "french door interior"],
+    groups: [
+      { label: "Door Style", key: "interiorDoorStyle", options: [{ label: "Hollow Core (Basic)", price: "$" }, { label: "Solid Core", price: "$$" }, { label: "Custom/Barn Doors", price: "$$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      interiorDoorStyle: { quantity: Math.max(5, Math.round(p.sqft / 300)), unit: "each" }
+    })
+  },
+  siding: {
+    label: "Siding & Gutters",
+    keywords: ["siding", "vinyl siding", "fiber cement", "hardie", "stone veneer", "gutters", "downspouts", "exterior cladding", "fascia", "soffit"],
+    groups: [
+      { label: "Siding Material", key: "sidingMaterial", options: [{ label: "Vinyl Siding", price: "$" }, { label: "Engineered Wood", price: "$$" }, { label: "Fiber Cement", price: "$$$" }] },
+      { label: "Gutters", key: "gutters", options: [{ label: "Aluminum Seamless", price: "$" }, { label: "Copper/Custom", price: "$$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      sidingMaterial: { quantity: Math.max(1500, Math.round(p.sqft * 1.5)), unit: "sqft" },
+      gutters: { quantity: Math.max(100, Math.round(p.sqft * 0.1)), unit: "linear_ft" }
+    })
+  },
+  deckPorch: {
+    label: "Decks, Porches & Sunrooms",
+    keywords: ["deck", "porch", "sunroom", "patio cover", "screened porch", "three season room", "four season room"],
+    groups: [
+      { label: "Structure Type", key: "outdoorStructure", options: [{ label: "Wood Deck", price: "$" }, { label: "Composite Deck", price: "$$" }, { label: "Sunroom/Screened Porch", price: "$$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      outdoorStructure: { quantity: Math.max(150, Math.round(p.sqft * 0.15)), unit: "sqft" }
+    })
+  },
+  plumbingSystems: {
+    label: "Plumbing & Water Systems",
+    keywords: ["water heater", "tankless", "water softener", "filtration", "plumbing system", "repipe", "re-pipe"],
+    groups: [
+      { label: "Water Heater", key: "waterHeater", options: [{ label: "Standard Tank", price: "$" }, { label: "Tankless", price: "$$" }] },
+      { label: "Water Treatment", key: "waterTreatment", options: [{ label: "Basic Softener", price: "$" }, { label: "Whole Home Filtration", price: "$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      waterHeater: { quantity: 1, unit: "each" },
+      waterTreatment: { quantity: 1, unit: "each" }
+    })
+  },
+  electricalSolar: {
+    label: "Electrical, Solar & EV",
+    keywords: ["electrical panel", "breaker box", "rewire", "solar panel", "solar system", "ev charger", "electric vehicle", "generator"],
+    groups: [
+      { label: "Electrical Upgrades", key: "electricalUpgrade", options: [{ label: "EV Charger Install", price: "$" }, { label: "Panel Upgrade (200A)", price: "$$" }, { label: "Whole Home Rewire", price: "$$$" }] },
+      { label: "Solar/Power", key: "solarPower", options: [{ label: "Portable Generator Hookup", price: "$" }, { label: "Solar Panel System", price: "$$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      electricalUpgrade: { quantity: 1, unit: "each" },
+      solarPower: { quantity: 1, unit: "each" }
+    })
+  },
+  lighting: {
+    label: "Lighting & Smart Home",
+    keywords: ["light", "lighting", "chandelier", "recessed", "ceiling fan", "fixture", "smart home", "security", "automation"],
+    groups: [
+      { label: "Fixture Type", key: "fixtureType", options: [{ label: "Standard Fixtures", price: "$" }, { label: "Recessed Cans", price: "$$" }, { label: "Designer/Chandeliers", price: "$$$" }] },
+      { label: "Smart Home", key: "smartHome", options: [{ label: "Security System", price: "$" }, { label: "Full Automation System", price: "$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      fixtureType: { quantity: Math.max(5, Math.round(p.sqft / 200)), unit: "each" },
+      smartHome: { quantity: 1, unit: "each" }
+    })
+  },
+  specialtyRooms: {
+    label: "Specialty Rooms (Office/Gym/Laundry)",
+    keywords: ["home office", "study", "gym", "workout room", "laundry room", "mudroom", "drop zone", "wine cellar", "theater"],
+    groups: [
+      { label: "Room Type", key: "specialtyRoomType", options: [{ label: "Laundry/Mudroom", price: "$" }, { label: "Home Office/Gym", price: "$$" }, { label: "Theater/Wine Cellar", price: "$$$" }] },
+      { label: "Finish Level", key: "specialtyFinish", options: [{ label: "Basic Update", price: "$" }, { label: "Custom Built-ins", price: "$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      specialtyRoomType: { quantity: 1, unit: "each" },
+      specialtyFinish: { quantity: 1, unit: "each" }
+    })
+  },
+  basementAttic: {
+    label: "Basement & Attic Finishing",
+    keywords: ["basement", "finish basement", "attic", "attic conversion", "bonus room"],
+    groups: [
+      { label: "Space Type", key: "bonusSpaceType", options: [{ label: "Attic Conversion", price: "$$" }, { label: "Basement Finishing", price: "$$$" }] },
+      { label: "Inclusions", key: "bonusSpaceExtras", options: [{ label: "Open Concept Only", price: "$" }, { label: "Add Bathroom/Wet Bar", price: "$$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      bonusSpaceType: { quantity: Math.max(400, Math.round(p.sqft * 0.4)), unit: "sqft" },
+      bonusSpaceExtras: { quantity: 1, unit: "each" }
+    })
+  },
+  closets: {
+    label: "Custom Closets & Storage",
+    keywords: ["closet", "wardrobe", "pantry", "storage", "built in", "custom closet", "walk-in closet"],
+    groups: [
+      { label: "System Type", key: "closetSystem", options: [{ label: "Wire Shelving", price: "$" }, { label: "Laminate Built-ins", price: "$$" }, { label: "Custom Wood", price: "$$$" }] },
+      { label: "Scope", key: "closetScope", options: [{ label: "Single Reach-in", price: "$" }, { label: "Primary Walk-in", price: "$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      closetSystem: { quantity: 1, unit: "each" },
+      closetScope: { quantity: 1, unit: "each" }
+    })
+  },
+  fencing: {
+    label: "Fencing & Gates",
+    keywords: ["fence", "fencing", "privacy fence", "chain link", "picket fence", "gate", "wood fence", "vinyl fence"],
+    groups: [
+      { label: "Fence Material", key: "fenceMaterial", options: [{ label: "Chain Link", price: "$" }, { label: "Treated Wood", price: "$$" }, { label: "Vinyl/Composite", price: "$$$" }] },
+      { label: "Fence Style", key: "fenceStyle", options: [{ label: "4-Foot Picket", price: "$" }, { label: "6-Foot Privacy", price: "$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      fenceMaterial: { quantity: Math.max(100, Math.round(p.sqft * 0.1)), unit: "linear_ft" },
+      fenceStyle: { quantity: 1, unit: "each" }
+    })
+  },
+  outdoorLiving: {
+    label: "Outdoor Living & Pools",
+    keywords: ["pool", "swimming pool", "outdoor kitchen", "fire pit", "pergola", "gazebo", "outdoor fireplace", "bbq island", "hot tub"],
+    groups: [
+      { label: "Feature Type", key: "outdoorFeature", options: [{ label: "Fire Pit or Pergola", price: "$" }, { label: "Outdoor Kitchen/BBQ", price: "$$" }, { label: "In-Ground Pool", price: "$$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      outdoorFeature: { quantity: 1, unit: "each" }
+    })
+  },
+  driveway: {
+    label: "Driveway & Walkways",
+    keywords: ["driveway", "walkway", "concrete driveway", "asphalt", "pavers", "paving", "sidewalk", "pathway"],
+    groups: [
+      { label: "Material", key: "drivewayMaterial", options: [{ label: "Gravel/Crushed Stone", price: "$" }, { label: "Asphalt", price: "$$" }, { label: "Concrete or Pavers", price: "$$$" }] },
+      { label: "Scope", key: "drivewayScope", options: [{ label: "Walkway Only", price: "$" }, { label: "Single Car Driveway", price: "$$" }, { label: "Double Car or Extension", price: "$$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      drivewayMaterial: { quantity: 600, unit: "sqft" },
+      drivewayScope: { quantity: 1, unit: "each" }
+    })
+  },
+  accessibility: {
+    label: "Accessibility & Aging-in-Place",
+    keywords: ["accessibility", "aging in place", "grab bars", "wheelchair ramp", "stair lift", "elevator", "walk-in tub", "roll-in shower", "ada", "handicap"],
+    groups: [
+      { label: "Modification Type", key: "accessibilityType", options: [{ label: "Grab Bars & Handrails", price: "$" }, { label: "Wheelchair Ramp", price: "$$" }, { label: "Stair Lift/Elevator", price: "$$$" }] },
+      { label: "Bathroom Updates", key: "accessibleBath", options: [{ label: "Walk-in Tub/Roll-in Shower", price: "$$$" }] }
+    ],
+    estimateScope: (p: any) => ({
+      accessibilityType: { quantity: 1, unit: "each" },
+      accessibleBath: { quantity: 1, unit: "each" }
+    })
+  }
+
+
+
+
+
+
+CHANGE 2 — Update Frontend chat.tsx
+
+In artifacts/vgc-app/src/pages/chat.tsx, locate the CONFIGURATOR_MAP object (around line 384). Add the corresponding UI configurations for the new categories (before the closing brace):TypeScript
+
+
+  interiorTrim: { label: "Interior Trim & Molding", groups: [{ label: "Trim Type", key: "trimType", options: [{ label: "Baseboards Only", price: "$" }, { label: "Crown & Baseboards", price: "$$" }, { label: "Full Millwork/Wainscoting", price: "$$$" }] }] },
+  interiorDoors: { label: "Interior Doors", groups: [{ label: "Door Style", key: "interiorDoorStyle", options: [{ label: "Hollow Core (Basic)", price: "$" }, { label: "Solid Core", price: "$$" }, { label: "Custom/Barn Doors", price: "$$$" }] }] },
+  siding: { label: "Siding & Gutters", groups: [{ label: "Siding Material", key: "sidingMaterial", options: [{ label: "Vinyl Siding", price: "$" }, { label: "Engineered Wood", price: "$$" }, { label: "Fiber Cement", price: "$$$" }] }, { label: "Gutters", key: "gutters", options: [{ label: "Aluminum Seamless", price: "$" }, { label: "Copper/Custom", price: "$$$" }] }] },
+  deckPorch: { label: "Decks, Porches & Sunrooms", groups: [{ label: "Structure Type", key: "outdoorStructure", options: [{ label: "Wood Deck", price: "$" }, { label: "Composite Deck", price: "$$" }, { label: "Sunroom/Screened Porch", price: "$$$" }] }] },
+  plumbingSystems: { label: "Plumbing & Water Systems", groups: [{ label: "Water Heater", key: "waterHeater", options: [{ label: "Standard Tank", price: "$" }, { label: "Tankless", price: "$$" }] }, { label: "Water Treatment", key: "waterTreatment", options: [{ label: "Basic Softener", price: "$" }, { label: "Whole Home Filtration", price: "$$$" }] }] },
+  electricalSolar: { label: "Electrical, Solar & EV", groups: [{ label: "Electrical Upgrades", key: "electricalUpgrade", options: [{ label: "EV Charger Install", price: "$" }, { label: "Panel Upgrade (200A)", price: "$$" }, { label: "Whole Home Rewire", price: "$$$" }] }, { label: "Solar/Power", key: "solarPower", options: [{ label: "Portable Generator Hookup", price: "$" }, { label: "Solar Panel System", price: "$$$" }] }] },
+  lighting: { label: "Lighting & Smart Home", groups: [{ label: "Fixture Type", key: "fixtureType", options: [{ label: "Standard Fixtures", price: "$" }, { label: "Recessed Cans", price: "$$" }, { label: "Designer/Chandeliers", price: "$$$" }] }, { label: "Smart Home", key: "smartHome", options: [{ label: "Security System", price: "$" }, { label: "Full Automation System", price: "$$" }] }] },
+  specialtyRooms: { label: "Specialty Rooms (Office/Gym/Laundry)", groups: [{ label: "Room Type", key: "specialtyRoomType", options: [{ label: "Laundry/Mudroom", price: "$" }, { label: "Home Office/Gym", price: "$$" }, { label: "Theater/Wine Cellar", price: "$$$" }] }, { label: "Finish Level", key: "specialtyFinish", options: [{ label: "Basic Update", price: "$" }, { label: "Custom Built-ins", price: "$$" }] }] },
+  basementAttic: { label: "Basement & Attic Finishing", groups: [{ label: "Space Type", key: "bonusSpaceType", options: [{ label: "Attic Conversion", price: "$$" }, { label: "Basement Finishing", price: "$$$" }] }, { label: "Inclusions", key: "bonusSpaceExtras", options: [{ label: "Open Concept Only", price: "$" }, { label: "Add Bathroom/Wet Bar", price: "$$$" }] }] },
+  closets: { label: "Custom Closets & Storage", groups: [{ label: "System Type", key: "closetSystem", options: [{ label: "Wire Shelving", price: "$" }, { label: "Laminate Built-ins", price: "$$" }, { label: "Custom Wood", price: "$$$" }] }, { label: "Scope", key: "closetScope", options: [{ label: "Single Reach-in", price: "$" }, { label: "Primary Walk-in", price: "$$" }] }] },
+  fencing: { label: "Fencing & Gates", groups: [{ label: "Fence Material", key: "fenceMaterial", options: [{ label: "Chain Link", price: "$" }, { label: "Treated Wood", price: "$$" }, { label: "Vinyl/Composite", price: "$$$" }] }, { label: "Fence Style", key: "fenceStyle", options: [{ label: "4-Foot Picket", price: "$" }, { label: "6-Foot Privacy", price: "$$" }] }] },
+  outdoorLiving: { label: "Outdoor Living & Pools", groups: [{ label: "Feature Type", key: "outdoorFeature", options: [{ label: "Fire Pit or Pergola", price: "$" }, { label: "Outdoor Kitchen/BBQ", price: "$$" }, { label: "In-Ground Pool", price: "$$$" }] }] },
+  driveway: { label: "Driveway & Walkways", groups: [{ label: "Material", key: "drivewayMaterial", options: [{ label: "Gravel/Crushed Stone", price: "$" }, { label: "Asphalt", price: "$$" }, { label: "Concrete or Pavers", price: "$$$" }] }, { label: "Scope", key: "drivewayScope", options: [{ label: "Walkway Only", price: "$" }, { label: "Single Car Driveway", price: "$$" }, { label: "Double Car or Extension", price: "$$$" }] }] },
+  accessibility: { label: "Accessibility & Aging-in-Place", groups: [{ label: "Modification Type", key: "accessibilityType", options: [{ label: "Grab Bars & Handrails", price: "$" }, { label: "Wheelchair Ramp", price: "$$" }, { label: "Stair Lift/Elevator", price: "$$$" }] }, { label: "Bathroom Updates", key: "accessibleBath", options: [{ label: "Walk-in Tub/Roll-in Shower", price: "$$$" }] }] }
+
+
+
+
+
+
+CHANGE 3 — Update the AI System Prompt
+
+In artifacts/api-server/src/lib/aiPipeline.ts, locate the SYSTEM_PROMPT. Find the list of Smart Scope supported categories and replace it entirely with:Smart Scope is available for: kitchen remodels, bathroom remodels, flooring, interior painting, window replacement, window shutters, staircase renovation, roof replacement, HVAC systems, deck/patio, garage renovation, basement finishing, exterior paint/siding, landscaping, exterior doors, interior trim/molding, interior doors, siding/gutters, decks/porches/sunrooms, plumbing systems (water heaters), electrical/solar/EV chargers, lighting/smart home, specialty rooms (office/gym/laundry), basement/attic finishing, custom closets/storage, fencing, outdoor living (pools/fire pits), driveways/walkways, and accessibility/aging-in-place modifications.VERIFICATION:
+
+
+App compiles with no TypeScript errors.
+
+
+
+
+All 14 new categories render correctly when triggered in chat.
+
+
+
