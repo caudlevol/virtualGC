@@ -1,0 +1,136 @@
+Fix Quoting Accuracy — Context-Aware Configurator Groups and Window Shutters Support
+You are a senior TypeScript developer. Make the following two changes to artifacts/api-server/src/lib/configuratorMap.ts. Do not change any other files.
+CHANGE 1 — Add Window Shutters as a standalone renovation type
+In the CONFIGURATOR_MAP object, add a new entry called windowShutters after the windows entry (around line 180). Add it here:
+TypeScript
+windowShutters: {
+  label: "Window Shutters",
+  category: "windowShutters",
+  groups: [
+    {
+      label: "Shutter Material",
+      key: "shutterMaterial",
+      options: [
+        { label: "Vinyl (Basic)", price: "$", item: "Window shutters (vinyl basic)", qualityTier: "economy" },
+        { label: "Composite", price: "$$", item: "Window shutters (composite)", qualityTier: "mid_range" },
+        { label: "Real Wood", price: "$$$", item: "Window shutters (real wood)", qualityTier: "premium" },
+      ],
+    },
+    {
+      label: "Shutter Style",
+      key: "shutterStyle",
+      options: [
+        { label: "Louvered", price: "$", item: "Shutters (louvered style)", qualityTier: "economy" },
+        { label: "Board & Batten", price: "$$", item: "Shutters (board and batten)", qualityTier: "mid_range" },
+        { label: "Raised Panel", price: "$$$", item: "Shutters (raised panel)", qualityTier: "premium" },
+      ],
+    },
+  ],
+  defaultQuantities: (p) => ({
+    shutterMaterial: { quantity: Math.max(4, Math.round(p.sqft / 300) * 2), unit: "each" },
+    shutterStyle: { quantity: Math.max(4, Math.round(p.sqft / 300) * 2), unit: "each" },
+  }),
+},
+Then add windowShutters to the RENOVATION_PATTERNS array (around line 540). Add this entry before the exteriorDoors entry:
+TypeScript
+{
+  type: "windowShutters",
+  keywords: ["shutter", "shutters", "window shutter", "window shutters", "exterior shutter", "replace shutter", "new shutter", "update shutter", "modernize shutter"],
+  strictKeywords: ["new shutters", "replace shutters", "window shutters", "shutter replacement", "update shutters", "modernize shutters"],
+},
+CHANGE 2 — Make the exteriorDoors configurator context-aware
+The exteriorDoors configurator currently always shows all three groups (Front Door, Rear/Patio Door, Hardware) even when the user only mentioned a front door. Fix this by replacing the static exteriorDoors entry in CONFIGURATOR_MAP with a version that uses a contextFilter approach.
+Replace the entire exteriorDoors entry (lines 347–383) with this:
+TypeScript
+exteriorDoors: {
+  label: "Exterior Doors",
+  category: "exteriorDoors",
+  groups: [
+    {
+      label: "Front Door",
+      key: "frontDoor",
+      contextKeywords: ["front door", "entry door", "front of the house", "main door", "front entrance"],
+      options: [
+        { label: "Steel Entry", price: "$", item: "Front door (steel entry)", qualityTier: "economy" },
+        { label: "Fiberglass", price: "$$", item: "Front door (fiberglass)", qualityTier: "mid_range" },
+        { label: "Solid Wood", price: "$$$", item: "Front door (solid wood)", qualityTier: "premium" },
+      ],
+    },
+    {
+      label: "Rear / Patio Door",
+      key: "rearDoor",
+      contextKeywords: ["patio door", "rear door", "back door", "sliding door", "french door", "back of the house"],
+      options: [
+        { label: "Sliding Vinyl", price: "$", item: "Patio door (sliding vinyl)", qualityTier: "economy" },
+        { label: "Sliding Fiberglass", price: "$$", item: "Patio door (sliding fiberglass)", qualityTier: "mid_range" },
+        { label: "French Door (Wood)", price: "$$$", item: "Patio door (french wood)", qualityTier: "premium" },
+      ],
+    },
+    {
+      label: "Hardware",
+      key: "doorHardware",
+      contextKeywords: ["hardware", "lock", "handle", "smart lock", "door knob", "deadbolt"],
+      options: [
+        { label: "Standard", price: "$", item: "Door hardware (standard)", qualityTier: "economy" },
+        { label: "Smart Lock", price: "$$", item: "Door hardware (smart lock)", qualityTier: "mid_range" },
+        { label: "Premium Smart", price: "$$$", item: "Door hardware (premium smart)", qualityTier: "premium" },
+      ],
+    },
+  ],
+  defaultQuantities: () => ({
+    frontDoor: { quantity: 1, unit: "each" },
+    rearDoor: { quantity: 1, unit: "each" },
+    doorHardware: { quantity: 2, unit: "each" },
+  }),
+},
+Now update the getConfiguratorOptions function (around line 639) to filter groups based on context. Replace the existing function with this:
+TypeScript
+export function getConfiguratorOptions(renovationType: string, conversationContext?: string) {
+  const config = CONFIGURATOR_MAP[renovationType];
+  if (!config) return null;
+
+  const ctx = (conversationContext || "").toLowerCase();
+
+  const filteredGroups = config.groups.filter((g: any) => {
+    // If the group has no contextKeywords, always show it
+    if (!g.contextKeywords || g.contextKeywords.length === 0) return true;
+    // If we have no conversation context, show all groups
+    if (!ctx) return true;
+    // Only show this group if at least one of its context keywords appears in the conversation
+    return g.contextKeywords.some((kw: string) => ctx.includes(kw));
+  });
+
+  // If context filtering removed ALL groups (edge case), fall back to showing all groups
+  const groupsToShow = filteredGroups.length > 0 ? filteredGroups : config.groups;
+
+  return {
+    renovationType,
+    label: config.label,
+    groups: groupsToShow.map((g: any) => ({
+      label: g.label,
+      key: g.key,
+      options: g.options.map((o: any) => ({
+        label: o.label,
+        price: o.price,
+      })),
+    })),
+  };
+}
+Finally, update the route in artifacts/api-server/src/routes/conversations.ts that calls getConfiguratorOptions (around line 344) to pass the conversation context:
+TypeScript
+// Find this line:
+const options = getConfiguratorOptions(renovationType);
+
+// Replace it with:
+const conversationContext = existingMessages
+  .slice(-6)
+  .map((m: any) => m.content)
+  .join(" ");
+const options = getConfiguratorOptions(renovationType, conversationContext);
+VERIFICATION CHECKLIST
+After making these changes, verify:
+ Asking "replace my window shutters" triggers the windowShutters configurator with Shutter Material and Shutter Style groups
+ Asking "replace my front door" triggers the exteriorDoors configurator showing ONLY the Front Door group — no patio door, no hardware
+ Asking "replace my front door and patio door" triggers both the Front Door and Rear/Patio Door groups
+ Asking "replace my front door and add a smart lock" triggers Front Door and Hardware groups
+ The app compiles with no TypeScript errors

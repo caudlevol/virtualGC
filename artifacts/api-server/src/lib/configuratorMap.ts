@@ -17,6 +17,7 @@ interface ConfiguratorGroup {
   label: string;
   key: string;
   options: ConfiguratorOption[];
+  contextKeywords?: string[];
 }
 
 interface ConfiguratorRenovationType {
@@ -176,6 +177,34 @@ export const CONFIGURATOR_MAP: Record<string, ConfiguratorRenovationType> = {
     ],
     defaultQuantities: (p) => ({
       windowType: { quantity: Math.max(5, Math.round(p.sqft / 200)), unit: "each" },
+    }),
+  },
+  windowShutters: {
+    label: "Window Shutters",
+    category: "windowShutters",
+    groups: [
+      {
+        label: "Shutter Material",
+        key: "shutterMaterial",
+        options: [
+          { label: "Vinyl (Basic)", price: "$", item: "Window shutters (vinyl basic)", qualityTier: "economy" },
+          { label: "Composite", price: "$$", item: "Window shutters (composite)", qualityTier: "mid_range" },
+          { label: "Real Wood", price: "$$$", item: "Window shutters (real wood)", qualityTier: "premium" },
+        ],
+      },
+      {
+        label: "Shutter Style",
+        key: "shutterStyle",
+        options: [
+          { label: "Louvered", price: "$", item: "Shutters (louvered style)", qualityTier: "economy" },
+          { label: "Board & Batten", price: "$$", item: "Shutters (board and batten)", qualityTier: "mid_range" },
+          { label: "Raised Panel", price: "$$$", item: "Shutters (raised panel)", qualityTier: "premium" },
+        ],
+      },
+    ],
+    defaultQuantities: (p) => ({
+      shutterMaterial: { quantity: Math.max(4, Math.round(p.sqft / 300) * 2), unit: "each" },
+      shutterStyle: { quantity: Math.max(4, Math.round(p.sqft / 300) * 2), unit: "each" },
     }),
   },
   staircase: {
@@ -351,6 +380,7 @@ export const CONFIGURATOR_MAP: Record<string, ConfiguratorRenovationType> = {
       {
         label: "Front Door",
         key: "frontDoor",
+        contextKeywords: ["front door", "entry door", "front of the house", "main door", "front entrance"],
         options: [
           { label: "Steel Entry", price: "$", item: "Front door (steel entry)", qualityTier: "economy" },
           { label: "Fiberglass", price: "$$", item: "Front door (fiberglass)", qualityTier: "mid_range" },
@@ -360,6 +390,7 @@ export const CONFIGURATOR_MAP: Record<string, ConfiguratorRenovationType> = {
       {
         label: "Rear / Patio Door",
         key: "rearDoor",
+        contextKeywords: ["patio door", "rear door", "back door", "sliding door", "french door", "back of the house"],
         options: [
           { label: "Sliding Vinyl", price: "$", item: "Patio door (sliding vinyl)", qualityTier: "economy" },
           { label: "Sliding Fiberglass", price: "$$", item: "Patio door (sliding fiberglass)", qualityTier: "mid_range" },
@@ -369,6 +400,7 @@ export const CONFIGURATOR_MAP: Record<string, ConfiguratorRenovationType> = {
       {
         label: "Hardware",
         key: "doorHardware",
+        contextKeywords: ["hardware", "lock", "handle", "smart lock", "door knob", "deadbolt"],
         options: [
           { label: "Standard", price: "$", item: "Door hardware (standard)", qualityTier: "economy" },
           { label: "Smart Lock", price: "$$", item: "Door hardware (smart lock)", qualityTier: "mid_range" },
@@ -586,6 +618,11 @@ const RENOVATION_PATTERNS: Array<{ type: string; keywords: string[]; strictKeywo
     strictKeywords: ["finish basement", "basement remodel", "basement renovation", "basement finishing", "basement conversion"],
   },
   {
+    type: "windowShutters",
+    keywords: ["shutter", "shutters", "window shutter", "window shutters", "exterior shutter", "replace shutter", "new shutter", "update shutter", "modernize shutter"],
+    strictKeywords: ["new shutters", "replace shutters", "window shutters", "shutter replacement", "update shutters", "modernize shutters"],
+  },
+  {
     type: "exteriorDoors",
     keywords: ["front door", "entry door", "exterior door", "new door", "replace door", "door replacement", "rear door", "patio door", "french door", "sliding door", "back door", "upgrade door"],
     strictKeywords: ["new front door", "replace front door", "front door replacement", "new entry door", "exterior door replacement", "new patio door", "replace patio door", "door upgrade"],
@@ -636,14 +673,24 @@ export function detectRenovationIntentFromBoth(userMessage: string, aiResponse: 
   return detectRenovationIntentStrict(aiResponse);
 }
 
-export function getConfiguratorOptions(renovationType: string) {
+export function getConfiguratorOptions(renovationType: string, conversationContext?: string) {
   const config = CONFIGURATOR_MAP[renovationType];
   if (!config) return null;
+
+  const ctx = (conversationContext || "").toLowerCase();
+
+  const filteredGroups = config.groups.filter((g) => {
+    if (!g.contextKeywords || g.contextKeywords.length === 0) return true;
+    if (!ctx) return true;
+    return g.contextKeywords.some((kw) => ctx.includes(kw));
+  });
+
+  const groupsToShow = filteredGroups.length > 0 ? filteredGroups : config.groups;
 
   return {
     renovationType,
     label: config.label,
-    groups: config.groups.map(g => ({
+    groups: groupsToShow.map(g => ({
       label: g.label,
       key: g.key,
       options: g.options.map(o => ({

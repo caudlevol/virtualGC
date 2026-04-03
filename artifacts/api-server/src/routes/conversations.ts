@@ -341,7 +341,14 @@ router.get("/conversations/:conversationId/configurator-options", requireAuth, a
     return;
   }
 
-  const options = getConfiguratorOptions(renovationType);
+  const conversation = await db.select().from(conversationsTable).where(eq(conversationsTable.id, conversationId)).limit(1);
+  const existingMessages = (conversation[0]?.messages as Array<{ role: string; content: string }>) || [];
+  const conversationContext = existingMessages
+    .slice(-6)
+    .map((m: any) => m.content)
+    .join(" ");
+
+  const options = getConfiguratorOptions(renovationType, conversationContext);
   if (!options) {
     res.status(404).json({ error: `Unknown renovation type: ${renovationType}` });
     return;
