@@ -361,13 +361,28 @@ router.get("/conversations/:conversationId/configurator-options", requireAuth, a
     .map((m: any) => m.content)
     .join(" ");
 
-  const options = getConfiguratorOptions(renovationType, conversationContext);
-  if (!options) {
-    res.status(404).json({ error: `Unknown renovation type: ${renovationType}` });
+  const types = renovationType.split(",");
+  const combinedOptions = {
+    renovationType,
+    label: "Combined Scope",
+    groups: [] as any[]
+  };
+  for (const type of types) {
+    const options = getConfiguratorOptions(type.trim(), conversationContext);
+    if (options && options.groups) {
+      combinedOptions.groups.push(...options.groups);
+      if (combinedOptions.label === "Combined Scope") {
+        combinedOptions.label = options.label;
+      } else {
+        combinedOptions.label += ` & ${options.label}`;
+      }
+    }
+  }
+  if (combinedOptions.groups.length === 0) {
+    res.status(404).json({ error: `Unknown renovation types: ${renovationType}` });
     return;
   }
-
-  res.json(options);
+  res.json(combinedOptions);
 });
 
 router.get("/conversations/:conversationId", requireAuth, async (req, res): Promise<void> => {

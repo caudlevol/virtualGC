@@ -1,0 +1,91 @@
+Here is the complete Replit prompt. Copy everything between the lines and paste it directly into Replit:
+Fix Intent Detection, Enable Multi-Renovation, and Enhance Qualifying Questions
+You are a senior full-stack developer. We need to fix four specific issues. Please make all of the following changes:
+CHANGE 1 — Fix Keyword Overlap and Enable Multi-Intent in artifacts/api-server/src/lib/configuratorMap.ts
+In the RENOVATION_PATTERNS array, move the windowShutters object so it appears BEFORE the windows object. Then update the windows object keywords to be more specific:
+TypeScript
+{
+  type: "windows",
+  keywords: ["replace window", "new window", "window replacement", "upgrade window", "window upgrade", "double pane", "energy efficient window", "glass window"],
+  strictKeywords: ["replace window", "new window", "window replacement", "upgrade window", "window upgrade"],
+},
+Then replace the three detection functions (detectRenovationIntent, detectRenovationIntentStrict, and detectRenovationIntentFromBoth) with these updated versions that return ALL matched types as a comma-separated string instead of just the first match:
+TypeScript
+export function detectRenovationIntent(message: string): string | null {
+  const msg = message.toLowerCase().replace(/\b(the|a|an|my|our|this|that|master|guest|main|half)\b/g, " ").replace(/\s+/g, " ").trim();
+  const matchedTypes: string[] = [];
+  for (const pattern of RENOVATION_PATTERNS) {
+    if (pattern.type === "windows" && (msg.includes("shutter") || msg.includes("shutters"))) continue;
+    if (pattern.keywords.some(kw => msg.includes(kw))) {
+      if (!matchedTypes.includes(pattern.type)) matchedTypes.push(pattern.type);
+    }
+  }
+  return matchedTypes.length > 0 ? matchedTypes.join(",") : null;
+}
+
+const RECOMMENDATION_VERBS = ["recommend", "suggest", "start with", "focus on", "consider", "let's start", "begin with", "tackle", "prioritize", "biggest impact"];
+
+function detectRenovationIntentStrict(message: string): string | null {
+  const msg = message.toLowerCase().replace(/\b(the|a|an|my|our|this|that|master|guest|main|half)\b/g, " ").replace(/\s+/g, " ").trim();
+  const hasRecommendationContext = RECOMMENDATION_VERBS.some(v => msg.includes(v));
+  const matchedTypes: string[] = [];
+  for (const pattern of RENOVATION_PATTERNS) {
+    if (pattern.type === "windows" && (msg.includes("shutter") || msg.includes("shutters"))) continue;
+    const strictMatch = pattern.strictKeywords.some(kw => msg.includes(kw));
+    if (!strictMatch) continue;
+    if (hasRecommendationContext) {
+      if (!matchedTypes.includes(pattern.type)) matchedTypes.push(pattern.type);
+      continue;
+    }
+    const keywordHits = pattern.keywords.filter(kw => msg.includes(kw)).length;
+    if (keywordHits >= 2) {
+      if (!matchedTypes.includes(pattern.type)) matchedTypes.push(pattern.type);
+    }
+  }
+  return matchedTypes.length > 0 ? matchedTypes.join(",") : null;
+}
+
+export function detectRenovationIntentFromBoth(userMessage: string, aiResponse: string): string | null {
+  const userIntent = detectRenovationIntent(userMessage);
+  const aiIntent = detectRenovationIntentStrict(aiResponse);
+  const combined = new Set<string>();
+  if (userIntent) userIntent.split(",").forEach(t => combined.add(t));
+  if (aiIntent) aiIntent.split(",").forEach(t => combined.add(t));
+  return combined.size > 0 ? Array.from(combined).join(",") : null;
+}
+CHANGE 2 — Support Combined Configurators in artifacts/api-server/src/routes/conversations.ts
+Find the GET /conversations/:conversationId/configurator-options route. Find the line that calls getConfiguratorOptions(renovationType, ...) and replace the entire block that builds and sends the response with this:
+TypeScript
+const types = renovationType.split(",");
+const combinedOptions = {
+  renovationType,
+  label: "Combined Scope",
+  groups: [] as any[]
+};
+for (const type of types) {
+  const options = getConfiguratorOptions(type.trim(), conversationContext);
+  if (options && options.groups) {
+    combinedOptions.groups.push(...options.groups);
+    if (combinedOptions.label === "Combined Scope") {
+      combinedOptions.label = options.label;
+    } else {
+      combinedOptions.label += ` & ${options.label}`;
+    }
+  }
+}
+if (combinedOptions.groups.length === 0) {
+  res.status(404).json({ error: `Unknown renovation types: ${renovationType}` });
+  return;
+}
+res.json(combinedOptions);
+CHANGE 3 — Deepen Qualifying Questions in artifacts/api-server/src/lib/aiPipeline.ts
+In the SYSTEM_PROMPT, find the STEP 2 — ASK ABOUT STYLE AND MATERIAL section and add this rule at the end of that section:
+Plain Text
+- WHEN THE USER IS UNSURE or says "I don't know" or "what do you recommend?", DO NOT just ask another vague question. Instead, describe 2-3 specific vivid options in plain language. Example for a front door: "Here are three directions — (1) Modern Matte Black: a sleek fiberglass door with horizontal frosted glass panels, (2) Farmhouse Craftsman: a solid wood-look steel door with a cross-buck panel and black iron hardware, or (3) Bold Statement: a deep navy blue fiberglass door with a full-length sidelight. Which direction feels right?" Always give the user something concrete to react to.
+CHANGE 4 — Unblock Frontend Rendering in artifacts/vgc-app/src/pages/chat.tsx
+Find the conditional check that renders the Smart Scope configurator card (around line 959). It currently has a strict check like CONFIGURATOR_MAP[msg.configuratorType] that blocks rendering for combined types like "windowShutters,exteriorDoors". Update the condition so it renders the Smart Scope card whenever msg.configuratorType is a non-empty string, without requiring it to exist in the local frontend map. The backend will return the correct groups dynamically.
+VERIFICATION CHECKLIST
+ Asking "replace the window shutters" triggers the windowShutters configurator, NOT the windows configurator
+ Asking "replace the window shutters and the front door" shows a combined configurator with groups for both
+ When a user says "I don't know" or asks for recommendations, the AI gives 2-3 vivid, specific options
+ The app compiles with no TypeScript errors

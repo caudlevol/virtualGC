@@ -923,8 +923,13 @@ const RENOVATION_PATTERNS: Array<{ type: string; keywords: string[]; strictKeywo
     strictKeywords: ["interior paint", "paint job", "paint throughout", "repaint entire", "repaint all", "full repaint", "whole house paint"],
   },
   {
+    type: "windowShutters",
+    keywords: ["shutter", "shutters", "window shutter", "window shutters", "exterior shutter", "replace shutter", "new shutter", "update shutter", "modernize shutter"],
+    strictKeywords: ["new shutters", "replace shutters", "window shutters", "shutter replacement", "update shutters", "modernize shutters"],
+  },
+  {
     type: "windows",
-    keywords: ["replace window", "new window", "window replacement", "upgrade window", "window upgrade", "double pane", "energy efficient window"],
+    keywords: ["replace window", "new window", "window replacement", "upgrade window", "window upgrade", "double pane", "energy efficient window", "glass window"],
     strictKeywords: ["replace window", "new window", "window replacement", "upgrade window", "window upgrade"],
   },
   {
@@ -956,11 +961,6 @@ const RENOVATION_PATTERNS: Array<{ type: string; keywords: string[]; strictKeywo
     type: "basement",
     keywords: ["basement", "finish basement", "basement remodel", "basement renovation", "unfinished basement", "basement conversion", "basement finishing"],
     strictKeywords: ["finish basement", "basement remodel", "basement renovation", "basement finishing", "basement conversion"],
-  },
-  {
-    type: "windowShutters",
-    keywords: ["shutter", "shutters", "window shutter", "window shutters", "exterior shutter", "replace shutter", "new shutter", "update shutter", "modernize shutter"],
-    strictKeywords: ["new shutters", "replace shutters", "window shutters", "shutter replacement", "update shutters", "modernize shutters"],
   },
   {
     type: "exteriorDoors",
@@ -1046,41 +1046,45 @@ const RENOVATION_PATTERNS: Array<{ type: string; keywords: string[]; strictKeywo
 
 export function detectRenovationIntent(message: string): string | null {
   const msg = message.toLowerCase().replace(/\b(the|a|an|my|our|this|that|master|guest|main|half)\b/g, " ").replace(/\s+/g, " ").trim();
-
+  const matchedTypes: string[] = [];
   for (const pattern of RENOVATION_PATTERNS) {
+    if (pattern.type === "windows" && (msg.includes("shutter") || msg.includes("shutters"))) continue;
     if (pattern.keywords.some(kw => msg.includes(kw))) {
-      return pattern.type;
+      if (!matchedTypes.includes(pattern.type)) matchedTypes.push(pattern.type);
     }
   }
-
-  return null;
+  return matchedTypes.length > 0 ? matchedTypes.join(",") : null;
 }
 
 const RECOMMENDATION_VERBS = ["recommend", "suggest", "start with", "focus on", "consider", "let's start", "begin with", "tackle", "prioritize", "biggest impact"];
 
 function detectRenovationIntentStrict(message: string): string | null {
   const msg = message.toLowerCase().replace(/\b(the|a|an|my|our|this|that|master|guest|main|half)\b/g, " ").replace(/\s+/g, " ").trim();
-
   const hasRecommendationContext = RECOMMENDATION_VERBS.some(v => msg.includes(v));
-
+  const matchedTypes: string[] = [];
   for (const pattern of RENOVATION_PATTERNS) {
+    if (pattern.type === "windows" && (msg.includes("shutter") || msg.includes("shutters"))) continue;
     const strictMatch = pattern.strictKeywords.some(kw => msg.includes(kw));
     if (!strictMatch) continue;
-
-    if (hasRecommendationContext) return pattern.type;
-
+    if (hasRecommendationContext) {
+      if (!matchedTypes.includes(pattern.type)) matchedTypes.push(pattern.type);
+      continue;
+    }
     const keywordHits = pattern.keywords.filter(kw => msg.includes(kw)).length;
-    if (keywordHits >= 2) return pattern.type;
+    if (keywordHits >= 2) {
+      if (!matchedTypes.includes(pattern.type)) matchedTypes.push(pattern.type);
+    }
   }
-
-  return null;
+  return matchedTypes.length > 0 ? matchedTypes.join(",") : null;
 }
 
 export function detectRenovationIntentFromBoth(userMessage: string, aiResponse: string): string | null {
   const userIntent = detectRenovationIntent(userMessage);
-  if (userIntent) return userIntent;
-
-  return detectRenovationIntentStrict(aiResponse);
+  const aiIntent = detectRenovationIntentStrict(aiResponse);
+  const combined = new Set<string>();
+  if (userIntent) userIntent.split(",").forEach(t => combined.add(t));
+  if (aiIntent) aiIntent.split(",").forEach(t => combined.add(t));
+  return combined.size > 0 ? Array.from(combined).join(",") : null;
 }
 
 export function getConfiguratorOptions(renovationType: string, conversationContext?: string) {

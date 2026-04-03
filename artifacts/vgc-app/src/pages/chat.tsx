@@ -957,7 +957,7 @@ export default function ChatPage() {
                     
                     {(() => {
                       const activeType = msg.configuratorType;
-                      if (activeType && typeof activeType === 'string' && CONFIGURATOR_MAP[activeType]) {
+                      if (activeType && typeof activeType === 'string' && activeType.length > 0) {
                         return (
                           <ConfiguratorChips
                             renovationType={activeType}
