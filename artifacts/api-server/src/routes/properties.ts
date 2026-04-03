@@ -33,7 +33,7 @@ router.post("/properties/lookup", requireAuth, async (req, res): Promise<void> =
     zillowUrl,
     address: result.data.address,
     zipCode: result.data.zipCode,
-    sqft: result.data.sqft,
+    sqft: Math.round(result.data.sqft),
     bedrooms: result.data.bedrooms,
     bathrooms: result.data.bathrooms,
     yearBuilt: result.data.yearBuilt,

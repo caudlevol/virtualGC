@@ -82,7 +82,7 @@ class RentCastProvider implements PropertyDataProvider {
       return {
         address: [property.addressLine1, property.city, property.state, property.zipCode].filter(Boolean).join(", ") as string,
         zipCode: String(property.zipCode || ""),
-        sqft: Number(property.squareFootage || 0),
+        sqft: Math.round(Number(property.squareFootage || 0)),
         bedrooms: Number(property.bedrooms || 0),
         bathrooms: Number(property.bathrooms || 0),
         yearBuilt: property.yearBuilt ? Number(property.yearBuilt) : null,
@@ -193,7 +193,7 @@ class ApifyProvider implements PropertyDataProvider {
     return {
       address: address || "Unknown Address",
       zipCode,
-      sqft: Number(item.livingArea || item.livingAreaValue || 0),
+      sqft: Math.round(Number(item.livingArea || item.livingAreaValue || 0)),
       bedrooms: Number(item.bedrooms || item.beds || 0),
       bathrooms: Number(item.bathrooms || item.baths || 0),
       yearBuilt: item.yearBuilt ? Number(item.yearBuilt) : null,
