@@ -6,7 +6,7 @@ import { requireAuth, requireTier } from "../middlewares/auth";
 import { chatWithVGC } from "../lib/aiPipeline";
 import { detectRenovationIntentFromBoth, generateConfiguratorQuote, getConfiguratorOptions } from "../lib/configuratorMap";
 import OpenAI from "openai";
-import FormData from "form-data";
+
 import { editImage } from "@workspace/integrations-gemini-ai";
 
 const openaiForViz = new OpenAI({ apiKey: process.env.OpenAI_API_Key });
@@ -511,126 +511,36 @@ router.post("/conversations/:conversationId/visualize", requireAuth, async (req,
       mimeType = rawCt.split(";")[0].trim();
     }
 
-    function detectRoomType(description: string): string {
-      const d = description.toLowerCase();
-      if (d.includes("kitchen")) return "kitchen";
-      if (d.includes("bathroom") || d.includes("bath ") || d.includes("shower") || d.includes("vanity")) return "bathroom";
-      if (d.includes("bedroom") || d.includes("bed room") || d.includes("master")) return "bedroom";
-      if (d.includes("dining")) return "diningRoom";
-      if (d.includes("office") || d.includes("study")) return "homeOffice";
-      if (d.includes("basement")) return "basement";
-      if (d.includes("laundry")) return "laundryRoom";
-      if (d.includes("exterior") || d.includes("outside") || d.includes("facade") || d.includes("front of")) return "exterior";
-      return "livingRoom";
-    }
+    console.log("[visualize] Using Gemini for visualization");
+    const editPrompt = `You are a photorealistic image editor performing a PIXEL-LOCK PRESERVATION EDIT. This is NOT a room redesign. You are making a single, localized change to exactly one element. Every other pixel in the photo must remain a 1:1 identical copy of the original image.
 
-    const roomType = detectRoomType(changeDescription);
-    const isExterior = roomType === "exterior";
+══════════════════════════════════════
+PIXEL-LOCK — DO NOT TOUCH THESE ITEMS
+══════════════════════════════════════
+${anchorElements
+  ? anchorElements
+  : "All ceiling fans, light fixtures, pendant lights, recessed lights, chandeliers, furniture, sofas, chairs, tables, rugs, flooring, hardwood floors, tile, carpet, walls, ceilings, crown molding, baseboards, trim, windows, doors, window frames, curtains, blinds, appliances, cabinetry not being renovated, background rooms visible through doorways, wall art, mirrors, shelving, decorative objects, and any other element not explicitly listed as the TARGET below."
+}
 
-    let dataUri: string | null = null;
+══════════════════════════════════════
+TARGET — MODIFY ONLY THIS ONE ITEM
+══════════════════════════════════════
+${changeDescription}
 
-    const anchorSection = anchorElements
-      ? `\nPIXEL-LOCK these items (they must remain identical to the original): ${anchorElements}`
-      : "";
+══════════════════════════════════════
+ABSOLUTE RULES — VIOLATION = FAILURE
+══════════════════════════════════════
+RULE 1 — PRESERVATION IS THE PRIORITY: Every item in the PIXEL-LOCK list above must be 1:1 identical to the original photo. This rule overrides everything else.
+RULE 2 — NO NEW OBJECTS: Do not add any object that does not exist in the original photo. No new ceiling fans, no new windows, no new doors, no new furniture, no new light fixtures, no new rugs, no new decor — nothing.
+RULE 3 — NO REMOVALS: Do not remove any existing object from the photo. If a ceiling fan exists in the original, it must exist in the output in the exact same position, color, and style.
+RULE 4 — LOCALIZED PIXELS ONLY: Your pixel edits must be confined exclusively to the TARGET item and its immediate bordering pixels. Do not touch any pixel that is more than a few pixels away from the target element's boundary.
+RULE 5 — NO STYLE DRIFT: Do not modernize, upgrade, restyle, or improve anything that is not the TARGET. The rest of the room must look exactly like the original photo, not a better version of it.
+RULE 6 — WHEN IN DOUBT, DO NOT CHANGE IT: If you are uncertain whether a pixel belongs to the TARGET or to the surrounding room, leave it unchanged.
+RULE 7 — PHOTOREALISM: The TARGET change must look like a real photograph. Apply correct shadows, reflections, and textures that match the room's existing lighting direction and color temperature. Edges where new materials meet existing surfaces must blend seamlessly.`;
 
-    const reimageApiKey = process.env.ReImage_API_Key;
-    if (reimageApiKey) {
-      try {
-        const reimageBase = "https://api.reimage.io/api/v1";
-        const endpoint = isExterior ? "exterior-remodel" : "interior-remodel";
-
-        const preservationPrompt = `SURGICAL EDIT — modify ONLY the target item described below. Everything else in the photo must remain pixel-perfect identical to the original.
-
-TARGET CHANGE: ${changeDescription}
-${anchorSection}
-
-DO NOT remove, add, or alter anything else. Do not remove any existing ceiling fans, light fixtures, furniture, flooring, trim, or background elements.`;
-
-        const form = new FormData();
-        form.append("image", imgBuffer, { filename: "room.jpg", contentType: "image/jpeg" });
-        form.append("prompt", preservationPrompt);
-        if (!isExterior) {
-          form.append("room_type", roomType);
-        }
-
-        const submitResponse = await fetch(`${reimageBase}/${endpoint}`, {
-          method: "POST",
-          headers: { "Authorization": reimageApiKey, ...form.getHeaders() },
-          body: form.getBuffer(),
-        });
-
-        if (submitResponse.status === 429) {
-          console.warn("[visualize] ReImage rate limited (429), falling back to Gemini");
-          throw new Error("RATE_LIMITED");
-        }
-
-        if (!submitResponse.ok) {
-          const errText = await submitResponse.text();
-          console.error("[visualize] ReImage submit failed:", submitResponse.status, errText);
-          throw new Error(`ReImage submit failed: ${submitResponse.status}`);
-        }
-
-        const submitResult = await submitResponse.json() as { jobID: number };
-        const jobId = submitResult.jobID;
-        console.log(`[visualize] ReImage job submitted: ${jobId} endpoint=${endpoint} roomType=${roomType}`);
-
-        let jobStatus = "rendering";
-        const maxWait = 120_000;
-        const pollInterval = 3_000;
-        const startTime = Date.now();
-
-        while (jobStatus !== "complete" && jobStatus !== "error" && (Date.now() - startTime) < maxWait) {
-          await new Promise(r => setTimeout(r, pollInterval));
-          const statusRes = await fetch(`${reimageBase}/job/${jobId}/status`, {
-            headers: { "Authorization": reimageApiKey },
-          });
-          if (!statusRes.ok) continue;
-          const statusData = await statusRes.json() as { status: string; output_values?: Record<string, string> };
-          jobStatus = statusData.status;
-          if (jobStatus === "error") {
-            const errMsg = statusData.output_values?.error || "Unknown error";
-            console.error(`[visualize] ReImage job ${jobId} failed: ${errMsg}`);
-            throw new Error(`ReImage job error: ${errMsg}`);
-          }
-        }
-
-        if (jobStatus !== "complete") {
-          throw new Error("ReImage timed out");
-        }
-
-        const resultRes = await fetch(`${reimageBase}/job/${jobId}/results/image-0`, {
-          headers: { "Authorization": reimageApiKey },
-        });
-        if (!resultRes.ok) throw new Error("Failed to download result");
-
-        const resultBuffer = Buffer.from(await resultRes.arrayBuffer());
-        dataUri = `data:image/png;base64,${resultBuffer.toString("base64")}`;
-        console.log(`[visualize] ReImage success for job ${jobId}`);
-      } catch (reimageErr: any) {
-        console.warn(`[visualize] ReImage failed (${reimageErr.message}), falling back to Gemini`);
-      }
-    }
-
-    if (!dataUri) {
-      console.log("[visualize] Using Gemini fallback");
-      const editPrompt = `SURGICAL PHOTO EDIT — You are editing exactly ONE element in this room photo. Restrict all changes to the target item and its immediate surrounding pixels. The rest of the image must be a 1:1 pixel-perfect copy of the original.
-
-TARGET CHANGE: ${changeDescription}
-${anchorSection}
-
-RULES:
-1. Edit ONLY the target item described above. Every other pixel must match the original exactly.
-2. Do NOT remove any existing objects — especially ceiling fans, light fixtures, furniture, or decor.
-3. Do NOT add any new objects that are not in the original photo.
-4. Do NOT change walls, ceilings, floors, or trim unless the target explicitly requires it.
-5. Keep the same camera angle, perspective, lighting direction, and color temperature.
-6. The result must be photorealistic — correct reflections, shadows, and textures matching the room's existing lighting.
-7. Edges where new materials meet existing surfaces must blend seamlessly.`;
-
-      const geminiResult = await editImage(imgBuffer.toString("base64"), mimeType, editPrompt);
-      dataUri = `data:${geminiResult.mimeType};base64,${geminiResult.b64_json}`;
-      console.log("[visualize] Gemini fallback success");
-    }
+    const geminiResult = await editImage(imgBuffer.toString("base64"), mimeType, editPrompt);
+    const dataUri = `data:${geminiResult.mimeType};base64,${geminiResult.b64_json}`;
+    console.log("[visualize] Gemini visualization success");
 
     const uploadedPreviewUri = uploadedImageBase64 ? `data:${uploadedImageMimeType};base64,${uploadedImageBase64}` : undefined;
 

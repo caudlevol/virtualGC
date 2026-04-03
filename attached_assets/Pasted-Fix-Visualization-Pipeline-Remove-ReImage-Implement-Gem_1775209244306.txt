@@ -1,0 +1,68 @@
+Fix Visualization Pipeline — Remove ReImage, Implement Gemini-Only Surgical Edit
+You are a senior full-stack developer working on a React + Node.js/TypeScript renovation visualization app. We are making two changes to artifacts/api-server/src/routes/conversations.ts:
+Remove the entire ReImage API integration — it is being deprecated in favor of Gemini-only image editing.
+Replace the Gemini edit prompt with a hardened surgical-edit prompt that prevents the model from hallucinating new room elements (new windows, fans, furniture, etc.).
+CHANGE 1 — Remove ReImage entirely
+Find the block of code that starts at this line:
+TypeScript
+const reimageApiKey = process.env.ReImage_API_Key;
+if (reimageApiKey) {
+Delete the entire if (reimageApiKey) { ... } block, including all of the following logic inside it: the reimageBase variable, the endpoint variable, the preservationPrompt variable, the FormData construction, the fetch call to submit the job, the polling while loop that checks job status, the result download fetch, and the catch block at the end. Remove all of it — approximately lines 536 through 612.
+Also delete the anchorSection variable that was only used by ReImage:
+TypeScript
+const anchorSection = anchorElements
+  ? `\nPIXEL-LOCK these items (they must remain identical to the original): ${anchorElements}`
+  : "";
+After this deletion, the let dataUri: string | null = null; line should be immediately followed by the Gemini edit block. The if (!dataUri) guard on the Gemini block should also be removed — Gemini is now the only path, so it should run unconditionally. Change:
+TypeScript
+if (!dataUri) {
+  console.log("[visualize] Using Gemini fallback");
+  // ... gemini code
+}
+To just:
+TypeScript
+console.log("[visualize] Using Gemini for visualization");
+// ... gemini code
+CHANGE 2 — Replace the Gemini edit prompt with the hardened surgical-edit version
+Find the editPrompt variable inside the Gemini block. It currently starts with:
+Plain Text
+`SURGICAL PHOTO EDIT — You are editing exactly ONE element...`
+Replace the entire editPrompt template literal with this exact string:
+TypeScript
+const editPrompt = `You are a photorealistic image editor performing a PIXEL-LOCK PRESERVATION EDIT. This is NOT a room redesign. You are making a single, localized change to exactly one element. Every other pixel in the photo must remain a 1:1 identical copy of the original image.
+
+══════════════════════════════════════
+PIXEL-LOCK — DO NOT TOUCH THESE ITEMS
+══════════════════════════════════════
+${anchorElements
+  ? anchorElements
+  : "All ceiling fans, light fixtures, pendant lights, recessed lights, chandeliers, furniture, sofas, chairs, tables, rugs, flooring, hardwood floors, tile, carpet, walls, ceilings, crown molding, baseboards, trim, windows, doors, window frames, curtains, blinds, appliances, cabinetry not being renovated, background rooms visible through doorways, wall art, mirrors, shelving, decorative objects, and any other element not explicitly listed as the TARGET below."
+}
+
+══════════════════════════════════════
+TARGET — MODIFY ONLY THIS ONE ITEM
+══════════════════════════════════════
+${changeDescription}
+
+══════════════════════════════════════
+ABSOLUTE RULES — VIOLATION = FAILURE
+══════════════════════════════════════
+RULE 1 — PRESERVATION IS THE PRIORITY: Every item in the PIXEL-LOCK list above must be 1:1 identical to the original photo. This rule overrides everything else.
+RULE 2 — NO NEW OBJECTS: Do not add any object that does not exist in the original photo. No new ceiling fans, no new windows, no new doors, no new furniture, no new light fixtures, no new rugs, no new decor — nothing.
+RULE 3 — NO REMOVALS: Do not remove any existing object from the photo. If a ceiling fan exists in the original, it must exist in the output in the exact same position, color, and style.
+RULE 4 — LOCALIZED PIXELS ONLY: Your pixel edits must be confined exclusively to the TARGET item and its immediate bordering pixels. Do not touch any pixel that is more than a few pixels away from the target element's boundary.
+RULE 5 — NO STYLE DRIFT: Do not modernize, upgrade, restyle, or improve anything that is not the TARGET. The rest of the room must look exactly like the original photo, not a better version of it.
+RULE 6 — WHEN IN DOUBT, DO NOT CHANGE IT: If you are uncertain whether a pixel belongs to the TARGET or to the surrounding room, leave it unchanged.
+RULE 7 — PHOTOREALISM: The TARGET change must look like a real photograph. Apply correct shadows, reflections, and textures that match the room's existing lighting direction and color temperature. Edges where new materials meet existing surfaces must blend seamlessly.`;
+CHANGE 3 — Clean up the detectRoomType function
+The detectRoomType function and the isExterior variable were only used by ReImage to select the correct API endpoint. Now that ReImage is removed, delete both:
+The entire detectRoomType function definition
+The const roomType = detectRoomType(changeDescription); line
+The const isExterior = roomType === "exterior"; line
+VERIFICATION CHECKLIST
+After making these changes, verify the following before saving:
+ There are no remaining references to reimageApiKey, reimageBase, ReImage_API_Key, jobId, jobStatus, pollInterval, maxWait, preservationPrompt, roomType, isExterior, or detectRoomType anywhere in the visualization route handler.
+ The anchorElements variable is still being populated from extraction.anchorElements (this stays — it feeds the Gemini prompt).
+ The editImage call from @workspace/integrations-gemini-ai is still present and receives imgBuffer.toString("base64"), mimeType, and editPrompt.
+ The dataUri variable is still being set from the Gemini result and the assistantMessage is still being saved to the database.
+ The app still compiles with no TypeScript errors.
